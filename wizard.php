@@ -35,6 +35,8 @@ $pre = (string)($_GET['tx'] ?? '');
 <main class="wrap">
 <?php if (!$rules): ?>
   <p class="note">The wizard rules could not be loaded right now. Please try again, or contact the office.</p>
+<?php elseif ($all === null): ?>
+  <p class="note">Your transaction folders could not be loaded: <?= htmlspecialchars($GLOBALS['sg_folders_note'] ?? '') ?>. Please tell the office.</p>
 <?php elseif (!$folders): ?>
   <p class="note">You need a buyer folder first. Create a folder named for the buyer(s) inside <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers</strong>, then come back to this page.</p>
 <?php else: ?>
