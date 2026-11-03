@@ -1,6 +1,6 @@
 DirectoryIndex index.php
 Options -Indexes
-<FilesMatch "^(config|lib|guard)\.php$">
+<FilesMatch "^(config|lib|guard|events)\.php$">
   Require all denied
 </FilesMatch>
 <FilesMatch "^\.">

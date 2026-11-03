@@ -16,5 +16,5 @@ $ri = flr_roster_info($email);
 if (!is_array($ri) || ($ri['active'] ?? false) !== true) out(false, 'notlisted');
 flr_session();
 session_regenerate_id(true);
-$_SESSION = ['email' => $email, 'name' => $info['name'] ?? '', 'checked' => time(), 'perm' => flr_perms($ri)];
+$_SESSION = ['email' => $email, 'name' => $info['name'] ?? '', 'pic' => (isset($info['picture']) && preg_match('#^https://[a-z0-9.-]+\.googleusercontent\.com/#i', $info['picture'])) ? $info['picture'] : '', 'checked' => time(), 'perm' => flr_perms($ri)];
 out(true);

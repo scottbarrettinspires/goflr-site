@@ -1,4 +1,21 @@
-<?php require __DIR__ . "/guard.php"; ?>
+<?php
+require __DIR__ . "/guard.php";
+require __DIR__ . "/events.php";
+$full = trim($_SESSION['name'] ?? '');
+$first = $full !== '' ? preg_split('/\s+/', $full)[0] : '';
+$pic = $_SESSION['pic'] ?? '';
+$ini = '';
+foreach (array_slice(preg_split('/\s+/', $full), 0, 2) as $w) { if ($w !== '') $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
+if ($ini === '') $ini = 'FLR';
+// Next upcoming event (Eastern time). Today's event stays until its end time has passed.
+$tz = new DateTimeZone('America/New_York');
+$now = new DateTime('now', $tz);
+$next = null;
+foreach ($FLR_EVENTS as $ev) {
+    $end = DateTime::createFromFormat('Y-m-d g:i A', $ev['date'] . ' ' . ($ev['end'] ?: '11:59 PM'), $tz);
+    if ($end && $end >= $now) { $next = $ev; $dt = new DateTime($ev['date'], $tz); break; }
+}
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,7 +23,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Home - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -20,9 +37,29 @@
   </nav>
 </div></header>
 
-<section class="hero">
-  <h1>Welcome to your back office</h1>
-  <p>Everything you need to run your business with FLR, in one place. Sign in with the Google account the office has on file for you.</p>
+<section class="hero welcome">
+  <div class="who">
+    <?php if ($pic): ?><img class="av" src="<?= htmlspecialchars($pic) ?>" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;av&quot;><?= htmlspecialchars($ini) ?></span>'"><?php else: ?><span class="av"><?= htmlspecialchars($ini) ?></span><?php endif; ?>
+    <div>
+      <h1>Welcome<?= $first !== '' ? ', ' . htmlspecialchars($first) : '' ?></h1>
+      <p>Your FLR back office. Everything you need to run your business, in one place.</p>
+    </div>
+  </div>
+<?php if ($next): ?>
+  <div class="nextup">
+    <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span><?= $dt->format('j') ?></span></div>
+    <div class="nb">
+      <span class="tag">Next up &middot; <?= htmlspecialchars($next['type']) ?></span>
+      <h2><?= htmlspecialchars($next['title']) ?></h2>
+      <div class="meta"><?= htmlspecialchars($dt->format('l')) ?><?= $next['start'] ? ' &middot; ' . htmlspecialchars($next['start'] . ' – ' . $next['end']) : '' ?><?= $next['where'] ? ' &middot; ' . htmlspecialchars($next['where']) : '' ?></div>
+      <div class="row">
+        <?php if ($next['zoom']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['zoom']) ?>">Join on Zoom</a><?php endif; ?>
+        <?php if ($next['rsvp']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP</a><?php endif; ?>
+        <a class="btn ghost" href="training.php">See all training</a>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 </section>
 
 <main class="wrap">

@@ -99,3 +99,17 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .ftab.on span{background:rgba(255,255,255,.25)}
 .fsoon{padding:34px 10px;text-align:center;color:var(--muted)}
 [hidden]{display:none!important}
+.welcome{display:grid;gap:18px;padding-top:30px}
+.who{display:flex;align-items:center;gap:16px}
+.av{flex:0 0 72px;width:72px;height:72px;border-radius:50%;object-fit:cover;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:1.4rem;border:3px solid var(--white);box-shadow:0 4px 14px rgba(3,111,114,.25)}
+.who h1{margin:0}
+.nextup{display:flex;gap:16px;align-items:flex-start;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(3,111,114,.08);max-width:760px}
+.nextup .tile{flex:0 0 64px;text-align:center;background:var(--teal);color:#fff;border-radius:12px;padding:8px 0;line-height:1.1}
+.nextup .tile b{display:block;font-size:.72rem;letter-spacing:.12em}
+.nextup .tile span{font-size:1.7rem;font-weight:600}
+.nextup .nb{flex:1;min-width:0}
+.nextup .tag{margin:0}
+.nextup h2{margin:6px 0 4px;font-size:1.15rem}
+.nextup .meta{color:var(--muted);font-size:.9rem;margin-bottom:10px}
+.btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
+.btn.ghost:hover{background:rgba(3,111,114,.08)}
