@@ -53,3 +53,30 @@ function flr_logout() {
     }
     session_destroy();
 }
+
+// Headshot cache. The roster script sends a data: URI; we shrink it and keep it in photos/ (web access denied),
+// then photo.php (sign-in required) serves it to the signed-in agent only.
+function flr_photo_path($email) { return __DIR__ . '/photos/' . sha1(strtolower(trim($email))) . '.jpg'; }
+
+function flr_store_photo($email, $dataUri) {
+    if (!is_string($dataUri) || strlen($dataUri) > 3000000 || !preg_match('#^data:image/(png|jpeg|gif|webp);base64,([A-Za-z0-9+/=]+)$#', $dataUri, $m)) return false;
+    $path = flr_photo_path($email);
+    if (is_file($path) && time() - filemtime($path) < 86400) return true;
+    $raw = base64_decode($m[2], true);
+    if ($raw === false || strlen($raw) < 100) return false;
+    $dir = __DIR__ . '/photos';
+    if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
+    if (!is_file($dir . '/.htaccess')) { @file_put_contents($dir . '/.htaccess', "Require all denied\n"); }
+    $out = $raw;
+    if (function_exists('imagecreatefromstring')) {
+        $im = @imagecreatefromstring($raw);
+        if ($im) {
+            $w = imagesx($im); $h = imagesy($im); $s = min($w, $h);
+            $sq = imagecreatetruecolor(240, 240);
+            imagefill($sq, 0, 0, imagecolorallocate($sq, 255, 255, 255));
+            imagecopyresampled($sq, $im, 0, 0, (int)(($w - $s) / 2), (int)(($h - $s) / 4), 240, 240, $s, $s);
+            ob_start(); imagejpeg($sq, null, 85); $out = ob_get_clean();
+        }
+    }
+    return @file_put_contents($path, $out) !== false;
+}

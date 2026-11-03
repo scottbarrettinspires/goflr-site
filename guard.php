@@ -6,6 +6,6 @@ $email = $_SESSION['email'] ?? '';
 if ($email === '') { header('Location: index.php'); exit; }
 if (time() - ($_SESSION['checked'] ?? 0) > RECHECK_SECONDS) {
     $ri = flr_roster_info($email);
-    if (is_array($ri) && ($ri['active'] ?? false) === true) { $_SESSION['checked'] = time(); $_SESSION['perm'] = flr_perms($ri); if (is_string($ri['photo'] ?? null) && preg_match('#^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]{20,60000}$#', $ri['photo'])) { $_SESSION['pic'] = $ri['photo']; } }
+    if (is_array($ri) && ($ri['active'] ?? false) === true) { $_SESSION['checked'] = time(); $_SESSION['perm'] = flr_perms($ri); if (flr_store_photo($email, $ri['photo'] ?? '')) { $_SESSION['pic'] = 'photo.php'; } }
     else { flr_logout(); header('Location: index.php?e=1'); exit; }
 }
