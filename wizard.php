@@ -7,7 +7,7 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $rules = sg_wizard_rules();
 $all = sg_folders($_SESSION['email']);
 $folders = [];
-foreach (($all ?: []) as $f) { if (strpos($f['group'], '1 BUYERS') === 0) $folders[] = $f; }
+foreach (($all ?: []) as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $folders[] = $f; }
 $pre = (string)($_GET['tx'] ?? '');
 ?>
 <!doctype html>
@@ -36,12 +36,12 @@ $pre = (string)($_GET['tx'] ?? '');
 <?php if (!$rules): ?>
   <p class="note">The wizard rules could not be loaded right now. Please try again, or contact the office.</p>
 <?php elseif (!$folders): ?>
-  <p class="note">You need a buyer folder first. Create an address folder inside <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 2 Contract Offers</strong>, then come back to this page.</p>
+  <p class="note">You need a buyer folder first. Create a folder named for the buyer(s) inside <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers</strong>, then come back to this page.</p>
 <?php else: ?>
   <div class="panel sigbox wz" id="wz">
-    <p><label for="tx"><strong>Which buyer transaction is this for?</strong></label><br>
+    <p><label for="tx"><strong>Which buyer is this for?</strong></label><br>
     <select id="tx" class="txsel">
-      <option value="">Choose a transaction...</option>
+      <option value="">Choose a buyer...</option>
 <?php $g = ''; foreach ($folders as $f): if ($f['group'] !== $g): if ($g !== '') echo "      </optgroup>\n"; $g = $f['group']; echo '      <optgroup label="' . htmlspecialchars($g) . "\">\n"; endif; ?>
       <option value="<?= htmlspecialchars($f['id']) ?>"<?= $pre === $f['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option>
 <?php endforeach; if ($g !== '') echo "      </optgroup>\n"; ?>
@@ -80,7 +80,7 @@ function fail(m){err.textContent=m;err.hidden=false;btn.disabled=false;btn.textC
 function num(v){return String(v||'').replace(/[$,%\s,]/g,'');}
 btn.addEventListener('click',async function(){
   err.hidden=true;res.hidden=true;
-  if(!txSel.value)return fail('Please choose the buyer transaction first.');
+  if(!txSel.value)return fail('Please choose the buyer first.');
   var picked=[],warn=[],clauses=[];
   for(var k=0;k<Q.length;k++){
     var x=Q[k],c=qs.querySelector('input[name="q'+x.q+'"]:checked');
@@ -111,14 +111,14 @@ btn.addEventListener('click',async function(){
     var notes=doc.__notes||[];
     var bytes=await doc.save();
     var bin='';for(var o=0;o<bytes.length;o+=32768){bin+=String.fromCharCode.apply(null,bytes.subarray(o,o+32768));}
-    btn.textContent='Saving to your transaction folder...';
+    btn.textContent='Saving to the buyer's folder...';
     var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:btoa(bin),forms:use})});
     var j=await r.json();
     var url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
     var out='<h2>Your contract packet</h2><ol>'+use.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
     notes.concat(warn).forEach(function(n){out+='<p class="note">'+esc(n)+'</p>';});
     out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+' as <a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a>.</p>' : '<p class="sigerr">'+esc(j.msg||'The packet was built but could not be saved.')+' You can still download it below.</p>';
-    out+='<p><a class="btn" href="'+url+'" download="Contract Packet.pdf">Download the packet</a></p>';
+    out+='<p><a class="btn" href="'+url+'" download="Contract Packet.pdf">Download the packet</a>'+(j.ok?' <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Next: send it for signature</a>':'')+'</p>';
     res.innerHTML=out;res.hidden=false;btn.disabled=false;btn.textContent='Build another packet';
   }catch(e){fail('Something went wrong: '+e.message);}
 });

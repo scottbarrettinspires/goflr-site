@@ -11,8 +11,8 @@ if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?
 $b64 = (string)($j['b64'] ?? '');
 if ($b64 === '' || strlen($b64) > 60000000) out(['ok' => false, 'msg' => 'The packet is empty or too large.']);
 $folders = sg_folders($_SESSION['email']) ?: [];
-$pick = null; foreach ($folders as $f) { if ($f['id'] === (string)($j['tx'] ?? '') && strpos($f['group'], '1 BUYERS') === 0) { $pick = $f; } }
-if (!$pick) out(['ok' => false, 'msg' => 'Please choose one of your buyer transaction folders.']);
+$pick = null; foreach ($folders as $f) { if ($f['id'] === (string)($j['tx'] ?? '') && $f['group'] === '1 BUYERS / 1 Buyers') { $pick = $f; } }
+if (!$pick) out(['ok' => false, 'msg' => 'Please choose one of your buyer folders (1 BUYERS / 1 Buyers).']);
 $name = 'Contract Packet - ' . gmdate('Y-m-d') . '.pdf';
 $r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' => $pick['id'], 'name' => $name, 'b64' => $b64]);
 if (!is_array($r) || empty($r['ok'])) out(['ok' => false, 'msg' => 'Could not save to the transaction folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.']);

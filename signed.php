@@ -22,7 +22,7 @@ $recs = sg_for_agent($me);
 // Check status of anything still open, and file anything that is done and has a transaction.
 foreach ($recs as $i => $r) {
     if (empty($r['completed'])) { sg_refresh($r); }
-    if (!empty($r['completed']) && empty($r['filed']) && !empty($r['folder']['id'])) { sg_file($r); }
+    if (!empty($r['completed']) && empty($r['filed']) && sg_can_file($r)) { sg_file($r); }
     $recs[$i] = $r;
 }
 // Assign a finished, unfiled document to a transaction.
