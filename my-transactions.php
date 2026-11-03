@@ -31,10 +31,6 @@
     <div><b>2</b><span>Click any document to view it in a new tab.</span></div>
     <div><b>3</b><span>Fully executed contracts are tagged and listed first.</span></div>
   </div>
-  <div class="row">
-    <a class="btn" target="_blank" rel="noopener" href="https://script.google.com/macros/s/AKfycby-I1pv0Cj67anTrfraHjvdOyG9S9KLuv0n91zSAihHMuhsTcJQQwrRykf1GNmL9RQR/exec">Open in a full page</a>
-  </div>
-  <p class="note">If the box below says it can't load, or asks you to sign in, use <b>Open in a full page</b>. Some browsers block Google sign-in inside another website.</p>
   <div class="panel"><iframe class="frame" title="My Transactions" src="https://script.google.com/macros/s/AKfycby-I1pv0Cj67anTrfraHjvdOyG9S9KLuv0n91zSAihHMuhsTcJQQwrRykf1GNmL9RQR/exec"></iframe></div>
 </main>
 
