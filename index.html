@@ -8,6 +8,9 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="login">
+<div class="bgs" id="bgs" aria-hidden="true"></div>
+<div class="shade"></div>
+<div class="cap" id="cap"></div>
 <main class="box">
   <div class="logo"><b>Florida Luxury Realty</b><span>Agent Back Office</span></div>
   <h1>Welcome back</h1>
@@ -16,5 +19,23 @@
   <p class="note">When you open <b>My Transactions</b> or <b>Forms</b>, Google will ask you to sign in. Use the Google account the office has on file for you. You only see files shared with that account.</p>
   <p class="help">Can't get in? Contact the office.</p>
 </main>
+<script src="scenes.js"></script>
+<script>
+(function () {
+  var holder = document.getElementById("bgs"), cap = document.getElementById("cap");
+  var items = (window.PHOTOS && PHOTOS.length) ? PHOTOS.map(function (f) { return { name: "Florida", img: f }; }) : FLR_SCENES;
+  var order = items.map(function (_, i) { return i; }).sort(function () { return Math.random() - 0.5; });
+  var els = order.map(function (i) {
+    var d = document.createElement("div"); d.className = "bg";
+    if (items[i].img) d.style.backgroundImage = "url(" + items[i].img + ")"; else d.innerHTML = items[i].svg;
+    holder.appendChild(d); return d;
+  });
+  var cur = 0;
+  function show(n) { els.forEach(function (e, k) { e.classList.toggle("on", k === n); }); cap.textContent = items[order[n]].name; }
+  show(0);
+  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce) setInterval(function () { cur = (cur + 1) % els.length; show(cur); }, 8000);
+})();
+</script>
 </body>
 </html>
