@@ -19,11 +19,18 @@ function flr_get_json($url) {
     return is_array($j) ? $j : null;
 }
 
-// Roster lookup. Returns the roster's answer for this email, or null on any error (fail closed).
+// Roster lookup. Agent Records first; the old roster sheet is a temporary fallback. Returns an array or null (fail closed).
 function flr_roster_info($email) {
     if (strpos(ROSTER_URL, 'PASTE_') === 0) return null;
-    $j = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&email=' . urlencode(strtolower(trim($email))));
-    return is_array($j) ? $j : null;
+    $q = '?key=' . urlencode(ROSTER_KEY) . '&email=' . urlencode(strtolower(trim($email)));
+    $j = flr_get_json(ROSTER_URL . $q);
+    if (is_array($j) && ($j['active'] ?? false) === true) return $j;
+    if (defined('OLD_ROSTER_URL')) {
+        $o = flr_get_json(OLD_ROSTER_URL . $q);
+        if (is_array($o) && ($o['active'] ?? false) === true) return $o;
+        if (!is_array($j)) return $o;
+    }
+    return $j;
 }
 
 // True only when the roster says this email is Active.
