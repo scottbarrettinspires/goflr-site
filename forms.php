@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Forms - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -22,17 +22,25 @@
 
 <section class="hero">
   <h1>Forms</h1>
-  <p>Buyer forms, organized by section. Download a form, then open the PDF to fill it in.</p>
+  <p>Choose a category, find your form, and download it. Then open the PDF to fill it in.</p>
 </section>
 
+<?php $perm = $_SESSION['perm'] ?? []; ?>
 <main class="wrap">
   <div class="tips">
-    <div><b>1</b><span>Find the section you need, or use search.</span></div>
-    <div><b>2</b><span>Click <b style="display:inline;background:none;color:inherit;width:auto;height:auto">Download</b> to save the form.</span></div>
+    <div><b>1</b><span>Pick a category: Buyer, Seller, Agent<?php if(!empty($perm['commercial'])): ?>, Commercial<?php endif; ?><?php if(!empty($perm['leasing'])): ?>, Leasing<?php endif; ?>.</span></div>
+    <div><b>2</b><span>Click Download to save the form.</span></div>
     <div><b>3</b><span>Open the downloaded PDF to fill in the fields.</span></div>
   </div>
-  <div class="fsearch"><input id="fq" type="search" placeholder="Search forms" autocomplete="off"></div>
-<section class="fsec"><h2>Buyer Starter Forms <span>5</span></h2><div class="flist">
+  <div class="ftabs" role="tablist">
+<button type="button" class="ftab" data-k="buyer">Buyer <span>27</span></button>
+<button type="button" class="ftab" data-k="seller">Seller <span>4</span></button>
+<button type="button" class="ftab" data-k="agent">Agent</button>
+<?php if(!empty($perm["commercial"])): ?><button type="button" class="ftab" data-k="commercial">Commercial</button><?php endif; ?>
+<?php if(!empty($perm["leasing"])): ?><button type="button" class="ftab" data-k="leasing">Leasing</button><?php endif; ?>
+  </div>
+  <div class="fsearch"><input id="fq" type="search" placeholder="Search this category" autocomplete="off"></div>
+<div class="fpanel" id="p-buyer" hidden><section class="fsec"><h2>Buyer Starter Forms <span>5</span></h2><div class="flist">
 <div class="frow" data-t="amendment to buyer broker / showing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Amendment to Buyer Broker / Showing Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g">Download</a></div>
 <div class="frow" data-t="broker disclosure to buyer"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Broker Disclosure to Buyer</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1U4L9lK0HKTTxOMGhGvpHXT1_7Wqxd3OX/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1U4L9lK0HKTTxOMGhGvpHXT1_7Wqxd3OX">Download</a></div>
 <div class="frow" data-t="exclusive buyer brokerage agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Exclusive Buyer Brokerage Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U">Download</a></div>
@@ -71,14 +79,31 @@
 <section class="fsec"><h2>Pre-Closing Forms <span>1</span></h2><div class="flist">
 <div class="frow" data-t="buyer pre-closing final inspection"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Buyer Pre-Closing Final Inspection</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/138uML5GUJgxwVQ_Wu3XWTt9NbYwkqsJ6/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=138uML5GUJgxwVQ_Wu3XWTt9NbYwkqsJ6">Download</a></div>
 </div></section>
+</div>
+<div class="fpanel" id="p-seller" hidden><section class="fsec"><h2>Seller Contract Disclosures <span>4</span></h2><div class="flist">
+<div class="frow" data-t="community development district (cdd) addendum"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Community Development District (CDD) Addendum</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1d7SQcdXJRswZgqzffbSMvY9ndfsTdpNu/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1d7SQcdXJRswZgqzffbSMvY9ndfsTdpNu">Download</a></div>
+<div class="frow" data-t="condominium rider"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Condominium Rider</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1gfhaOxWhlPfV4aphrCMWbAQu2Em3lsY2/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1gfhaOxWhlPfV4aphrCMWbAQu2Em3lsY2">Download</a></div>
+<div class="frow" data-t="hoa / community disclosure"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">HOA / Community Disclosure</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1DgQTv79_DSaJydyV8g1s2WSLx_DdplIR/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1DgQTv79_DSaJydyV8g1s2WSLx_DdplIR">Download</a></div>
+<div class="frow" data-t="(p) lead-based paint disclosure (pre-1978)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(P) Lead-Based Paint Disclosure (Pre-1978)</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/10rkN_Y8vPa27KMstZkC7sNomI4mtgGz7/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=10rkN_Y8vPa27KMstZkC7sNomI4mtgGz7">Download</a></div>
+</div></section>
+</div>
+<div class="fpanel" id="p-agent" hidden><p class="fsoon">Agent forms are coming soon. Need one now? Contact the office.</p></div>
+<?php if(!empty($perm["commercial"])): ?><div class="fpanel" id="p-commercial" hidden><p class="fsoon">Commercial forms are coming soon. Need one now? Contact the office.</p></div><?php endif; ?>
+<?php if(!empty($perm["leasing"])): ?><div class="fpanel" id="p-leasing" hidden><p class="fsoon">Leasing forms are coming soon. Need one now? Contact the office.</p></div><?php endif; ?>
   <p class="note" id="fnone" hidden>No forms match your search.</p>
-  <p class="note">Seller, Agent and Referral forms are coming to this page. Need one now? Contact the office.</p>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
 <script>
-(function(){var q=document.getElementById("fq"),rows=[].slice.call(document.querySelectorAll(".frow")),secs=[].slice.call(document.querySelectorAll(".fsec")),none=document.getElementById("fnone");
-q.addEventListener("input",function(){var v=q.value.trim().toLowerCase(),t=0;rows.forEach(function(r){var m=!v||r.getAttribute("data-t").indexOf(v)>-1;r.style.display=m?"":"none";if(m)t++;});secs.forEach(function(s){s.style.display=s.querySelector('.frow:not([style*="none"])')?"":"none";});none.hidden=t>0;});})();
+(function(){
+var tabs=[].slice.call(document.querySelectorAll(".ftab")),q=document.getElementById("fq"),none=document.getElementById("fnone"),cur="";
+function panel(){return document.getElementById("p-"+cur);}
+function filter(){var p=panel();if(!p)return;var v=q.value.trim().toLowerCase(),t=0,rows=[].slice.call(p.querySelectorAll(".frow"));rows.forEach(function(r){var m=!v||r.getAttribute("data-t").indexOf(v)>-1;r.style.display=m?"":"none";if(m)t++;});[].slice.call(p.querySelectorAll(".fsec")).forEach(function(s){s.style.display=s.querySelector('.frow:not([style*="none"])')?"":"none";});none.hidden=!(v&&rows.length&&t===0);}
+function show(k){if(!document.getElementById("p-"+k))k="buyer";cur=k;tabs.forEach(function(b){b.classList.toggle("on",b.getAttribute("data-k")===k);});[].slice.call(document.querySelectorAll(".fpanel")).forEach(function(p){p.hidden=p.id!=="p-"+k;});q.value="";filter();try{history.replaceState(null,"","#"+k);}catch(e){}}
+tabs.forEach(function(b){b.addEventListener("click",function(){show(b.getAttribute("data-k"));});});
+q.addEventListener("input",filter);
+show((location.hash||"").slice(1)||"buyer");
+})();
 </script>
 </body>
 </html>

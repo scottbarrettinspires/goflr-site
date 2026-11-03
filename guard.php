@@ -5,6 +5,7 @@ header('Cache-Control: no-store');
 $email = $_SESSION['email'] ?? '';
 if ($email === '') { header('Location: index.php'); exit; }
 if (time() - ($_SESSION['checked'] ?? 0) > RECHECK_SECONDS) {
-    if (flr_roster_active($email)) { $_SESSION['checked'] = time(); }
+    $ri = flr_roster_info($email);
+    if (is_array($ri) && ($ri['active'] ?? false) === true) { $_SESSION['checked'] = time(); $_SESSION['perm'] = flr_perms($ri); }
     else { flr_logout(); header('Location: index.php?e=1'); exit; }
 }
