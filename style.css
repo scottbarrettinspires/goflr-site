@@ -34,3 +34,19 @@ a.card:hover{border-color:var(--teal);transform:translateY(-2px)}
 .btn:hover{background:var(--teal-dark)}
 .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 14px}
 footer{max-width:1080px;margin:24px auto 0;padding:20px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+.events{display:grid;gap:14px}
+.ev{display:flex;gap:16px;align-items:flex-start}
+.ev[hidden]{display:none}
+.ev .tile{flex:0 0 64px;text-align:center;background:var(--teal);color:#fff;border-radius:12px;padding:8px 0;line-height:1.1}
+.ev .tile b{display:block;font-size:.72rem;letter-spacing:.12em}
+.ev .tile span{font-size:1.7rem;font-weight:600}
+.ev .body{flex:1;min-width:0}
+.ev h2{margin:6px 0 4px}
+.ev .meta{color:var(--muted);font-size:.9rem;margin-bottom:8px}
+.ev p{margin:0 0 10px}
+.ev .tag{margin:0}
+.ev .row{margin:0}
+.ev.cx{opacity:.55}
+.ev.cx h2{text-decoration:line-through}
+.ev.hol .tile{background:var(--teal-dark)}
+.empty{color:var(--muted)}
