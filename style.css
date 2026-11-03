@@ -50,3 +50,13 @@ footer{max-width:1080px;margin:24px auto 0;padding:20px;color:var(--muted);font-
 .ev.cx h2{text-decoration:line-through}
 .ev.hol .tile{background:var(--teal-dark)}
 .empty{color:var(--muted)}
+body.login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--teal) 0,var(--teal-dark) 100%);padding:20px}
+.login .box{background:var(--white);border-radius:18px;padding:36px 28px;max-width:440px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.login .logo{display:flex;flex-direction:column;line-height:1.1;margin-bottom:22px;color:var(--teal)}
+.login .logo b{font-size:1.15rem;letter-spacing:.14em;text-transform:uppercase}
+.login .logo span{font-size:.72rem;letter-spacing:.3em;text-transform:uppercase;opacity:.8}
+.login h1{margin:0 0 6px;font-size:1.6rem}
+.login p{color:var(--muted);margin:0 0 20px}
+.btn.big{padding:14px 28px;font-size:1.05rem}
+.login .note{text-align:left;margin:22px 0 14px}
+.login .help{font-size:.85rem;margin:0}
