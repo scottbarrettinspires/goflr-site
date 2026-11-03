@@ -16,5 +16,8 @@ $ri = flr_roster_info($email);
 if (!is_array($ri) || ($ri['active'] ?? false) !== true) out(false, 'notlisted');
 flr_session();
 session_regenerate_id(true);
-$_SESSION = ['email' => $email, 'name' => $info['name'] ?? '', 'pic' => (isset($info['picture']) && preg_match('#^https://[a-z0-9.-]+\.googleusercontent\.com/#i', $info['picture'])) ? $info['picture'] : '', 'checked' => time(), 'perm' => flr_perms($ri)];
+$pic = '';
+if (is_string($ri['photo'] ?? null) && preg_match('#^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]{20,60000}$#', $ri['photo'])) { $pic = $ri['photo']; }
+elseif (isset($info['picture']) && preg_match('#^https://[a-z0-9.-]+\.googleusercontent\.com/#i', $info['picture'])) { $pic = $info['picture']; }
+$_SESSION = ['email' => $email, 'name' => $info['name'] ?? '', 'pic' => $pic, 'checked' => time(), 'perm' => flr_perms($ri)];
 out(true);
