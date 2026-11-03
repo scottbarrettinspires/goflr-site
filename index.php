@@ -12,7 +12,7 @@ $removed = isset($_GET['e']);
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Sign in - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 <style>
 :root{--teal:#036F72;--teal-dark:#025457;--teal-soft:#e6f2f2;--muted:#5b6669;--white:#fff;--line:#dfe6e7}
 *{box-sizing:border-box}

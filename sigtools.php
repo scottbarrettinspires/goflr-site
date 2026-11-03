@@ -79,3 +79,12 @@ function sg_file(&$rec) {
     @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $rec['folder']['label'] ?? '', 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX);
     return [true, 'Filed in ' . ($rec['folder']['label'] ?? 'the transaction folder') . '.'];
 }
+
+// Contract Forms Wizard rules, read from the Wizard Rules sheet through the office script.
+function sg_wizard_rules() {
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=wizard');
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
+    $b = curl_exec($ch); curl_close($ch);
+    $j = $b === false ? null : json_decode($b, true);
+    return (is_array($j) && !empty($j['ok'])) ? $j : null;
+}

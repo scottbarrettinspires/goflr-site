@@ -124,3 +124,10 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 @media(max-width:560px){.sg{flex-direction:column}}
 .txsel{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:inherit;max-width:100%;margin-top:6px}
 .sgrow{margin:0 0 14px}
+.wz{max-width:760px}
+.wq{border:1px solid var(--line);border-radius:12px;margin:0 0 14px;padding:12px 16px}
+.wq legend{font-weight:700;padding:0 6px}
+.wr{display:block;margin:6px 0}
+.wf{margin:6px 0 8px 22px}
+.wf input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.fwiz{margin:0 0 16px}
