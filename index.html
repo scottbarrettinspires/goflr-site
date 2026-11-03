@@ -24,17 +24,11 @@
 (function () {
   var holder = document.getElementById("bgs"), cap = document.getElementById("cap");
   var items = (window.PHOTOS && PHOTOS.length) ? PHOTOS.map(function (f) { return { name: "Florida", img: f }; }) : FLR_SCENES;
-  var order = items.map(function (_, i) { return i; }).sort(function () { return Math.random() - 0.5; });
-  var els = order.map(function (i) {
-    var d = document.createElement("div"); d.className = "bg";
-    if (items[i].img) d.style.backgroundImage = "url(" + items[i].img + ")"; else d.innerHTML = items[i].svg;
-    holder.appendChild(d); return d;
-  });
-  var cur = 0;
-  function show(n) { els.forEach(function (e, k) { e.classList.toggle("on", k === n); }); cap.textContent = items[order[n]].name; }
-  show(0);
-  var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!reduce) setInterval(function () { cur = (cur + 1) % els.length; show(cur); }, 8000);
+  var it = items[Math.floor(Math.random() * items.length)];
+  var d = document.createElement("div"); d.className = "bg on";
+  if (it.img) d.style.backgroundImage = "url(" + it.img + ")"; else d.innerHTML = it.svg;
+  holder.appendChild(d);
+  cap.textContent = it.name;
 })();
 </script>
 </body>

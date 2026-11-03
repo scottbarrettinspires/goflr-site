@@ -116,5 +116,64 @@ var PHOTOS = [];
     return wrap(grad('g', [[0, '#58b5ea'], [1, '#d9f1fb']]) + grad('w', [[0, '#5ec4cf'], [1, '#1d7f98']]), b);
   })() });
 
+  /* Orlando - Lake Eola at dusk with fireworks */
+  scenes.push({ name: 'Orlando', svg: (function () {
+    seed = 21;
+    var b = '<rect width="1600" height="900" fill="url(#g)"/>';
+    [[300, 200, '#ffd166'], [520, 130, '#ff6fb5'], [1180, 170, '#7fe0ff'], [1350, 260, '#ffd166']].forEach(function (f) {
+      for (var a = 0; a < 16; a++) { var r = a * Math.PI / 8; b += '<line x1="' + f[0] + '" y1="' + f[1] + '" x2="' + (f[0] + Math.cos(r) * 70) + '" y2="' + (f[1] + Math.sin(r) * 70) + '" stroke="' + f[2] + '" stroke-width="3" stroke-linecap="round" opacity=".85"/>'; }
+      b += '<circle cx="' + f[0] + '" cy="' + f[1] + '" r="6" fill="#fff"/>';
+    });
+    b += skyline(640, '#3d3470', 0, 90, 300, 260, 1400);
+    b += skyline(655, '#241c4a', 0, 50, 200, 200, 1500);
+    for (var w = 0; w < 40; w++) b += '<rect x="' + (280 + rnd() * 1100) + '" y="' + (420 + rnd() * 200) + '" width="5" height="7" fill="#ffd98a" opacity=".8"/>';
+    b += '<rect y="640" width="1600" height="260" fill="url(#w)"/>';
+    b += '<path d="M800 700 Q800 600 800 560" stroke="#cfe9ff" stroke-width="6" fill="none" opacity=".8"/><path d="M800 560 Q760 600 740 690 M800 560 Q840 600 860 690" stroke="#cfe9ff" stroke-width="3" fill="none" opacity=".6"/>';
+    b += '<path d="M1000 720 q40 -50 90 -10 q-30 30 -90 10z" fill="#f6f6f6"/><path d="M1085 690 q6 -35 -14 -40" stroke="#f6f6f6" stroke-width="7" fill="none"/>';
+    for (var i = 0; i < 7; i++) b += '<rect x="' + (500 + i * 8) + '" y="' + (670 + i * 24) + '" width="' + (300 - i * 30) + '" height="5" rx="2" fill="#ffd98a" opacity="' + (0.4 - i * 0.04) + '"/>';
+    b += palm(140, 900, 500, 50, '#120e28', 1.5) + palm(1470, 900, 460, -50, '#120e28', 1.4);
+    return wrap(grad('g', [[0, '#150f33'], [0.6, '#5a3a8c'], [1, '#ff8fa3']]) + grad('w', [[0, '#7a4a8f'], [1, '#150f33']]), b);
+  })() });
+
+  /* St. Petersburg - inverted-pyramid pier and sailboats */
+  scenes.push({ name: 'St. Petersburg', svg: (function () {
+    var b = '<rect width="1600" height="900" fill="url(#g)"/><circle cx="1180" cy="430" r="95" fill="#fff0c8" opacity=".95"/><circle cx="1180" cy="430" r="190" fill="#ffd9a0" opacity=".25"/>';
+    b += '<rect y="520" width="1600" height="380" fill="url(#w)"/>';
+    b += '<g transform="translate(-480 0)"><rect x="0" y="600" width="1000" height="14" fill="#7a5a43"/>';
+    for (var p = 0; p < 20; p++) b += '<rect x="' + (p * 52) + '" y="610" width="8" height="40" fill="#5c4331"/>';
+    b += '<path d="M820 600 L1010 600 L960 470 L870 470Z" fill="#f4efe6" opacity="0"/>';
+    b += '<path d="M700 330 L1060 330 L930 520 L830 520Z" fill="#f2ede4"/><path d="M700 330 L1060 330 L1030 355 L730 355Z" fill="#d9d2c4"/><rect x="872" y="520" width="16" height="90" fill="#e8e1d3"/>';
+    for (var k = 0; k < 6; k++) b += '<line x1="' + (730 + k * 60) + '" y1="355" x2="' + (850 + k * 14) + '" y2="520" stroke="#b9b1a1" stroke-width="2"/>';
+    b += '</g>';
+    [[1250, 580, 1], [1400, 600, .8], [1100, 640, .65]].forEach(function (a) {
+      var x = a[0], y = a[1], z = a[2];
+      b += '<path d="M' + x + ' ' + y + ' L' + (x + 110 * z) + ' ' + y + ' L' + (x + 80 * z) + ' ' + (y + 24 * z) + ' L' + (x + 20 * z) + ' ' + (y + 24 * z) + 'Z" fill="#274b63"/><rect x="' + (x + 55 * z) + '" y="' + (y - 150 * z) + '" width="4" height="150" fill="#555"/><path d="M' + (x + 59 * z) + ' ' + (y - 145 * z) + ' L' + (x + 130 * z) + ' ' + (y - 10 * z) + ' L' + (x + 59 * z) + ' ' + (y - 10 * z) + 'Z" fill="#fff"/><path d="M' + (x + 52 * z) + ' ' + (y - 120 * z) + ' L' + (x + 10 * z) + ' ' + (y - 10 * z) + ' L' + (x + 52 * z) + ' ' + (y - 10 * z) + 'Z" fill="#ffd6c2"/>';
+    });
+    for (var i = 0; i < 8; i++) b += '<rect x="' + (1080 + i * 10) + '" y="' + (545 + i * 26) + '" width="' + (200 - i * 20) + '" height="6" rx="3" fill="#fff0c8" opacity="' + (0.55 - i * 0.05) + '"/>';
+    b += '<path d="M0 900 L0 790 Q300 740 700 790 T1600 780 L1600 900Z" fill="#f0dcae"/>';
+    b += palm(60, 850, 330, 40, '#16503d', 1.1) + palm(1500, 850, 380, -50, '#1c5f48', 1.2);
+    return wrap(grad('g', [[0, '#ff8a65'], [0.45, '#ffc58a'], [1, '#bde9f2']]) + grad('w', [[0, '#7fd2d2'], [1, '#1b8ea3']]), b);
+  })() });
+
+  /* Sarasota - bay, arched bridge and sailboats */
+  scenes.push({ name: 'Sarasota', svg: (function () {
+    seed = 17;
+    var b = '<rect width="1600" height="900" fill="url(#g)"/><circle cx="360" cy="400" r="85" fill="#fff3d6"/><circle cx="360" cy="400" r="170" fill="#ffe7c2" opacity=".3"/>';
+    b += '<ellipse cx="1050" cy="170" rx="190" ry="26" fill="#fff" opacity=".6"/><ellipse cx="1300" cy="230" rx="120" ry="20" fill="#fff" opacity=".5"/>';
+    b += skyline(560, '#8c7ba3', 0, 40, 150, 820, 1500);
+    b += '<rect y="560" width="1600" height="340" fill="url(#w)"/>';
+    b += '<path d="M0 600 L1600 600 L1600 616 L0 616Z" fill="#6b5a7e"/>';
+    b += '<path d="M380 600 Q900 330 1420 600" stroke="#6b5a7e" stroke-width="14" fill="none"/>';
+    for (var a = 0; a < 12; a++) { var t = (a + 1) / 13, x = 380 + t * 1040, y = 600 - Math.sin(t * Math.PI) * 135; b += '<line x1="' + x + '" y1="' + (y + 6) + '" x2="' + x + '" y2="600" stroke="#6b5a7e" stroke-width="3"/>'; }
+    for (var p = 0; p < 24; p++) b += '<rect x="' + (p * 70) + '" y="616" width="9" height="50" fill="#5a4a6c"/>';
+    [[180, 700, 1.3], [760, 740, 1], [1180, 720, 0.8]].forEach(function (s) {
+      var x = s[0], y = s[1], z = s[2];
+      b += '<path d="M' + x + ' ' + y + ' L' + (x + 130 * z) + ' ' + y + ' L' + (x + 95 * z) + ' ' + (y + 28 * z) + ' L' + (x + 25 * z) + ' ' + (y + 28 * z) + 'Z" fill="#33405f"/><rect x="' + (x + 62 * z) + '" y="' + (y - 170 * z) + '" width="4" height="170" fill="#555"/><path d="M' + (x + 66 * z) + ' ' + (y - 165 * z) + ' L' + (x + 150 * z) + ' ' + (y - 12 * z) + ' L' + (x + 66 * z) + ' ' + (y - 12 * z) + 'Z" fill="#fff"/><path d="M' + (x + 59 * z) + ' ' + (y - 130 * z) + ' L' + (x + 12 * z) + ' ' + (y - 12 * z) + ' L' + (x + 59 * z) + ' ' + (y - 12 * z) + 'Z" fill="#ffe0e8"/>';
+    });
+    for (var i = 0; i < 7; i++) b += '<rect x="' + (240 + i * 12) + '" y="' + (630 + i * 28) + '" width="' + (240 - i * 28) + '" height="6" rx="3" fill="#fff3d6" opacity="' + (0.5 - i * 0.05) + '"/>';
+    b += palm(1480, 900, 470, -70, '#2a3a4a', 1.5) + palm(90, 900, 380, 40, '#2a3a4a', 1.2);
+    return wrap(grad('g', [[0, '#9fb7e6'], [0.55, '#f7b2c8'], [1, '#ffe2b8']]) + grad('w', [[0, '#9ec9e6'], [1, '#3f7ea3']]), b);
+  })() });
+
   window.FLR_SCENES = scenes;
 })();
