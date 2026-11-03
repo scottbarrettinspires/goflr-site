@@ -1,3 +1,10 @@
+<?php
+require_once __DIR__ . '/lib.php';
+flr_session();
+header('Cache-Control: no-store');
+if (!empty($_SESSION['email'])) { header('Location: home.php'); exit; }
+$removed = isset($_GET['e']);
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -34,6 +41,8 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 
 html,body{height:100%}
 .login .logo img{width:100%;max-width:300px;height:auto;margin:0 auto 6px;display:block}
+.err{color:#b3261e;font-weight:600;font-size:.92rem;margin:14px 0 0}
+.login .box .g_id_signin{display:flex;justify-content:center}
 </style>
 </head>
 <body class="login">
@@ -44,12 +53,27 @@ html,body{height:100%}
   <div class="logo"><img src="logo.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></div>
   <h1>Welcome back</h1>
   <p>Your transactions, forms and training in one place.</p>
-  <a class="btn big" href="home.html">Enter the Back Office</a>
-  <p class="note">When you open <b>My Transactions</b> or <b>Forms</b>, Google will ask you to sign in. Use the Google account the office has on file for you. You only see files shared with that account.</p>
+  <div id="g_id_onload" data-client_id="635313816169-b0ibgp7e6056ohnali4oq6kq42cv9kd4.apps.googleusercontent.com" data-callback="onCred" data-auto_prompt="false" data-use_fedcm_for_prompt="true"></div>
+  <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="signin_with" data-shape="pill" data-logo_alignment="left" data-width="300"></div>
+  <p class="err" id="err" role="alert"<?php if (!$removed) echo ' hidden'; ?>><?php if ($removed) echo 'Your access has ended or changed. Please contact the office.'; ?></p>
+  <p class="note">Sign in with the Google (Gmail) account the office has on file for you. Your transactions and files are shown only from folders shared with that account.</p>
   <p class="help">Can't get in? Contact the office.</p>
 </main>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="scenes.js?v=3"></script>
 <script>
+function onCred(r) {
+  var e = document.getElementById("err");
+  e.hidden = true;
+  fetch("auth.php", { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "same-origin", body: JSON.stringify({ credential: r.credential }) })
+    .then(function (x) { return x.json(); })
+    .then(function (d) {
+      if (d.ok) { location.href = "home.php"; return; }
+      e.textContent = d.msg === "notlisted" ? "That Google account is not on the agent list. Please contact the office." : "Sign-in did not work. Please try again.";
+      e.hidden = false;
+    })
+    .catch(function () { e.textContent = "Sign-in did not work. Please try again."; e.hidden = false; });
+}
 (function () {
   var holder = document.getElementById("bgs"), cap = document.getElementById("cap");
   var items = (window.PHOTOS && PHOTOS.length) ? PHOTOS.map(function (f) { return { name: "Florida", img: f }; }) : FLR_SCENES;

@@ -1,3 +1,4 @@
+<?php require __DIR__ . "/guard.php"; ?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -9,12 +10,13 @@
 </head>
 <body>
 <header class="top"><div class="in">
-  <a class="brand" href="home.html"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
+  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
-    <a href="home.html">Home</a>
-    <a href="my-transactions.html" aria-current="page">My Transactions</a>
-    <a href="forms.html">Forms</a>
-    <a href="training.html">Training</a>
+    <a href="home.php">Home</a>
+    <a href="my-transactions.php" aria-current="page">My Transactions</a>
+    <a href="forms.php">Forms</a>
+    <a href="training.php">Training</a>
+    <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
 
