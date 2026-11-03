@@ -68,3 +68,5 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .cap{position:fixed;left:24px;bottom:18px;z-index:3;color:#fff;font-size:.85rem;letter-spacing:.25em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .login .box p{color:#4a5558}
 .login .logo{color:var(--teal)}
+.brand img{height:44px;width:auto;display:block}
+.brand span{margin-top:3px}
