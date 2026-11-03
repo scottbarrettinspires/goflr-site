@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . "/guard.php";
 require __DIR__ . "/formlist.php";
+require __DIR__ . "/sigtools.php";
 header('Cache-Control: no-store');
 
 $ROLES = ['buyer1' => 'Buyer 1', 'buyer2' => 'Buyer 2', 'seller1' => 'Seller 1', 'seller2' => 'Seller 2', 'agent' => 'Agent (my signature)', 'broker' => 'Broker', 'buyeragent' => 'Buyer agent', 'listingagent' => 'Listing agent'];
@@ -10,7 +11,7 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 
 function sign_fail($m) { return ['ok' => false, 'msg' => $m]; }
 
-function sign_send($fid, $title, $signers, $agentName, $agentEmail) {
+function sign_send($fid, $title, $signers, $agentName, $agentEmail, $tx) {
     // 1. Get the PDF from the Forms folder through the office script.
     $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=file&id=' . urlencode($fid));
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
@@ -41,6 +42,7 @@ function sign_send($fid, $title, $signers, $agentName, $agentEmail) {
     $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     $q = json_decode((string)$r, true);
     if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) return sign_fail('DigiSigner could not create the request (code ' . $code . '). Check that each role matches the form, or contact the office.');
+    sg_save($q['signature_request_id'], ['id' => $q['signature_request_id'], 'agent' => $agentEmail, 'form' => $title, 'form_id' => $fid, 'doc' => $d['document_id'], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => $tx, 'completed' => false, 'filed' => null]);
     // 4. Audit log (kept on the server, web access denied).
     $dir = __DIR__ . '/logs';
     if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
@@ -50,6 +52,12 @@ function sign_send($fid, $title, $signers, $agentName, $agentEmail) {
 }
 
 $result = null;
+$folders = [];
+if ($title !== null) {
+    if (!empty($_SESSION['txf']) && ($_SESSION['txf_t'] ?? 0) > time() - 600) { $folders = $_SESSION['txf']; }
+    else { $f = sg_folders($_SESSION['email']); if (is_array($f)) { $folders = $f; $_SESSION['txf'] = $f; $_SESSION['txf_t'] = time(); } }
+}
+$txsel = '';
 $side = (($_GET['s'] ?? ($_POST['s'] ?? 'b')) === 's') ? 's' : 'b';
 $first = $side === 's' ? 'seller1' : 'buyer1';
 $rows = [['', $first]];
@@ -72,10 +80,15 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!$err && (count($signers) < 1 || count($signers) > 6)) { $err = 'Add between 1 and 6 signers.'; }
     }
+    $tx = null; $txsel = (string)($_POST['tx'] ?? '');
+    if (!$err && $txsel !== '') {
+        foreach ($folders as $f) { if ($f['id'] === $txsel) { $tx = ['id' => $f['id'], 'label' => $f['group'] . ' / ' . $f['name']]; break; } }
+        if ($tx === null) { $err = 'Please choose a transaction from the list.'; }
+    }
     if ($err) { $result = sign_fail($err); }
     else {
         $_SESSION['sig_n'][] = time();
-        $result = sign_send($fid, $title, $signers, trim($_SESSION['name'] ?? '') ?: 'Your agent', $_SESSION['email']);
+        $result = sign_send($fid, $title, $signers, trim($_SESSION['name'] ?? '') ?: 'Your agent', $_SESSION['email'], $tx);
     }
     if (!$rows) $rows = [['', $first]];
 }
@@ -87,7 +100,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Send for signature - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -96,6 +109,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="home.php">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="forms.php" aria-current="page">Forms</a>
+    <a href="signed.php">Signed</a>
     <a href="training.php">Training</a>
     <a href="logout.php">Sign out</a>
   </nav>
@@ -112,7 +126,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox">
     <h2>Sent</h2>
-    <p>DigiSigner is emailing each signer a link to sign. You can send another form any time.</p>
+    <p>DigiSigner is emailing each signer a link to sign. Track it on the <a href="signed.php">Signed Documents</a> page; the signed copy shows up there when everyone has signed.</p>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p>
     <p><a class="btn" href="forms.php">Back to Forms</a></p>
   </div>
@@ -136,6 +150,13 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endforeach; ?>
     </div>
     <p><button type="button" class="btn ghost" id="add">+ Add a signer</button></p>
+    <p><label for="tx"><strong>Which transaction is this for?</strong></label><br>
+    <select name="tx" id="tx" class="txsel">
+      <option value="">Not yet in a transaction (assign later)</option>
+<?php $g = ''; foreach ($folders as $f): if ($f['group'] !== $g): if ($g !== '') echo "      </optgroup>\n"; $g = $f['group']; echo '      <optgroup label="' . htmlspecialchars($g) . "\">\n"; endif; ?>
+      <option value="<?= htmlspecialchars($f['id']) ?>"<?= $txsel === $f['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option>
+<?php endforeach; if ($g !== '') echo "      </optgroup>\n"; ?>
+    </select><br><span class="note"><?= $folders ? 'When everyone has signed, the signed copy is filed in this transaction folder.' : 'Your transaction folders were not found yet, so the signed copy will wait on the Signed Documents page.' ?></span></p>
     <p class="note">Review the form before you send it. You are sending this on behalf of Florida Luxury Realty, so check names, price and dates. Once it is sent, the signers' emails go out right away.</p>
     <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
   </form>

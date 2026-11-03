@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>My Transactions - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -15,6 +15,7 @@
     <a href="home.php">Home</a>
     <a href="my-transactions.php" aria-current="page">My Transactions</a>
     <a href="forms.php">Forms</a>
+    <a href="signed.php">Signed</a>
     <a href="training.php">Training</a>
     <a href="logout.php">Sign out</a>
   </nav>

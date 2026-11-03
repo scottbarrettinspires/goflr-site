@@ -122,3 +122,5 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .sg input{flex:1;min-width:0}
 .sigerr{background:#fde8e8;color:#8a1f1f;border-radius:10px;padding:10px 14px}
 @media(max-width:560px){.sg{flex-direction:column}}
+.txsel{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:inherit;max-width:100%;margin-top:6px}
+.sgrow{margin:0 0 14px}

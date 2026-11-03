@@ -23,7 +23,7 @@ foreach ($FLR_EVENTS as $ev) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Home - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -32,6 +32,7 @@ foreach ($FLR_EVENTS as $ev) {
     <a href="home.php" aria-current="page">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="forms.php">Forms</a>
+    <a href="signed.php">Signed</a>
     <a href="training.php">Training</a>
     <a href="logout.php">Sign out</a>
   </nav>
