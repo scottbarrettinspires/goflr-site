@@ -50,7 +50,9 @@ function sign_send($fid, $title, $signers, $agentName, $agentEmail) {
 }
 
 $result = null;
-$rows = [['', 'buyer1']];
+$side = (($_GET['s'] ?? ($_POST['s'] ?? 'b')) === 's') ? 's' : 'b';
+$first = $side === 's' ? 'seller1' : 'buyer1';
+$rows = [['', $first]];
 if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $rows = []; $signers = []; $err = '';
     $em = $_POST['email'] ?? []; $ro = $_POST['role'] ?? [];
@@ -75,7 +77,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['sig_n'][] = time();
         $result = sign_send($fid, $title, $signers, trim($_SESSION['name'] ?? '') ?: 'Your agent', $_SESSION['email']);
     }
-    if (!$rows) $rows = [['', 'buyer1']];
+    if (!$rows) $rows = [['', $first]];
 }
 ?>
 <!doctype html>
@@ -118,6 +120,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="post" class="panel sigbox" id="sf">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="f" value="<?= htmlspecialchars($fid) ?>">
+    <input type="hidden" name="s" value="<?= $side ?>">
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
     <p>Enter each person who must sign and the role they hold on this form. Each one gets an email from DigiSigner with a link to sign. The signature, initial and date spots are already placed in the form.</p>
     <div id="signers">
@@ -138,7 +141,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
   </form>
 <script>
 (function(){var box=document.getElementById("signers"),add=document.getElementById("add"),f=document.getElementById("sf");
-add.addEventListener("click",function(){if(box.children.length>=6)return;var c=box.children[0].cloneNode(true);c.querySelector("input").value="";box.appendChild(c);});
+add.addEventListener("click",function(){if(box.children.length>=6)return;var c=box.children[0].cloneNode(true);c.querySelector("input").value="";var sel=c.querySelector("select"),used=[].map.call(box.querySelectorAll("select"),function(x){return x.value;}),order=["buyer2","seller2","buyer1","seller1","agent","broker","buyeragent","listingagent"];if(used.some(function(u){return u.indexOf("seller")===0;}))order.unshift("seller2");else order.unshift("buyer2");for(var i=0;i<order.length;i++){if(used.indexOf(order[i])<0){sel.value=order[i];break;}}box.appendChild(c);});
 f.addEventListener("submit",function(){var b=document.getElementById("go");b.disabled=true;b.textContent="Sending...";});})();
 </script>
 <?php endif; ?>
