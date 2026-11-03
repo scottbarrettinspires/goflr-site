@@ -1,0 +1,148 @@
+<?php
+require __DIR__ . "/guard.php";
+require __DIR__ . "/formlist.php";
+header('Cache-Control: no-store');
+
+$ROLES = ['buyer1' => 'Buyer 1', 'buyer2' => 'Buyer 2', 'seller1' => 'Seller 1', 'seller2' => 'Seller 2', 'agent' => 'Agent (my signature)', 'broker' => 'Broker', 'buyeragent' => 'Buyer agent', 'listingagent' => 'Listing agent'];
+$fid = $_GET['f'] ?? ($_POST['f'] ?? '');
+$title = $FLR_FORMS[$fid] ?? null;
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+
+function sign_fail($m) { return ['ok' => false, 'msg' => $m]; }
+
+function sign_send($fid, $title, $signers, $agentName, $agentEmail) {
+    // 1. Get the PDF from the Forms folder through the office script.
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=file&id=' . urlencode($fid));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
+    $body = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $j = ($body !== false && $code >= 200 && $code < 300) ? json_decode($body, true) : null;
+    if (!is_array($j) || empty($j['ok']) || empty($j['b64'])) return sign_fail('Could not load that form from the Forms folder. Please try again, or contact the office.');
+    $pdf = base64_decode($j['b64'], true);
+    if ($pdf === false || strlen($pdf) < 500) return sign_fail('That form could not be read. Please contact the office.');
+    $tmp = tempnam(sys_get_temp_dir(), 'flrsig');
+    file_put_contents($tmp, $pdf);
+    // 2. Upload to DigiSigner.
+    $ch = curl_init('https://api.digisigner.com/v1/documents');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_POSTFIELDS => ['file' => new CURLFile($tmp, 'application/pdf', $j['name'] ?: 'form.pdf')], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
+    $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    @unlink($tmp);
+    $d = json_decode((string)$r, true);
+    if ($code < 200 || $code >= 300 || empty($d['document_id'])) return sign_fail('DigiSigner did not accept the form (code ' . $code . '). Please contact the office.');
+    // 3. Create the signature request. Hidden text tags in the form place the signature, initial and date fields by role.
+    $sg = [];
+    foreach ($signers as $i => $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; }
+    $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => [[
+        'document_id' => $d['document_id'],
+        'subject' => 'Florida Luxury Realty: please sign ' . $title,
+        'message' => $agentName . ' (Florida Luxury Realty) has sent you "' . $title . '" to review and sign. If you have questions, reply to ' . $agentEmail . '.',
+        'signers' => $sg]]];
+    $ch = curl_init('https://api.digisigner.com/v1/signature_requests');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($req), CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
+    $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $q = json_decode((string)$r, true);
+    if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) return sign_fail('DigiSigner could not create the request (code ' . $code . '). Check that each role matches the form, or contact the office.');
+    // 4. Audit log (kept on the server, web access denied).
+    $dir = __DIR__ . '/logs';
+    if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
+    if (!is_file($dir . '/.htaccess')) { @file_put_contents($dir . '/.htaccess', "Require all denied\n"); }
+    @file_put_contents($dir . '/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $agentEmail, 'form' => $title, 'form_id' => $fid, 'signers' => array_map(function ($s) { return $s['email'] . ' (' . $s['role'] . ')'; }, $signers), 'request' => $q['signature_request_id']]) . "\n", FILE_APPEND | LOCK_EX);
+    return ['ok' => true, 'id' => $q['signature_request_id']];
+}
+
+$result = null;
+$rows = [['', 'buyer1']];
+if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $rows = []; $signers = []; $err = '';
+    $em = $_POST['email'] ?? []; $ro = $_POST['role'] ?? [];
+    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
+    $_SESSION['sig_n'] = array_filter($_SESSION['sig_n'] ?? [], function ($t) { return $t > time() - 3600; });
+    if (!$err && count($_SESSION['sig_n']) >= 20) { $err = 'Too many requests this hour. Please try again later.'; }
+    if (!$err) {
+        $seen = [];
+        foreach ((array)$em as $i => $e) {
+            $e = trim((string)$e); $r = (string)($ro[$i] ?? '');
+            if ($e === '' && $r === '') continue;
+            $rows[] = [$e, $r];
+            if (!filter_var($e, FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . htmlspecialchars($e); break; }
+            if (!isset($ROLES[$r])) { $err = 'Please choose a role for each signer.'; break; }
+            if (isset($seen[$r])) { $err = 'Each role can only be used once.'; break; }
+            $seen[$r] = 1; $signers[] = ['email' => $e, 'role' => $r];
+        }
+        if (!$err && (count($signers) < 1 || count($signers) > 6)) { $err = 'Add between 1 and 6 signers.'; }
+    }
+    if ($err) { $result = sign_fail($err); }
+    else {
+        $_SESSION['sig_n'][] = time();
+        $result = sign_send($fid, $title, $signers, trim($_SESSION['name'] ?? '') ?: 'Your agent', $_SESSION['email']);
+    }
+    if (!$rows) $rows = [['', 'buyer1']];
+}
+?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Send for signature - FLR Agent Back Office</title>
+<link rel="stylesheet" href="style.css?v=9">
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
+  <nav>
+    <a href="home.php">Home</a>
+    <a href="my-transactions.php">My Transactions</a>
+    <a href="forms.php" aria-current="page">Forms</a>
+    <a href="training.php">Training</a>
+    <a href="logout.php">Sign out</a>
+  </nav>
+</div></header>
+
+<section class="hero">
+  <h1>Send for signature</h1>
+  <p><?= $title !== null ? htmlspecialchars($title) : 'Choose a form first.' ?></p>
+</section>
+
+<main class="wrap">
+<?php if ($title === null): ?>
+  <p class="note">That form was not found. <a href="forms.php">Back to Forms</a></p>
+<?php elseif ($result && $result['ok']): ?>
+  <div class="panel sigbox">
+    <h2>Sent</h2>
+    <p>DigiSigner is emailing each signer a link to sign. You can send another form any time.</p>
+    <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p>
+    <p><a class="btn" href="forms.php">Back to Forms</a></p>
+  </div>
+<?php else: ?>
+  <form method="post" class="panel sigbox" id="sf">
+    <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+    <input type="hidden" name="f" value="<?= htmlspecialchars($fid) ?>">
+    <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
+    <p>Enter each person who must sign and the role they hold on this form. Each one gets an email from DigiSigner with a link to sign. The signature, initial and date spots are already placed in the form.</p>
+    <div id="signers">
+<?php foreach ($rows as $row): ?>
+      <div class="sg">
+        <input type="email" name="email[]" placeholder="Signer's email" value="<?= htmlspecialchars($row[0]) ?>" required>
+        <select name="role[]">
+<?php foreach ($ROLES as $k => $lbl): ?>
+          <option value="<?= $k ?>"<?= $row[1] === $k ? ' selected' : '' ?>><?= htmlspecialchars($lbl) ?></option>
+<?php endforeach; ?>
+        </select>
+      </div>
+<?php endforeach; ?>
+    </div>
+    <p><button type="button" class="btn ghost" id="add">+ Add a signer</button></p>
+    <p class="note">Review the form before you send it. You are sending this on behalf of Florida Luxury Realty, so check names, price and dates. Once it is sent, the signers' emails go out right away.</p>
+    <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
+  </form>
+<script>
+(function(){var box=document.getElementById("signers"),add=document.getElementById("add"),f=document.getElementById("sf");
+add.addEventListener("click",function(){if(box.children.length>=6)return;var c=box.children[0].cloneNode(true);c.querySelector("input").value="";box.appendChild(c);});
+f.addEventListener("submit",function(){var b=document.getElementById("go");b.disabled=true;b.textContent="Sending...";});})();
+</script>
+<?php endif; ?>
+</main>
+<footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
+</body>
+</html>

@@ -7,3 +7,6 @@ const OLD_ROSTER_URL = 'https://script.google.com/macros/s/AKfycbzTydY23rkYJ0sxp
 const ROSTER_KEY = 'bc30edc5724cfdeb8898ab2ce43c6e6b0e88a31373c9e331';                          // must match the key inside the roster script
 const RECHECK_SECONDS = 600;                        // how often a signed-in agent is re-checked against the roster
 const SESSION_DAYS = 14;
+
+// DigiSigner e-signature API key (server only; never shown to agents). Regenerate in DigiSigner if it is ever exposed.
+const DIGISIGNER_KEY = 'a213c9f8-2eec-402a-8ee0-60318178b047';

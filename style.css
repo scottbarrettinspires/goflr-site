@@ -113,3 +113,12 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .nextup .meta{color:var(--muted);font-size:.9rem;margin-bottom:10px}
 .btn.ghost{background:transparent;color:var(--teal);border:1px solid var(--teal)}
 .btn.ghost:hover{background:rgba(3,111,114,.08)}
+.fs{font-size:.85rem;font-weight:600;text-decoration:none;padding:7px 12px;border-radius:9px;white-space:nowrap;color:var(--teal);border:1px solid var(--teal)}
+.fs:hover{background:rgba(3,111,114,.08)}
+.sigbox{padding:22px;max-width:680px}
+.sigbox h2{margin:0 0 8px}
+.sg{display:flex;gap:10px;margin:0 0 10px}
+.sg input,.sg select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:inherit}
+.sg input{flex:1;min-width:0}
+.sigerr{background:#fde8e8;color:#8a1f1f;border-radius:10px;padding:10px 14px}
+@media(max-width:560px){.sg{flex-direction:column}}
