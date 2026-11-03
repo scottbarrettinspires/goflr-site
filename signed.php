@@ -82,7 +82,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
       <?php if (!empty($r['filed'])): ?>
         <p class="note">Filed in <?= htmlspecialchars($r['filed']['folder']) ?> as <a href="<?= htmlspecialchars($r['filed']['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($r['filed']['name']) ?></a></p>
       <?php else:
-          if ($folders === null) { $folders = sg_folders($me) ?: []; } ?>
+          if ($folders === null) { $fl = sg_folders($me); $folders = $fl ?: []; $fok = is_array($fl); } ?>
         <?php if ($folders): ?>
         <form method="post" class="sg">
           <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
@@ -95,7 +95,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
           </select>
           <button class="btn" type="submit">File it</button>
         </form>
-        <?php else: ?><p class="note">Not filed yet. Your transaction folders were not found; contact the office.</p><?php endif; ?>
+        <?php else: ?><p class="note"><?= !empty($fok) ? "Not filed yet. You have no transaction folders to file into yet. Create an address folder in My Transactions, then come back and assign it here." : "Not filed yet. Your transaction folders could not be loaded right now. Please try again, or contact the office." ?></p><?php endif; ?>
       <?php endif; ?>
     <?php endif; ?>
   </div>

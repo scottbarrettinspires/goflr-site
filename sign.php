@@ -55,7 +55,7 @@ $result = null;
 $folders = [];
 if ($title !== null) {
     if (!empty($_SESSION['txf']) && ($_SESSION['txf_t'] ?? 0) > time() - 600) { $folders = $_SESSION['txf']; }
-    else { $f = sg_folders($_SESSION['email']); if (is_array($f)) { $folders = $f; $_SESSION['txf'] = $f; $_SESSION['txf_t'] = time(); } }
+    else { $f = sg_folders($_SESSION['email']); $fok = is_array($f); if (is_array($f)) { $folders = $f; $_SESSION['txf'] = $f; $_SESSION['txf_t'] = time(); } }
 }
 $txsel = '';
 $side = (($_GET['s'] ?? ($_POST['s'] ?? 'b')) === 's') ? 's' : 'b';
@@ -156,7 +156,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php $g = ''; foreach ($folders as $f): if ($f['group'] !== $g): if ($g !== '') echo "      </optgroup>\n"; $g = $f['group']; echo '      <optgroup label="' . htmlspecialchars($g) . "\">\n"; endif; ?>
       <option value="<?= htmlspecialchars($f['id']) ?>"<?= $txsel === $f['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option>
 <?php endforeach; if ($g !== '') echo "      </optgroup>\n"; ?>
-    </select><br><span class="note"><?= $folders ? 'When everyone has signed, the signed copy is filed in this transaction folder.' : 'Your transaction folders were not found yet, so the signed copy will wait on the Signed Documents page.' ?></span></p>
+    </select><br><span class="note"><?= $folders ? 'When everyone has signed, the signed copy is filed in this transaction folder.' : (!empty($fok) ? 'You have no transaction folders yet, so the signed copy will wait on the Signed Documents page until you assign it.' : 'Your transaction folders could not be loaded, so the signed copy will wait on the Signed Documents page.') ?></span></p>
     <p class="note">Review the form before you send it. You are sending this on behalf of Florida Luxury Realty, so check names, price and dates. Once it is sent, the signers' emails go out right away.</p>
     <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
   </form>
