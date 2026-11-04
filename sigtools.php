@@ -144,3 +144,15 @@ function sg_buyer_info_save($email, $folderId, $info) {
     $r = sg_script_post(['op' => 'savebuyerinfo', 'email' => $email, 'folderId' => $folderId, 'info' => $info]);
     return is_array($r) ? $r : ['ok' => false, 'note' => 'The office script did not answer (is the newest version deployed?).'];
 }
+
+// The agent's license number (from the Agents tab), cached in the session.
+function sg_license($email) {
+    if (isset($_SESSION['license'])) return (string)$_SESSION['license'];
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=license&email=' . urlencode(strtolower($email)));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 30, CURLOPT_CONNECTTIMEOUT => 8]);
+    $b = curl_exec($ch); curl_close($ch);
+    $j = $b === false ? null : json_decode($b, true);
+    $lic = (is_array($j) && !empty($j['ok'])) ? preg_replace('/[^A-Za-z0-9 \-]/', '', (string)($j['license'] ?? '')) : '';
+    if (is_array($j) && !empty($j['ok'])) $_SESSION['license'] = $lic;
+    return $lic;
+}
