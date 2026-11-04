@@ -1,5 +1,5 @@
 /* Original illustrated Florida scenes for the sign-in page. To use real photos instead, add file names to PHOTOS. */
-var PHOTOS = ["bg/bg1.jpg", "bg/bg2.jpg", "bg/bg3.jpg"];
+var PHOTOS = ["bg/bg1.jpg", "bg/bg2.jpg", "bg/bg3.jpg", "bg/bg4.jpg"];
 (function () {
   var seed = 7;
   function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
