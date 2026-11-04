@@ -150,6 +150,7 @@ btn.addEventListener('click',async function(){
   if(!use.length)return fail('No forms were selected for those answers.');
   btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Building... this can take a minute';
   try{
+    await new Promise(function(r){requestAnimationFrame(function(){setTimeout(r,50);});}); // let the spinner paint
     var DISC='Broker_Res_Buyer_Disclosures.pdf';
     var packUse=use.filter(function(f){return f!==DISC;}), discUse=use.filter(function(f){return f===DISC;});
     var load=async function(list){var bufs=await Promise.all(list.map(function(f){return fetch('wizard_pdf.php?id='+encodeURIComponent(R.files[f]),{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('Could not load '+title(f));return r.arrayBuffer();});}));return list.map(function(f,i){return {bytes:new Uint8Array(bufs[i]),isContract:/AS_IS_Residential_Contract|Vacant_Land_Contract/.test(f)};});};

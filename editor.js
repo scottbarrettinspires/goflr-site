@@ -104,6 +104,7 @@
     saveBtn.addEventListener('click', async function () {
       saveBtn.disabled = true; res.hidden = true; status.textContent = 'Saving...'; saveBtn.dataset.t = saveBtn.textContent; saveBtn.innerHTML = '<span class="bspin"></span>Saving...';
       try {
+        await new Promise(function (r) { requestAnimationFrame(function () { setTimeout(r, 50); }); }); // let the spinner paint before the heavy work starts
         var bytes = await build(); lastBytes = bytes;
         var bin = ''; for (var o = 0; o < bytes.length; o += 32768) { bin += String.fromCharCode.apply(null, bytes.subarray(o, o + 32768)); }
         var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, kind: cfg.kind || 'packet', b64: btoa(bin), b64d: (draft && draft.disc) ? (function () { var u = new Uint8Array(draft.disc), x = ''; for (var q = 0; q < u.length; q += 32768) { x += String.fromCharCode.apply(null, u.subarray(q, q + 32768)); } return btoa(x); })() : '', property: String(values['Property_Address'] || '').trim() }) });
