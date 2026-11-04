@@ -51,7 +51,7 @@ $pre = (string)($_GET['tx'] ?? '');
     </select></p>
     <div id="bsum" class="wsum"></div>
     <div class="bi wprop">
-      <label for="paddr"><strong>Property address</strong> (fills the address on the forms)<input type="text" id="paddr" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="Street, city, state, zip"></label>
+      <label for="paddr"><strong>Property address</strong> (required: fills the forms and creates the contract offer record)<input type="text" id="paddr" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="Street, city, state, zip"></label>
       <label for="pprice"><strong>Purchase price</strong> (fills the contract)<input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000" style="max-width:260px"></label>
     </div>
     <div id="qs"></div>
@@ -60,7 +60,7 @@ $pre = (string)($_GET['tx'] ?? '');
     <div id="res" hidden></div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="wizlib.js?v=11"></script>
+<script src="wizlib.js?v=12"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -114,6 +114,9 @@ function num(v){return String(v||'').replace(/[$,%\s,]/g,'');}
 btn.addEventListener('click',async function(){
   err.hidden=true;res.hidden=true;
   if(!txSel.value)return fail('Please choose the buyer first.');
+  var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
+  if(!pa0)return fail('Please enter the property address first.');
+  if(pa0.length>120||/[\\\/:*?"<>|]/.test(pa0))return fail('Please check the property address (no slashes or special characters).');
   var picked=[],warn=[],clauses=[];
   for(var k=0;k<Q.length;k++){
     var x=Q[k],c=qs.querySelector('input[name="q'+x.q+'"]:checked');
@@ -151,7 +154,7 @@ btn.addEventListener('click',async function(){
     var url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
     var out='<h2>Your contract packet</h2><ol>'+use.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
     notes.concat(warn).forEach(function(n){out+='<p class="note">'+esc(n)+'</p>';});
-    out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+' as <a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a>.</p>' : '<p class="sigerr">'+esc(j.msg||'The packet was built but could not be saved.')+' You can still download it below.</p>';
+    out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+' as <a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a>.</p>'+(j.offer?'<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>':'') : '<p class="sigerr">'+esc(j.msg||'The packet was built but could not be saved.')+' You can still download it below.</p>';
     out+='<p><a class="btn" href="'+url+'" download="Contract Packet.pdf">Download the packet</a>'+(j.ok?' <a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'">Review and complete</a> <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Send it for signature</a>':'')+'</p>';
     res.innerHTML=out;res.hidden=false;btn.disabled=false;btn.textContent='Build another packet';
   }catch(e){fail('Something went wrong: '+e.message);}

@@ -20,4 +20,9 @@ sg_dir();
 @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'packet' => $r['name'], 'agent' => $_SESSION['email'], 'folder' => $pick['group'] . ' / ' . $pick['name'], 'forms' => $j['forms'] ?? []]) . "\n", FILE_APPEND | LOCK_EX);
 $prop = trim(preg_replace('/\s+/', ' ', (string)($j['property'] ?? ''))); $price = trim((string)($j['price'] ?? ''));
 if ($prop !== '' || $price !== '') { sg_buyer_info_merge($_SESSION['email'], $pick['id'], ['property' => $prop, 'price' => $price]); }
-out(['ok' => true, 'name' => $r['name'], 'url' => $r['url'], 'folder' => $pick['group'] . ' / ' . $pick['name']]);
+$offer = ''; $offerNote = '';
+if ($prop !== '' && strlen($prop) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $prop)) {
+    $o = sg_script_post(['op' => 'createoffer', 'email' => $_SESSION['email'], 'hint' => $pick['id'], 'offerAddress' => $prop]);
+    if (is_array($o) && !empty($o['ok'])) { $offer = $o['name']; $offerNote = !empty($o['existed']) ? 'already existed' : 'created'; } else { $offerNote = 'could not be created' . (is_array($o) && !empty($o['note']) ? ': ' . $o['note'] : ''); $offer = $prop; }
+}
+out(['ok' => true, 'offer' => $offer, 'offerNote' => $offerNote, 'name' => $r['name'], 'url' => $r['url'], 'folder' => $pick['group'] . ' / ' . $pick['name']]);
