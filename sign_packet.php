@@ -10,7 +10,10 @@ $all = sg_folders($me, (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''))) ?: [];
 $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
-$allpk = $buyer ? sg_packets($me, $buyer['id']) : null;
+$dr = trim(preg_replace('/\s+/', ' ', (string)($_GET['dr'] ?? ($_POST['dr'] ?? ''))));
+if ($dr !== '' && (strlen($dr) > 120 || preg_match('/[\\\\\/:*?"<>|]/', $dr))) $dr = '';
+$drRes = ($buyer && $dr !== '') ? sg_drafts($me, $buyer['id'], $dr) : null;
+$allpk = $drRes ? $drRes['files'] : ($buyer ? sg_packets($me, $buyer['id']) : null);
 $isD = function ($n) { return stripos((string)$n, 'Buyer Disclosures') === 0; };
 $packets = []; $discs = [];
 foreach (($allpk ?: []) as $p) { if ($isD($p['name'])) $discs[] = $p; else $packets[] = $p; }
@@ -18,13 +21,13 @@ $dk = '';
 foreach ($discs as $p) { if ($dk === '' || stripos($p['name'], 'completed') !== false) $dk = $p['id']; } // preselect the completed copy when there is one
 $pk = '';
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
-foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
+if ($drRes) { $pk = $packets ? $packets[0]['id'] : ''; $dk = $discs ? $discs[0]['id'] : ''; } // saved drafts: newest of each
 $draft = $buyer && ((string)($_GET['draft'] ?? ($_POST['draft'] ?? '')) === '1'); // documents come from the agent's browser, not from the folder
 $SIG = $buyer ? sg_signers($me) : null;
-$result = null; $rows = [['', 'buyer1', '']]; $addr = '';
+$result = null; $rows = [['', 'buyer1', '']]; $addr = $drRes ? $dr : '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];
-    $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
+    $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($addr === '' && $pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
     $mine = strtolower(trim((string)($_SESSION['name'] ?? ''))); $pre = [];
     $n1 = trim((string)($bi['b1_name'] ?? '')); $n2 = trim((string)($bi['b2_name'] ?? ''));
     if ($mine !== '' && strtolower($n1) === $mine) $n1 = ''; if ($mine !== '' && strtolower($n2) === $mine) $n2 = '';
@@ -98,6 +101,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 $rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => $meta[0]['form_id'], 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null];
                 if (count($meta) > 1) { $rec['extra'] = [['form' => $meta[1]['form'], 'form_id' => $meta[1]['form_id'], 'doc' => $s['docs'][1], 'filed' => null]]; }
                 sg_save($s['id'], $rec);
+                sg_draft_mark($me, $addr, $buyer['id'], true);
                 sg_dir();
                 @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'packet' => implode(' + ', array_map(function ($m) { return $m['file']; }, $meta)), 'address' => $addr, 'buyer_folder' => $buyer['name'], 'signers' => array_map(function ($x) { return $x['email'] . ' (' . $x['role'] . ')'; }, $signers), 'request' => $s['id']]) . "\n", FILE_APPEND | LOCK_EX);
             }
@@ -134,7 +138,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox"><h2>Sent</h2>
     <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, each signed document is filed separately in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
-    <?php if ($draft): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});</script><?php endif; ?>
+    <?php if ($draft || $dr !== ''): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});</script><?php endif; ?>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
   <form method="get" class="panel sigbox"><p><label for="tx"><strong>Which buyer?</strong></label><br>
@@ -147,6 +151,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="post" class="panel sigbox" id="sf">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="tx" value="<?= htmlspecialchars($buyer['id']) ?>">
+    <?php if ($drRes): ?><input type="hidden" name="dr" value="<?= htmlspecialchars($dr) ?>"><?php endif; ?>
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
     <?php if (!$draft && !$packets && !$discs): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
     <?php else: ?>
@@ -190,7 +195,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 (function(){
 var f=document.getElementById("sf");if(!f)return;
-var DRAFT=<?= $draft ? "true" : "false" ?>,dd=null;
+var DRAFT=<?= $draft ? "true" : "false" ?>,dd=null,DR=<?= json_encode($drRes ? $dr : "") ?>;
 var TX=<?= json_encode($buyer['id']) ?>, SIG=<?= json_encode($SIG) ?>, LBL={agent:"Agent",broker:"Broker",buyeragent:"Agent"};
 var go=document.getElementById("go"),xs=document.getElementById("xsign"),needs=document.getElementById("needs"),pk=document.getElementById("pk"),dk=document.getElementById("dk"),seq=0;
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
@@ -200,7 +205,7 @@ async function roles(id){
   var out={};if(!id||!window.pdfjsLib)return out;
   var data;
   if(DRAFT&&typeof id!=="string"){data=new Uint8Array(id).slice();}
-  else{var r=await fetch("editor_pdf.php?tx="+encodeURIComponent(TX)+"&id="+encodeURIComponent(id),{credentials:"same-origin"});
+  else{var r=await fetch("editor_pdf.php?tx="+encodeURIComponent(TX)+"&id="+encodeURIComponent(id)+(DR?"&dr="+encodeURIComponent(DR):""),{credentials:"same-origin"});
   if(!r.ok)throw new Error("Could not read the document");data=new Uint8Array(await r.arrayBuffer());}
   var doc=await pdfjsLib.getDocument({data:data}).promise;
   for(var n=1;n<=doc.numPages;n++){

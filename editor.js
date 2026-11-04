@@ -110,6 +110,14 @@
         if (draft) {
           // Nothing is saved to the folder yet: keep the filled documents in this browser and offer download or email-for-signing.
           draft.completed = bytes; await root.FLRDraft.put(cfg.tx, draft);
+          // Quietly keep a copy in Contract Offers / [address] / Drafts - Not Signed so the unsigned documents can't be lost.
+          draft.dr = '';
+          try {
+            var enc = function (u8) { u8 = new Uint8Array(u8); var x = ''; for (var q = 0; q < u8.length; q += 32768) { x += String.fromCharCode.apply(null, u8.subarray(q, q + 32768)); } return btoa(x); };
+            var paddr = String(values['Property_Address'] || draft.property || '').trim();
+            var dsr = await fetch('draft_save.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, property: paddr, b64: enc(bytes), b64d: draft.disc ? enc(draft.disc) : '' }) });
+            var dj = await dsr.json(); if (dj && dj.ok) { draft.dr = dj.addr; }
+          } catch (e7) {}
           res.innerHTML = '';
           var pd = el('p', '', res);
           var dlb = el('button', 'btn', pd); dlb.type = 'button'; dlb.textContent = 'Download Documents';
@@ -117,7 +125,7 @@
             function dl1(u8, name) { var a1 = document.createElement('a'); a1.href = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' })); a1.download = name; document.body.appendChild(a1); a1.click(); a1.remove(); }
             dl1(bytes, 'Contract Packet.pdf'); if (draft.disc) { setTimeout(function () { dl1(new Uint8Array(draft.disc), 'Buyer Disclosures.pdf'); }, 600); }
           });
-          var em = el('a', 'btn ghost', pd); em.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx) + '&draft=1'; em.textContent = 'Email To Buyers For Signing'; em.style.marginLeft = '8px';
+          var em = el('a', 'btn ghost', pd); em.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx) + (draft.dr ? '&dr=' + encodeURIComponent(draft.dr) : '&draft=1'); em.textContent = 'Email To Buyers For Signing'; em.style.marginLeft = '8px';
           em.addEventListener('click', function () { em.innerHTML = '<span class="bspin"></span>Opening...'; em.style.pointerEvents = 'none'; });
           res.hidden = false; status.hidden = true; document.querySelectorAll('#esave, #esave2').forEach(function (b) { b.closest('p').hidden = true; });
           var bot = document.getElementById('esave2'); if (bot) { bot.closest('.ebar').hidden = true; }

@@ -20,6 +20,7 @@ foreach (sg_for_agent($me) as $r) {
     if ($pend && sg_can_file($r)) { sg_file($r); }
     $signedNotes[] = $r;
 }
+$unsent = sg_draft_unsent($me);
 $full = trim($_SESSION['name'] ?? '');
 $first = $full !== '' ? preg_split('/\s+/', $full)[0] : '';
 $pic = $_SESSION['pic'] ?? '';
@@ -83,6 +84,13 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+<?php foreach ($unsent as $u): ?>
+  <div class="panel sigbox" style="border-left:5px solid #c9a24b;margin-bottom:16px">
+    <p><strong>Documents ready, not sent yet: <?= htmlspecialchars($u['addr']) ?></strong></p>
+    <p>The completed contract documents are saved in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($u['addr']) ?> / Drafts - Not Signed</strong>.</p>
+    <p><a class="btn" href="sign_packet.php?tx=<?= urlencode($u['tx']) ?>&amp;dr=<?= urlencode($u['addr']) ?>">Email To Buyers For Signing</a></p>
+  </div>
+<?php endforeach; ?>
 <?php foreach ($signedNotes as $n):
     $names = []; $link = '';
     if (!empty($n['filed'])) { $names[] = $n['filed']['name']; $link = $n['filed']['folder_url'] ?? ''; if ($link === '') $link = $n['filed']['url']; }

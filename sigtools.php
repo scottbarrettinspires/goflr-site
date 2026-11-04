@@ -223,3 +223,29 @@ function sg_buyer_info_merge($email, $folderId, $fields) {
     $w = sg_buyer_info_save($email, $folderId, $info);
     return !empty($w['ok']);
 }
+
+// ---- Drafts: unsigned documents kept in Contract Offers / [address] / Drafts - Not Signed (index here so Home can list unsent ones) ----
+function sg_ddir() { $d = dirname(sg_dir()) . '/drafts'; if (!is_dir($d)) { @mkdir($d, 0755, true); } return $d; }
+function sg_dpath($agent, $addr) { return sg_ddir() . '/' . md5(strtolower($agent) . '|' . strtolower($addr)) . '.json'; }
+function sg_draft_mark($agent, $addr, $tx, $sent) {
+    $p = sg_dpath($agent, $addr); $j = is_file($p) ? json_decode((string)file_get_contents($p), true) : null;
+    if (!is_array($j)) $j = [];
+    $j = array_merge($j, ['agent' => strtolower($agent), 'addr' => $addr, 'sent' => $sent, 'tx' => $tx ?: ($j['tx'] ?? ''), 't' => gmdate('c')]);
+    @file_put_contents($p, json_encode($j), LOCK_EX);
+}
+function sg_draft_unsent($agent) {
+    $out = [];
+    foreach (glob(sg_ddir() . '/*.json') ?: [] as $f) {
+        $j = json_decode((string)file_get_contents($f), true);
+        if (is_array($j) && ($j['agent'] ?? '') === strtolower($agent) && empty($j['sent'])) $out[] = $j;
+    }
+    usort($out, function ($a, $b) { return strcmp($b['t'] ?? '', $a['t'] ?? ''); });
+    return $out;
+}
+function sg_drafts($email, $hint, $addr) {
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=drafts&email=' . urlencode(strtolower($email)) . '&hint=' . urlencode($hint) . '&address=' . urlencode($addr));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 45, CURLOPT_CONNECTTIMEOUT => 8]);
+    $b = curl_exec($ch); curl_close($ch);
+    $j = $b === false ? null : json_decode($b, true);
+    return (is_array($j) && !empty($j['ok'])) ? $j : null;
+}
