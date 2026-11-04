@@ -5,7 +5,7 @@ require __DIR__ . "/sigtools.php";
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $rules = sg_wizard_rules();
-$all = sg_folders($_SESSION['email']);
+$all = sg_folders($_SESSION['email'], (string)($_GET['tx'] ?? ''));
 $folders = [];
 foreach (($all ?: []) as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $folders[] = $f; }
 $pre = (string)($_GET['tx'] ?? '');

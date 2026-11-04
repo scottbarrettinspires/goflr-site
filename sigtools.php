@@ -57,8 +57,8 @@ function sg_script_post($payload) {
     return is_array($j) ? $j : null;
 }
 
-function sg_folders($email) {
-    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=folders&email=' . urlencode(strtolower($email)));
+function sg_folders($email, $hint = '') {
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=folders&email=' . urlencode(strtolower($email)) . ($hint !== '' ? '&hint=' . urlencode($hint) : ''));
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 45, CURLOPT_CONNECTTIMEOUT => 8]);
     $b = curl_exec($ch); curl_close($ch);
     $j = $b === false ? null : json_decode($b, true);
@@ -75,7 +75,7 @@ function sg_file(&$rec) {
     if ($pdf === null) return [false, 'The signed copy is not ready to download yet.'];
     $name = 'Signed - ' . $rec['form'] . ' - ' . gmdate('Y-m-d') . '.pdf';
     $post = ['op' => 'save', 'email' => $rec['agent'], 'name' => $name, 'b64' => base64_encode($pdf)];
-    if (!empty($rec['offer_address'])) { $post['offerAddress'] = $rec['offer_address']; } else { $post['folderId'] = $rec['folder']['id']; }
+    if (!empty($rec['offer_address'])) { $post['offerAddress'] = $rec['offer_address']; if (!empty($rec['hint'])) { $post['hint'] = $rec['hint']; } } else { $post['folderId'] = $rec['folder']['id']; }
     $r = sg_script_post($post);
     if (!is_array($r) || empty($r['ok'])) return [false, 'Could not save to the transaction folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.'];
     $label = !empty($rec['offer_address']) ? '1 BUYERS / 2 Contract Offers / ' . ($r['folder'] ?? $rec['offer_address']) : ($rec['folder']['label'] ?? '');

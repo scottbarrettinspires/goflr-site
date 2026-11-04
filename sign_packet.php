@@ -6,7 +6,7 @@ header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $ROLES = ['buyer1' => 'Buyer 1', 'buyer2' => 'Buyer 2', 'seller1' => 'Seller 1', 'seller2' => 'Seller 2', 'agent' => 'Agent (my signature)', 'broker' => 'Broker', 'buyeragent' => 'Buyer agent', 'listingagent' => 'Listing agent'];
 $me = $_SESSION['email'];
-$all = sg_folders($me) ?: [];
+$all = sg_folders($me, (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''))) ?: [];
 $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
@@ -45,7 +45,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $s = sg_send_pdf($file['pdf'], $file['name'], 'Florida Luxury Realty: please sign your contract packet for ' . $addr, $name . ' (Florida Luxury Realty) has sent you a contract packet for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $signers);
             if (!$s['ok']) { $result = $s; }
             else {
-                sg_save($s['id'], ['id' => $s['id'], 'agent' => $me, 'form' => $title, 'form_id' => $pick['id'], 'doc' => $s['doc'], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'completed' => false, 'filed' => null]);
+                sg_save($s['id'], ['id' => $s['id'], 'agent' => $me, 'form' => $title, 'form_id' => $pick['id'], 'doc' => $s['doc'], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null]);
                 sg_dir();
                 @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'packet' => $file['name'], 'address' => $addr, 'buyer_folder' => $buyer['name'], 'signers' => array_map(function ($x) { return $x['email'] . ' (' . $x['role'] . ')'; }, $signers), 'request' => $s['id']]) . "\n", FILE_APPEND | LOCK_EX);
                 $result = ['ok' => true, 'id' => $s['id']];

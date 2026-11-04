@@ -10,7 +10,7 @@ $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload and try again.']);
 $b64 = (string)($j['b64'] ?? '');
 if ($b64 === '' || strlen($b64) > 60000000) out(['ok' => false, 'msg' => 'The packet is empty or too large.']);
-$folders = sg_folders($_SESSION['email']) ?: [];
+$folders = sg_folders($_SESSION['email'], (string)($j['tx'] ?? '')) ?: [];
 $pick = null; foreach ($folders as $f) { if ($f['id'] === (string)($j['tx'] ?? '') && $f['group'] === '1 BUYERS / 1 Buyers') { $pick = $f; } }
 if (!$pick) out(['ok' => false, 'msg' => 'Please choose one of your buyer folders (1 BUYERS / 1 Buyers).']);
 $name = 'Contract Packet - ' . gmdate('Y-m-d') . '.pdf';
