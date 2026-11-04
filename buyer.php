@@ -19,7 +19,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {
         $new = [];
-        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST[$k] ?? '')), 0, 200); }
+        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST['f_' . $k] ?? '')), 0, 200); }
         $pm = (string)($_POST['payment'] ?? '');
         $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
         foreach (['b1_email', 'b2_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; } }
@@ -69,31 +69,31 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <noscript><button class="btn" type="submit">Open</button></noscript></form>
   </div>
 <?php else: ?>
-  <form method="post" class="panel sigbox bi">
+  <form method="post" class="panel sigbox bi" autocomplete="off">
     <h2><?= htmlspecialchars($buyer['name']) ?></h2>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>">
     <fieldset class="wq"><legend>Buyer 1</legend>
-      <label>Full name<input type="text" name="b1_name" value="<?= $v('b1_name') ?>" autocomplete="off"></label>
-      <label>Phone<input type="text" name="b1_phone" value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off"></label>
-      <label>Email<input type="email" name="b1_email" value="<?= $v('b1_email') ?>" autocomplete="off"></label>
+      <label>Buyer full name<input type="text" name="f_b1_name" value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Phone<input type="text" name="f_b1_phone" value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Email<input type="email" name="f_b1_email" value="<?= $v('b1_email') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
     <fieldset class="wq"><legend>Buyer 2 (if any)</legend>
-      <label>Full name<input type="text" name="b2_name" value="<?= $v('b2_name') ?>" autocomplete="off"></label>
-      <label>Phone<input type="text" name="b2_phone" value="<?= $v('b2_phone') ?>" inputmode="tel" autocomplete="off"></label>
-      <label>Email<input type="email" name="b2_email" value="<?= $v('b2_email') ?>" autocomplete="off"></label>
+      <label>Buyer full name<input type="text" name="f_b2_name" value="<?= $v('b2_name') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Phone<input type="text" name="f_b2_phone" value="<?= $v('b2_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Email<input type="email" name="f_b2_email" value="<?= $v('b2_email') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
     <fieldset class="wq"><legend>Buyer mailing address (used as the address for notices)</legend>
-      <label>Street, city, state, zip<input type="text" name="mailing" value="<?= $v('mailing') ?>" autocomplete="off"></label>
+      <label>Street, city, state, zip<input type="text" name="f_mailing" value="<?= $v('mailing') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
     <fieldset class="wq"><legend>Method of payment</legend>
 <?php foreach (['cash' => 'Cash', 'conventional' => 'Conventional financing', 'fhava' => 'FHA / VA financing'] as $k => $l): ?>
       <label class="wr"><input type="radio" name="payment" value="<?= $k ?>"<?= ($info['payment'] ?? '') === $k ? ' checked' : '' ?>> <?= $l ?></label>
 <?php endforeach; ?>
-      <label>Lender (if financing)<input type="text" name="lender" value="<?= $v('lender') ?>" autocomplete="off"></label>
-      <label>Pre-approval amount<input type="text" name="preapproval" value="<?= $v('preapproval') ?>" inputmode="decimal" autocomplete="off"></label>
+      <label>Lender (if financing)<input type="text" name="f_lender" value="<?= $v('lender') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Pre-approval amount<input type="text" name="f_preapproval" value="<?= $v('preapproval') ?>" inputmode="decimal" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
     <p><button type="submit" class="btn">Save buyer info</button> <a class="btn ghost" href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer</a></p>
   </form>
