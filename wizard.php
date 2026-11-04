@@ -56,7 +56,7 @@ $pre = (string)($_GET['tx'] ?? '');
     <div id="res" hidden></div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="wizlib.js?v=5"></script>
+<script src="wizlib.js?v=6"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>;
@@ -84,7 +84,7 @@ var INFO=null, bsum=document.getElementById('bsum');
 function fillMap(){
   if(!INFO)return null;
   var names=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and '), ph=[INFO.b1_phone,INFO.b2_phone].filter(Boolean).join(' / '), em=[INFO.b1_email,INFO.b2_email].filter(Boolean).join(' / ');
-  return {Buyer_Names:names,Buyer_NoticeAddress_1:INFO.mailing||'',Buyer_NoticeAddress_2:ph?'Phone: '+ph:'',Buyer_NoticeAddress_3:em?'Email: '+em:''};
+  return {Buyer_Names:names}; // buyer contact details are never written onto the contract forms
 }
 function loadInfo(){
   INFO=null;bsum.innerHTML='';
