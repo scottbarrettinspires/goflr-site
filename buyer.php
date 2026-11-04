@@ -29,7 +29,7 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {
         $new = [];
-        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST[$k] ?? '')), 0, 200); }
+        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST['f_' . $k] ?? '')), 0, 200); }
         $pm = (string)($_POST['payment'] ?? '');
         $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
         $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
@@ -112,9 +112,9 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <?php if ($buyer): ?><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><?php else: ?><input type="hidden" name="new" value="1"><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>"><?php endif; ?>
     <fieldset class="wq"><legend>Buyer 1 (all required)</legend>
-      <label>Buyer full name<input type="text" name="f_b1_name" value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
-      <label>Phone<input type="text" name="f_b1_phone" value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
-      <label>Email<input type="email" name="f_b1_email" value="<?= $v('b1_email') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
+      <label>Buyer full name<input type="text" name="f_b1_name" required value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
+      <label>Phone<input type="text" name="f_b1_phone" required value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
+      <label>Email<input type="email" name="f_b1_email" required value="<?= $v('b1_email') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
     <fieldset class="wq"><legend>Buyer 2 (if any: name and email required, phone optional)</legend>
       <label>Buyer full name<input type="text" name="f_b2_name" value="<?= $v('b2_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
