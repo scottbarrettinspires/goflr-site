@@ -71,13 +71,14 @@
       refs.forEach(function (r) {
         var d = ctx.lookup(r, PL.PDFDict);
         ['T', 'FT', 'V', 'DV', 'Ff'].forEach(function (k) { d.delete(PL.PDFName.of(k)); });
+        if (!val) d.delete(PL.PDFName.of('AP')); // drop the template's blank drawing so viewers redraw it from the shared value
         d.set(PL.PDFName.of('Parent'), pref); roots.delete(r);
       });
       roots.add(pref);
     });
     var helv = ctx.register(ctx.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: 'Helvetica', Encoding: 'WinAnsiEncoding' }));
     var fonts = { Helv: helv }; Object.keys(fontNames).forEach(function (n) { fonts[n] = helv; });
-    var acro = ctx.obj({ Fields: ctx.obj(Array.from(roots)), DR: ctx.obj({ Font: ctx.obj(fonts) }), DA: PL.PDFString.of('/Helv 0 Tf 0 g') });
+    var acro = ctx.obj({ Fields: ctx.obj(Array.from(roots)), DR: ctx.obj({ Font: ctx.obj(fonts) }), DA: PL.PDFString.of('/Helv 0 Tf 0 g'), NeedAppearances: PL.PDFBool.True });
     out.catalog.set(PL.PDFName.of('AcroForm'), ctx.register(acro));
     // Give every text field a visible appearance (copies of a shared field otherwise look blank until clicked).
     try {
