@@ -12,9 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 }
 // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
 $signedNotes = []; $checked = 0;
-foreach (sg_for_agent($me) as $r) {
-    if (!empty($r['seen'])) continue;
-    if (empty($r['completed'])) { if ($checked++ >= 8) continue; sg_refresh($r); }
+$myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
+sg_refresh_many($myrecs, 6);
+foreach ($myrecs as $r) {
     if (empty($r['completed'])) continue;
     $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
     if ($pend && sg_can_file($r)) { sg_file($r); }

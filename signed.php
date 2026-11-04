@@ -20,10 +20,11 @@ if (isset($_GET['dl'])) {
 $msg = '';
 $recs = sg_for_agent($me);
 // Check status of anything still open, and file anything that is done and has a transaction.
+sg_refresh_many($recs);
+$filed = 0;
 foreach ($recs as $i => $r) {
-    if (empty($r['completed'])) { sg_refresh($r); }
     $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
-    if (!empty($r['completed']) && $pend && sg_can_file($r)) { sg_file($r); }
+    if (!empty($r['completed']) && $pend && sg_can_file($r) && $filed < 3) { sg_file($r); $filed++; }
     $recs[$i] = $r;
 }
 // Assign a finished, unfiled document to a transaction.

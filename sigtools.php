@@ -299,3 +299,27 @@ function sg_drafts($email, $hint, $addr) {
     $j = $b === false ? null : json_decode($b, true);
     return (is_array($j) && !empty($j['ok'])) ? $j : null;
 }
+
+// Check several open requests with DigiSigner at the same time (newest first, recent ones only), so pages stay fast.
+function sg_refresh_many(&$recs, $max = 8) {
+    $idx = []; $cut = time() - 45 * 86400;
+    foreach ($recs as $i => $r) { if (empty($r['completed']) && strtotime($r['created'] ?? '') > $cut) { $idx[] = $i; if (count($idx) >= $max) break; } }
+    if (!$idx) return;
+    $mh = curl_multi_init(); $hs = [];
+    foreach ($idx as $i) {
+        $ch = curl_init('https://api.digisigner.com/v1/signature_requests/' . rawurlencode($recs[$i]['id']));
+        curl_setopt_array($ch, [CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_CONNECTTIMEOUT => 6]);
+        curl_multi_add_handle($mh, $ch); $hs[$i] = $ch;
+    }
+    do { $st = curl_multi_exec($mh, $run); if ($run) curl_multi_select($mh, 1.0); } while ($run && $st === CURLM_OK);
+    foreach ($hs as $i => $ch) {
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $q = json_decode((string)curl_multi_getcontent($ch), true);
+        curl_multi_remove_handle($mh, $ch); curl_close($ch);
+        if ($code < 200 || $code >= 300 || !is_array($q)) continue;
+        $r = $recs[$i]; $r['signers_status'] = [];
+        foreach (($q['documents'][0]['signers'] ?? []) as $s) { $r['signers_status'][$s['email'] ?? ''] = !empty($s['is_signature_completed']); }
+        if (!empty($q['is_completed'])) { $r['completed'] = true; $r['doc'] = $q['documents'][0]['document_id'] ?? ($r['doc'] ?? ''); }
+        sg_save($r['id'], $r); $recs[$i] = $r;
+    }
+    curl_multi_close($mh);
+}
