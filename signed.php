@@ -60,15 +60,15 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 <meta name="robots" content="noindex,nofollow">
 <title>Signed Documents - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=11">
+<style>.stabs{display:flex;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}</style>
 </head>
 <body>
 <header class="top"><div class="in">
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="my-transactions.php">My Transactions</a>
+    <a href="my-transactions.php" aria-current="page">My Transactions</a>
     <a href="forms.php">Forms</a>
-    <a href="signed.php" aria-current="page">Signed</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
     <a href="logout.php">Sign out</a>
@@ -76,6 +76,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 </div></header>
 <section class="hero"><h1>Signed Documents</h1><p>Forms you sent for signature, and where the signed copies went.</p></section>
 <main class="wrap">
+  <div class="stabs"><a href="my-transactions.php">Transaction Folders</a><a href="signed.php" class="on">Signed Documents</a></div>
 <?php if ($msg): ?><p class="note"><strong><?= htmlspecialchars($msg) ?></strong></p><?php endif; ?>
 <?php if (!$recs): ?>
   <p class="note">Nothing sent yet. Use the Contract Forms Wizard in <a href="my-transactions.php">My Transactions</a>, then Review and complete, then send it for signature.</p>

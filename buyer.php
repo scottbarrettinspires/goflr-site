@@ -85,7 +85,6 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="home.php">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="forms.php" aria-current="page">Forms</a>
-    <a href="signed.php">Signed</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
     <a href="logout.php">Sign out</a>
