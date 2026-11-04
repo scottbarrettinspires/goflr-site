@@ -22,7 +22,8 @@ $recs = sg_for_agent($me);
 // Check status of anything still open, and file anything that is done and has a transaction.
 foreach ($recs as $i => $r) {
     if (empty($r['completed'])) { sg_refresh($r); }
-    if (!empty($r['completed']) && empty($r['filed']) && sg_can_file($r)) { sg_file($r); }
+    $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
+    if (!empty($r['completed']) && $pend && sg_can_file($r)) { sg_file($r); }
     $recs[$i] = $r;
 }
 // Assign a finished, unfiled document to a transaction.
@@ -81,6 +82,9 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
       <p><strong>Fully signed.</strong> <a class="btn" href="signed.php?dl=<?= urlencode($r['id']) ?>">Download signed copy</a></p>
       <?php if (!empty($r['filed'])): ?>
         <p class="note">Filed in <?= htmlspecialchars($r['filed']['folder']) ?> as <a href="<?= htmlspecialchars($r['filed']['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($r['filed']['name']) ?></a></p>
+<?php foreach (($r['extra'] ?? []) as $x): if (!empty($x['filed'])): ?>
+        <p class="note">Also filed: <a href="<?= htmlspecialchars($x['filed']['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($x['filed']['name']) ?></a></p>
+<?php endif; endforeach; ?>
       <?php else:
           if ($folders === null) { $fl = sg_folders($me); $folders = $fl ?: []; $fok = is_array($fl); } ?>
         <?php if ($folders): ?>

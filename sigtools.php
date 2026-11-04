@@ -68,21 +68,64 @@ function sg_folders($email, $hint = '') {
 }
 
 // File the signed PDF into the chosen transaction folder (brokerage copy). Never overwrites. Returns [ok, message].
-function sg_file(&$rec) {
-    if (!empty($rec['filed'])) return [true, 'Already filed.'];
-    if (!sg_can_file($rec)) return [false, 'No transaction chosen.'];
-    $pdf = sg_signed_pdf($rec);
-    if ($pdf === null) return [false, 'The signed copy is not ready to download yet.'];
-    $name = 'Signed - ' . $rec['form'] . ' - ' . gmdate('Y-m-d') . '.pdf';
+function sg_file_pdf($rec, $docId, $form) {
+    $pdf = sg_api('GET', '/documents/' . rawurlencode($docId), true);
+    if ($pdf === null || strlen($pdf) < 500) return [false, 'The signed copy is not ready to download yet.'];
+    $name = 'Signed - ' . $form . ' - ' . gmdate('Y-m-d') . '.pdf';
     $post = ['op' => 'save', 'email' => $rec['agent'], 'name' => $name, 'b64' => base64_encode($pdf)];
     if (!empty($rec['offer_address'])) { $post['offerAddress'] = $rec['offer_address']; if (!empty($rec['hint'])) { $post['hint'] = $rec['hint']; } } else { $post['folderId'] = $rec['folder']['id']; }
     $r = sg_script_post($post);
     if (!is_array($r) || empty($r['ok'])) return [false, 'Could not save to the transaction folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.'];
     $label = !empty($rec['offer_address']) ? '1 BUYERS / 2 Contract Offers / ' . ($r['folder'] ?? $rec['offer_address']) : ($rec['folder']['label'] ?? '');
-    $rec['filed'] = ['name' => $r['name'], 'url' => $r['url'], 'at' => gmdate('c'), 'folder' => $label];
-    sg_save($rec['id'], $rec);
-    @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $label, 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX);
-    return [true, 'Filed in ' . $label . '.'];
+    return [true, ['name' => $r['name'], 'url' => $r['url'], 'at' => gmdate('c'), 'folder' => $label]];
+}
+
+// A request can carry extra documents (e.g. Buyer Disclosures sent with the packet); each is filed as its own PDF.
+function sg_file(&$rec) {
+    $pending = false; foreach (($rec['extra'] ?? []) as $x) { if (empty($x['filed'])) $pending = true; }
+    if (!empty($rec['filed']) && !$pending) return [true, 'Already filed.'];
+    if (!sg_can_file($rec)) return [false, 'No transaction chosen.'];
+    if (empty($rec['filed'])) {
+        $pdf = sg_signed_pdf($rec);
+        if ($pdf === null) return [false, 'The signed copy is not ready to download yet.'];
+        list($ok, $r) = sg_file_pdf($rec, $rec['doc'], $rec['form']);
+        if (!$ok) return [false, $r];
+        $rec['filed'] = $r;
+        sg_save($rec['id'], $rec);
+        @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $r['folder'], 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX);
+    }
+    foreach (($rec['extra'] ?? []) as $i => $x) {
+        if (!empty($x['filed'])) continue;
+        list($ok, $r) = sg_file_pdf($rec, $x['doc'], $x['form']);
+        if (!$ok) return [false, $r];
+        $rec['extra'][$i]['filed'] = $r;
+        sg_save($rec['id'], $rec);
+        @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $r['folder'], 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX);
+    }
+    return [true, 'Filed in ' . $rec['filed']['folder'] . '.'];
+}
+
+// One signature request carrying several documents. $items = [[pdf, filename, subject, message], ...]. Returns ids and the document ids in order.
+function sg_send_multi($items, $signers) {
+    $docs = []; $ids = [];
+    $sg = []; foreach ($signers as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; }
+    foreach ($items as $it) {
+        $tmp = tempnam(sys_get_temp_dir(), 'flrsig'); file_put_contents($tmp, $it[0]);
+        $ch = curl_init('https://api.digisigner.com/v1/documents');
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_POSTFIELDS => ['file' => new CURLFile($tmp, 'application/pdf', $it[1])], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_CONNECTTIMEOUT => 8]);
+        $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); @unlink($tmp);
+        $d = json_decode((string)$r, true);
+        if ($code < 200 || $code >= 300 || empty($d['document_id'])) return ['ok' => false, 'msg' => 'DigiSigner did not accept "' . $it[1] . '" (code ' . $code . ').'];
+        $ids[] = $d['document_id'];
+        $docs[] = ['document_id' => $d['document_id'], 'subject' => $it[2], 'message' => $it[3], 'signers' => $sg];
+    }
+    $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => $docs];
+    $ch = curl_init('https://api.digisigner.com/v1/signature_requests');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($req), CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
+    $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $q = json_decode((string)$r, true);
+    if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) return ['ok' => false, 'msg' => 'DigiSigner could not create the request (code ' . $code . '). Check that each role matches a signature tag in both documents.'];
+    return ['ok' => true, 'id' => $q['signature_request_id'], 'docs' => $ids];
 }
 
 // Contract Forms Wizard rules, read from the Wizard Rules sheet through the office script.
