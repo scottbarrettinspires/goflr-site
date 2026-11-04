@@ -142,7 +142,7 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .efield .etx{width:100%;height:100%;box-sizing:border-box;border:0;background:rgba(3,111,114,.10);color:#111;padding:0 2px;font-family:Helvetica,Arial,sans-serif;resize:none;outline:none;line-height:1.1}
 .efield .etx:focus{background:rgba(255,235,120,.55);box-shadow:0 0 0 1px var(--teal)}
 .efield .ecb{width:100%;height:100%;margin:0;accent-color:var(--teal);cursor:pointer}
-.ebar{max-width:900px}
+.ebar{max-width:900px;margin-left:auto;margin-right:auto;text-align:center}
 
 /* spinner shown inside a button while it works */
 .bspin{display:inline-block;width:14px;height:14px;margin-right:9px;vertical-align:-2px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:flrspin .8s linear infinite}

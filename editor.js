@@ -119,7 +119,7 @@
         if (j.ok) { var b = el('a', 'btn ghost', p2); b.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx); b.textContent = 'Send for signature'; b.style.marginLeft = '8px'; }
         res.hidden = false; status.textContent = j.ok ? 'Saved.' : 'Not saved.';
       } catch (e) { status.textContent = 'Something went wrong: ' + e.message; }
-      btns.forEach(function (b) { b.disabled = false; b.textContent = saveBtn.dataset.t || 'Save completed packet'; });
+      btns.forEach(function (b) { b.disabled = false; b.textContent = saveBtn.dataset.t || 'Continue For Signing'; });
       try { res.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e5) {} // the result is at the top of the page
     };
     saveBtn.addEventListener('click', onSave); if (saveBtn2) saveBtn2.addEventListener('click', onSave);
