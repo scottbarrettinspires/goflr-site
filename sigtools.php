@@ -108,8 +108,8 @@ function sg_file(&$rec) {
 // One signature request carrying several documents. $items = [[pdf, filename, subject, message], ...]. Returns ids and the document ids in order.
 function sg_send_multi($items, $signers) {
     $docs = []; $ids = [];
-    $sg = []; foreach ($signers as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; }
     foreach ($items as $it) {
+        $sg = []; foreach (($it[4] ?? $signers) as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; } // each document can have its own signers
         $tmp = tempnam(sys_get_temp_dir(), 'flrsig'); file_put_contents($tmp, $it[0]);
         $ch = curl_init('https://api.digisigner.com/v1/documents');
         curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_POSTFIELDS => ['file' => new CURLFile($tmp, 'application/pdf', $it[1])], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_CONNECTTIMEOUT => 8]);
@@ -126,6 +126,19 @@ function sg_send_multi($items, $signers) {
     $q = json_decode((string)$r, true);
     if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) return ['ok' => false, 'msg' => 'DigiSigner could not create the request (code ' . $code . '). Check that each role matches a signature tag in both documents.'];
     return ['ok' => true, 'id' => $q['signature_request_id'], 'docs' => $ids];
+}
+
+// Brokerage-side signers (the signed-in agent and the broker) from the Agents tab through the office script.
+function sg_signers($email) {
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=signers&email=' . urlencode(strtolower($email)));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 30, CURLOPT_CONNECTTIMEOUT => 8]);
+    $b = curl_exec($ch); curl_close($ch);
+    $j = $b === false ? null : json_decode($b, true);
+    $o = ['agent' => ['name' => '', 'email' => ''], 'broker' => ['name' => '', 'email' => '']];
+    if (is_array($j) && !empty($j['ok'])) { foreach (['agent', 'broker'] as $k) { if (is_array($j[$k] ?? null)) { $o[$k] = ['name' => (string)($j[$k]['name'] ?? ''), 'email' => (string)($j[$k]['email'] ?? '')]; } } }
+    if ($o['agent']['name'] === '') $o['agent']['name'] = trim((string)($_SESSION['name'] ?? ''));
+    if ($o['agent']['email'] === '') $o['agent']['email'] = strtolower($email);
+    return $o;
 }
 
 // Contract Forms Wizard rules, read from the Wizard Rules sheet through the office script.

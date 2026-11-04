@@ -19,6 +19,7 @@ foreach ($discs as $p) { if ($dk === '' || stripos($p['name'], 'completed') !== 
 $pk = '';
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
+$SIG = $buyer ? sg_signers($me) : null;
 $result = null; $rows = [['', 'buyer1', '']]; $addr = '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];
@@ -59,14 +60,29 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_SESSION['name'] ?? '') ?: 'Your agent';
         // Contract packet and buyer disclosures: ONE request and ONE email, but two documents that come back and are filed as two separate PDFs.
         $jobs = [];
-        if ($pick) $jobs[] = [$pick, 'Contract Packet', 'contract packet'];
-        if ($dpick) $jobs[] = [$dpick, 'Buyer Disclosures', 'buyer disclosures'];
+        if ($pick) $jobs[] = [$pick, 'Contract Packet', 'contract packet', 'pk'];
+        if ($dpick) $jobs[] = [$dpick, 'Buyer Disclosures', 'buyer disclosures', 'dk'];
         $items = []; $meta = []; $fail = null;
+        // Brokerage-side signers: whatever roles each document's signature tags call for (agent / broker / buyer agent).
+        $needs = json_decode((string)($_POST['needs'] ?? ''), true); if (!is_array($needs)) $needs = [];
+        $extraOk = ['agent', 'broker', 'buyeragent'];
+        $docSigners = function ($which) use ($needs, $extraOk, $signers, &$fail) {
+            $sg = $signers; $seenE = [];
+            foreach ($signers as $x) { $seenE[strtolower($x['email'])] = 1; }
+            foreach ((array)($needs[$which] ?? []) as $r) {
+                if (!in_array($r, $extraOk, true)) continue;
+                $e = trim((string)($_POST['xemail'][$r] ?? ''));
+                if (!filter_var($e, FILTER_VALIDATE_EMAIL)) { $fail = ['ok' => false, 'msg' => 'Please enter the email address for the ' . $r . ' signature.']; return $sg; }
+                $sg[] = ['email' => $e, 'role' => $r];
+            }
+            return $sg;
+        };
         foreach ($jobs as $jb) {
-            list($pp, $label, $what) = $jb;
+            list($pp, $label, $what, $which) = $jb;
             $file = sg_packet_pdf($me, $pp['id']);
             if (!$file) { $fail = ['ok' => false, 'msg' => 'Could not load the ' . $what . '. Please try again.']; break; }
-            $items[] = [$file['pdf'], $file['name'], 'Florida Luxury Realty: please sign your ' . $what . ' for ' . $addr, $name . ' (Florida Luxury Realty) has sent you ' . ($what === 'contract packet' ? 'a contract packet' : 'your buyer disclosures') . ' for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.'];
+            $items[] = [$file['pdf'], $file['name'], 'Florida Luxury Realty: please sign your ' . $what . ' for ' . $addr, $name . ' (Florida Luxury Realty) has sent you ' . ($what === 'contract packet' ? 'a contract packet' : 'your buyer disclosures') . ' for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $docSigners($which)];
+            if ($fail) break;
             $meta[] = ['form' => $label . ' - ' . $addr, 'form_id' => $pp['id'], 'what' => $what, 'file' => $file['name']];
         }
         if (!$fail) {
@@ -152,13 +168,55 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 <?php endforeach; ?>
     </div>
+    <div id="xsign"></div>
+    <input type="hidden" name="needs" id="needs" value="">
     <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
   </form>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-(function(){var f=document.getElementById("sf");if(!f)return;
-f.addEventListener("submit",function(){var b=document.getElementById("go");b.disabled=true;b.innerHTML='<span class="bspin"></span>Sending...';});})();
+(function(){
+var f=document.getElementById("sf");if(!f)return;
+var TX=<?= json_encode($buyer['id']) ?>, SIG=<?= json_encode($SIG) ?>, LBL={agent:"Agent",broker:"Broker",buyeragent:"Agent"};
+var go=document.getElementById("go"),xs=document.getElementById("xsign"),needs=document.getElementById("needs"),pk=document.getElementById("pk"),dk=document.getElementById("dk"),seq=0;
+function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+// Which brokerage-side signatures does this saved PDF ask for? Read the DigiSigner text tags, e.g. [s:agent], [s:broker], [s:buyeragent].
+async function roles(id){
+  var out={};if(!id||!window.pdfjsLib)return out;
+  var r=await fetch("editor_pdf.php?tx="+encodeURIComponent(TX)+"&id="+encodeURIComponent(id),{credentials:"same-origin"});
+  if(!r.ok)throw new Error("Could not read the document");
+  var doc=await pdfjsLib.getDocument({data:new Uint8Array(await r.arrayBuffer())}).promise;
+  for(var n=1;n<=doc.numPages;n++){
+    var tc=await (await doc.getPage(n)).getTextContent(), txt=tc.items.map(function(i){return i.str;}).join(" ").replace(/\s+/g," ");
+    var re=/\[\s*[a-z]\s*:\s*(agent|broker|buyeragent)\s*\]/gi, m;
+    while((m=re.exec(txt))){var role=m[1].toLowerCase();
+      // a broker line that says "Broker or Authorized Associate" is signed by the agent
+      var assoc=role==="broker"&&/authorized\s+associate/i.test(txt);
+      if(out[role]!=="broker")out[role]=(role==="broker"&&!assoc)?"broker":"agent";}
+  }
+  return out;
+}
+async function refresh(){
+  var my=++seq;go.disabled=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
+  var want={pk:{},dk:{}},all={};
+  try{
+    var a=await roles(pk&&pk.value), b=await roles(dk&&dk.value);
+    if(my!==seq)return;
+    want.pk=a;want.dk=b;
+    Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
+  }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";return;}
+  var h="",keys=Object.keys(all);
+  if(keys.length)h+='<p><strong>Also signing for Florida Luxury Realty</strong></p>';
+  keys.forEach(function(role){var src=all[role]==="broker"?SIG.broker:SIG.agent,title=all[role]==="broker"?"Broker":(role==="broker"?"Broker or Authorized Associate (the agent)":LBL[role]);
+    h+='<div class="sg" style="display:block;margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px">'+esc((src.name||title)+" ("+title+")")+'</div><input type="email" name="xemail['+role+']" value="'+esc(src.email)+'" placeholder="'+esc(title)+' email" required style="width:100%;max-width:480px"></div>';});
+  xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;
+}
+if(pk)pk.addEventListener("change",refresh);if(dk)dk.addEventListener("change",refresh);refresh();
+f.addEventListener("submit",function(){go.disabled=true;go.innerHTML='<span class="bspin"></span>Sending...';});
+})();
 </script>
+
 <?php endif; endif; ?>
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
