@@ -50,13 +50,14 @@ $pre = (string)($_GET['tx'] ?? '');
 <?php endforeach; if ($g !== '') echo "      </optgroup>\n"; ?>
     </select></p>
     <div id="bsum" class="wsum"></div>
+    <p class="bi"><label for="paddr"><strong>Property address</strong> (optional, fills the address on the forms)<input type="text" id="paddr" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="Street, city, state, zip"></label></p>
     <div id="qs"></div>
     <p class="sgerr" id="err" hidden></p>
     <p><button type="button" class="btn" id="build">Build contract packet</button></p>
     <div id="res" hidden></div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="wizlib.js?v=7"></script>
+<script src="wizlib.js?v=8"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.';
@@ -82,7 +83,7 @@ qs.innerHTML=h;
 qs.addEventListener('change',function(){ [].forEach.call(qs.querySelectorAll('.wf'),function(d){var m=/^f(\w+)_(\d+)$/.exec(d.id);var c=qs.querySelector('input[name="q'+m[1]+'"]:checked');d.hidden=!(c&&c.value===m[2]);}); });
 var INFO=null, bsum=document.getElementById('bsum');
 function fillMap(){
-  var m={BuyerAgent_Name:AGENT,BuyerBroker_Name:BROKERAGE}; // the agent and brokerage are the cooperating agent and broker on the forms
+  var m={BuyerAgent_Name:AGENT,BuyerBroker_Name:BROKERAGE,Agent_Name:AGENT};var pa=(document.getElementById('paddr')||{}).value; if(pa&&pa.trim())m.Property_Address=pa.trim(); // the agent and brokerage are the cooperating agent and broker on the forms
   if(INFO){var names=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and '); if(names)m.Buyer_Names=names;} // buyer contact details are never written onto the forms
   return m;
 }
@@ -127,6 +128,7 @@ btn.addEventListener('click',async function(){
     if(row.todo)warn.push('A form for "'+row.answer+'" has not been added to the rules yet.');
   }
   var want=[];picked.forEach(function(r){r.forms.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});});
+  (R.order||[]).forEach(function(o){if(o.always&&want.indexOf(o.file)<0)want.push(o.file);}); // forms marked Always in the rules sheet go in every packet
   var pos=function(f){for(var i=0;i<R.order.length;i++){if(R.order[i].file===f)return R.order[i].n;}return 9999;};
   want.sort(function(a,b){return pos(a)-pos(b);});
   var use=[];
