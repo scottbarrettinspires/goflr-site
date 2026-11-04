@@ -13,7 +13,7 @@ $tx = (string)($j['tx'] ?? '');
 $all = preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) ? (sg_folders($_SESSION['email'], $tx) ?: []) : [];
 $pick = null; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $pick = $f; }
 if (!$pick) out(['ok' => false, 'msg' => 'Please open this from one of your buyer folders.']);
-$r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' => $pick['id'], 'name' => 'Contract Packet (completed) - ' . gmdate('Y-m-d') . '.pdf', 'b64' => $b64]);
+$r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' => $pick['id'], 'name' => (($j['kind'] ?? '') === 'disclosures' ? 'Buyer Disclosures (completed) - ' : 'Contract Packet (completed) - ') . gmdate('Y-m-d') . '.pdf', 'b64' => $b64]);
 if (!is_array($r) || empty($r['ok'])) out(['ok' => false, 'msg' => 'Could not save to the buyer folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.']);
 sg_dir();
 @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $_SESSION['email'], 'completed_packet' => $r['name'], 'folder' => $pick['name']]) . "\n", FILE_APPEND | LOCK_EX);

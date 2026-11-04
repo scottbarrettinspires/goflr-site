@@ -142,20 +142,24 @@ btn.addEventListener('click',async function(){
   if(!use.length)return fail('No forms were selected for those answers.');
   btn.disabled=true;btn.textContent='Building... this can take a minute';
   try{
-    var bufs=await Promise.all(use.map(function(f){return fetch('wizard_pdf.php?id='+encodeURIComponent(R.files[f]),{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('Could not load '+title(f));return r.arrayBuffer();});}));
-    var src=use.map(function(f,i){return {bytes:new Uint8Array(bufs[i]),isContract:/AS_IS_Residential_Contract|Vacant_Land_Contract/.test(f)};});
-    var doc=await FLRWiz.buildPacket(PDFLib,src,clauses,fillMap());
-    var notes=doc.__notes||[];
-    var bytes=await doc.save();
-    var bin='';for(var o=0;o<bytes.length;o+=32768){bin+=String.fromCharCode.apply(null,bytes.subarray(o,o+32768));}
+    var DISC='Broker_Res_Buyer_Disclosures.pdf';
+    var packUse=use.filter(function(f){return f!==DISC;}), discUse=use.filter(function(f){return f===DISC;});
+    var load=async function(list){var bufs=await Promise.all(list.map(function(f){return fetch('wizard_pdf.php?id='+encodeURIComponent(R.files[f]),{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('Could not load '+title(f));return r.arrayBuffer();});}));return list.map(function(f,i){return {bytes:new Uint8Array(bufs[i]),isContract:/AS_IS_Residential_Contract|Vacant_Land_Contract/.test(f)};});};
+    var toB64=function(bytes){var bin='';for(var o=0;o<bytes.length;o+=32768){bin+=String.fromCharCode.apply(null,bytes.subarray(o,o+32768));}return btoa(bin);};
+    var notes=[],packBytes=null,discBytes=null,packB64='',discB64='';
+    if(packUse.length){var pd=await FLRWiz.buildPacket(PDFLib,await load(packUse),clauses,fillMap());notes=notes.concat(pd.__notes||[]);packBytes=await pd.save();packB64=toB64(packBytes);}
+    if(discUse.length){var dd=await FLRWiz.buildPacket(PDFLib,await load(discUse),[],fillMap());discBytes=await dd.save();discB64=toB64(discBytes);} // Buyer Disclosures stay a separate PDF
     btn.textContent='Saving to the buyer folder...';
-    var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:btoa(bin),forms:use,property:((document.getElementById('paddr')||{}).value||'').trim(),price:((document.getElementById('pprice')||{}).value||'').trim()})});
+    var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:packB64,b64d:discB64,forms:use,property:((document.getElementById('paddr')||{}).value||'').trim(),price:((document.getElementById('pprice')||{}).value||'').trim()})});
     var j=await r.json();
-    var url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    var out='<h2>Your contract packet</h2><ol>'+use.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
+    var out='<h2>Your contract packet</h2><ol>'+packUse.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
+    if(discUse.length)out+='<h2>Buyer Disclosures (separate document)</h2><ol>'+discUse.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
     notes.concat(warn).forEach(function(n){out+='<p class="note">'+esc(n)+'</p>';});
-    out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+' as <a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a>.</p>'+(j.offer?'<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>':'') : '<p class="sigerr">'+esc(j.msg||'The packet was built but could not be saved.')+' You can still download it below.</p>';
-    out+='<p><a class="btn" href="'+url+'" download="Contract Packet.pdf">Download the packet</a>'+(j.ok?' <a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'">Review and complete</a> <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Send it for signature</a>':'')+'</p>';
+    out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+':</p><ul>'+(j.name?'<li><a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a></li>':'')+(j.dname?'<li><a href="'+esc(j.durl)+'" target="_blank" rel="noopener">'+esc(j.dname)+'</a></li>':'')+'</ul>'+(j.offer?'<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>':'') : '<p class="sigerr">'+esc(j.msg||'The documents were built but could not be saved.')+' You can still download them below.</p>';
+    out+='<p>';
+    if(packBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([packBytes],{type:'application/pdf'}))+'" download="Contract Packet.pdf">Download the packet</a> ';
+    if(discBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([discBytes],{type:'application/pdf'}))+'" download="Buyer Disclosures.pdf">Download the disclosures</a> ';
+    out+=(j.ok?'<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'">Review and complete</a> <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Send for signature</a>':'')+'</p>';
     res.innerHTML=out;res.hidden=false;btn.disabled=false;btn.textContent='Build another packet';
   }catch(e){fail('Something went wrong: '+e.message);}
 });

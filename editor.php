@@ -34,7 +34,7 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Review and Complete</h1><p>Fill in the contract packet here, save it, then send it for signature.</p></section>
+<section class="hero"><h1>Review and Complete</h1><p>Fill in the contract packet or the Buyer Disclosures here, save, then send for signature.</p></section>
 <main class="wrap">
 <?php if (!$buyer): ?>
   <p class="note">Open this page from a buyer's contract packet: use <a href="wizard.php">the Contract Forms Wizard</a> first.</p>
@@ -56,9 +56,9 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
   <div id="pages" class="epages"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="editor.js?v=2"></script>
+<script src="editor.js?v=3"></script>
 <script>
-FLREditor.start({pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
+FLREditor.start({pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,kind:<?= json_encode(stripos($pick['name'], 'Buyer Disclosures') === 0 ? 'disclosures' : 'packet') ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
 </script>
 <?php endif; ?>
 </main>

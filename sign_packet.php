@@ -10,8 +10,14 @@ $all = sg_folders($me, (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''))) ?: [];
 $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
-$packets = $buyer ? sg_packets($me, $buyer['id']) : null;
-$result = null; $rows = [['', 'buyer1']]; $addr = ''; $pk = '';
+$allpk = $buyer ? sg_packets($me, $buyer['id']) : null;
+$isD = function ($n) { return stripos((string)$n, 'Buyer Disclosures') === 0; };
+$packets = []; $discs = [];
+foreach (($allpk ?: []) as $p) { if ($isD($p['name'])) $discs[] = $p; else $packets[] = $p; }
+$dk = '';
+foreach ($discs as $p) { if ($dk === '' || stripos($p['name'], 'completed') !== false) $dk = $p['id']; } // preselect the completed copy when there is one
+$pk = '';
+$result = null; $rows = [['', 'buyer1']]; $addr = '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];
     $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
@@ -20,12 +26,13 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $rows = []; $signers = []; $err = ''; $seen = [];
-    $addr = trim(preg_replace('/\s+/', ' ', (string)($_POST['addr'] ?? ''))); $pk = (string)($_POST['pk'] ?? '');
+    $addr = trim(preg_replace('/\s+/', ' ', (string)($_POST['addr'] ?? ''))); $pk = (string)($_POST['pk'] ?? ''); $dk = (string)($_POST['dk'] ?? '');
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) $err = 'This page expired. Please reload and try again.';
     $_SESSION['sig_n'] = array_filter($_SESSION['sig_n'] ?? [], function ($t) { return $t > time() - 3600; });
     if (!$err && count($_SESSION['sig_n']) >= 20) $err = 'Too many requests this hour. Please try again later.';
-    $pick = null; foreach (($packets ?: []) as $p) { if ($p['id'] === $pk) $pick = $p; }
-    if (!$err && !$pick) $err = 'Please choose the packet to send.';
+    $pick = null; foreach ($packets as $p) { if ($p['id'] === $pk) $pick = $p; }
+    $dpick = null; foreach ($discs as $p) { if ($p['id'] === $dk) $dpick = $p; }
+    if (!$err && !$pick && !$dpick) $err = 'Please choose the contract packet and/or the buyer disclosures to send.';
     if (!$err && ($addr === '' || strlen($addr) > 120 || preg_match('/[\\\\\/:*?"<>|]/', $addr))) $err = 'Please enter the property address (no slashes or special characters).';
     if (!$err) {
         foreach ((array)($_POST['email'] ?? []) as $i => $e) {
@@ -43,20 +50,25 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($err) { $result = ['ok' => false, 'msg' => $err]; }
     else {
         $_SESSION['sig_n'][] = time();
-        $file = sg_packet_pdf($me, $pick['id']);
-        if (!$file) { $result = ['ok' => false, 'msg' => 'Could not load that packet. Please try again.']; }
-        else {
-            $name = trim($_SESSION['name'] ?? '') ?: 'Your agent';
-            $title = 'Contract Packet - ' . $addr;
-            $s = sg_send_pdf($file['pdf'], $file['name'], 'Florida Luxury Realty: please sign your contract packet for ' . $addr, $name . ' (Florida Luxury Realty) has sent you a contract packet for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $signers);
-            if (!$s['ok']) { $result = $s; }
-            else {
-                sg_save($s['id'], ['id' => $s['id'], 'agent' => $me, 'form' => $title, 'form_id' => $pick['id'], 'doc' => $s['doc'], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null]);
-                sg_dir();
-                @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'packet' => $file['name'], 'address' => $addr, 'buyer_folder' => $buyer['name'], 'signers' => array_map(function ($x) { return $x['email'] . ' (' . $x['role'] . ')'; }, $signers), 'request' => $s['id']]) . "\n", FILE_APPEND | LOCK_EX);
-                $result = ['ok' => true, 'id' => $s['id']];
-            }
+        $name = trim($_SESSION['name'] ?? '') ?: 'Your agent';
+        $sent = []; $fail = null;
+        // The contract packet and the buyer disclosures go out as two separate documents to the same signers.
+        $jobs = [];
+        if ($pick) $jobs[] = [$pick, 'Contract Packet', 'contract packet'];
+        if ($dpick) $jobs[] = [$dpick, 'Buyer Disclosures', 'buyer disclosures'];
+        foreach ($jobs as $jb) {
+            list($pp, $label, $what) = $jb;
+            $file = sg_packet_pdf($me, $pp['id']);
+            if (!$file) { $fail = ['ok' => false, 'msg' => 'Could not load the ' . $what . '. ' . ($sent ? 'The earlier document was already sent.' : 'Please try again.')]; break; }
+            $title = $label . ' - ' . $addr;
+            $s = sg_send_pdf($file['pdf'], $file['name'], 'Florida Luxury Realty: please sign your ' . $what . ' for ' . $addr, $name . ' (Florida Luxury Realty) has sent you ' . ($what === 'contract packet' ? 'a contract packet' : 'your buyer disclosures') . ' for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $signers);
+            if (!$s['ok']) { $fail = $s; if ($sent) $fail['msg'] .= ' The ' . $sent[0]['what'] . ' was already sent.'; break; }
+            sg_save($s['id'], ['id' => $s['id'], 'agent' => $me, 'form' => $title, 'form_id' => $pp['id'], 'doc' => $s['doc'], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null]);
+            sg_dir();
+            @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'packet' => $file['name'], 'address' => $addr, 'buyer_folder' => $buyer['name'], 'signers' => array_map(function ($x) { return $x['email'] . ' (' . $x['role'] . ')'; }, $signers), 'request' => $s['id']]) . "\n", FILE_APPEND | LOCK_EX);
+            $sent[] = ['id' => $s['id'], 'what' => $what];
         }
+        $result = $fail ?: ['ok' => true, 'id' => implode(', ', array_map(function ($x) { return $x['id']; }, $sent)), 'sent' => array_map(function ($x) { return $x['what']; }, $sent)];
     }
 }
 ?>
@@ -81,13 +93,13 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Send packet for signature</h1><p>Send a contract packet from a buyer's folder. Once the buyers sign, the signed copy is filed in Contract Offers under the property address.</p></section>
+<section class="hero"><h1>Send packet for signature</h1><p>Send a contract packet and the buyer disclosures from a buyer's folder as two separate documents. Once the buyers sign, each signed copy is filed in Contract Offers under the property address.</p></section>
 <main class="wrap">
 <?php if (!$buyers): ?>
   <p class="note">You need a buyer folder first: <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers &rsaquo; [buyer name]</strong>. <a href="wizard.php">Contract Forms Wizard</a></p>
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox"><h2>Sent</h2>
-    <p>DigiSigner is emailing each signer a link. When everyone has signed, the signed packet is filed in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
+    <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> (separate documents). When everyone has signed, each signed copy is filed in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
   <form method="get" class="panel sigbox"><p><label for="tx"><strong>Which buyer?</strong></label><br>
@@ -101,15 +113,22 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="tx" value="<?= htmlspecialchars($buyer['id']) ?>">
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
-    <?php if (!$packets): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
+    <?php if (!$packets && !$discs): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
     <?php else: ?>
-    <p><label for="pk"><strong>Which packet?</strong></label><br>
+    <p><label for="pk"><strong>Contract packet</strong></label><br>
     <select name="pk" id="pk" class="txsel">
       <option value="">Choose a packet...</option>
 <?php foreach ($packets as $p): ?>
       <option value="<?= htmlspecialchars($p['id']) ?>"<?= $pk === $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
 <?php endforeach; ?>
     </select><br><span class="note">Fill in the contract details first, then save the packet in this folder before sending.</span></p>
+    <p><label for="dk"><strong>Buyer Disclosures</strong> (sent to the same signers as a separate document)</label><br>
+    <select name="dk" id="dk" class="txsel">
+      <option value="">Do not send disclosures</option>
+<?php foreach ($discs as $p): ?>
+      <option value="<?= htmlspecialchars($p['id']) ?>"<?= $dk === $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
+<?php endforeach; ?>
+    </select></p>
     <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"><br><span class="note">The signed packet is filed in Contract Offers under this address (the folder is created if it is not there).</span></p>
     <p><strong>Who signs?</strong></p>
     <div id="signers">
