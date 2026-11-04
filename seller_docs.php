@@ -85,7 +85,7 @@ if ($buyer) {
     </div>
     <p id="busy" class="note" style="display:flex;align-items:center;gap:10px" hidden><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Preparing the documents... large files can take a minute.</p>
     <div id="docs"></div>
-    <div class="panel sigbox">
+    <div class="panel sigbox" style="max-width:765px;margin-left:auto;margin-right:auto;text-align:center">
       <p id="msg" class="note" hidden></p>
       <p><button type="button" class="btn" id="send">Send for signature</button> <a class="btn ghost" href="my-transactions.php">Cancel</a></p>
     </div>
