@@ -60,7 +60,7 @@ html,body{height:100%}
   <p class="help">Can't get in? Contact the office.</p>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="scenes.js?v=3"></script>
+<script src="scenes.js?v=4"></script>
 <script>
 function onCred(r) {
   var e = document.getElementById("err");
