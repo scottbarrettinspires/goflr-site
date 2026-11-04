@@ -33,6 +33,7 @@
 <?php $perm = $_SESSION['perm'] ?? []; ?>
 <?php $perm = $_SESSION['perm'] ?? []; ?>
 <?php $perm = $_SESSION['perm'] ?? []; ?>
+<?php $perm = $_SESSION['perm'] ?? []; ?>
 <main class="wrap">
   <div class="tips">
     <div><b>1</b><span>Pick a category: Buyer, Seller, Agent<?php if(!empty($perm['commercial'])): ?>, Commercial<?php endif; ?><?php if(!empty($perm['leasing'])): ?>, Leasing<?php endif; ?>.</span></div>
@@ -40,7 +41,7 @@
     <div><b>3</b><span>Open the downloaded PDF to fill in the fields.</span></div>
   </div>
   <div class="ftabs" role="tablist">
-<button type="button" class="ftab" data-k="buyer">Buyer <span>23</span></button>
+<button type="button" class="ftab" data-k="buyer">Buyer <span>24</span></button>
 <button type="button" class="ftab" data-k="seller">Seller <span>16</span></button>
 <button type="button" class="ftab" data-k="agent">Agent</button>
 <?php if(!empty($perm["commercial"])): ?><button type="button" class="ftab" data-k="commercial">Commercial</button><?php endif; ?>
@@ -48,10 +49,11 @@
   </div>
   <div class="fsearch"><input id="fq" type="search" placeholder="Search this category" autocomplete="off"></div>
 <div class="fpanel" id="p-buyer" hidden><p class="fwiz"><a class="btn" href="wizard.php">Contract Forms Wizard: build a buyer contract packet</a></p>
-<section class="fsec"><h2>Buyer Starter Forms <span>4</span></h2><div class="flist">
+<section class="fsec"><h2>Buyer Starter Forms <span>5</span></h2><div class="flist">
 <div class="frow" data-t="amendment to buyer broker / showing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Amendment to Buyer Broker / Showing Agreement</span><a class="fs" href="sign.php?f=1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g">Download</a></div>
 <div class="frow" data-t="exclusive buyer brokerage agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Exclusive Buyer Brokerage Agreement</span><a class="fs" href="sign.php?f=1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U">Download</a></div>
 <div class="frow" data-t="prospect identification form"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Prospect Identification Form</span><a class="fs" href="sign.php?f=1pb-HBcU9DmCU0QLGYzU11ZDM-N15QqoY&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1pb-HBcU9DmCU0QLGYzU11ZDM-N15QqoY/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1pb-HBcU9DmCU0QLGYzU11ZDM-N15QqoY">Download</a></div>
+<div class="frow" data-t="showing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Showing Agreement</span><a class="fs" href="sign.php?f=17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8">Download</a></div>
 <div class="frow" data-t="unrepresented buyer"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Unrepresented Buyer</span><a class="fs" href="sign.php?f=1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W">Download</a></div>
 </div></section>
 <section class="fsec"><h2>Buyer Disclosures <span>2</span></h2><div class="flist">
