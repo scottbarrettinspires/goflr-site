@@ -34,8 +34,9 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .bg{position:absolute;inset:0;opacity:0;transition:opacity 1.6s ease;background-size:cover;background-position:center}
 .bg.on{opacity:1}
 .bg svg{width:100%;height:100%;display:block}
+@media(max-width:600px){.cap{letter-spacing:.1em;font-size:.7rem}}
 .shade{position:fixed;inset:0;z-index:1;background:radial-gradient(ellipse at center,rgba(0,0,0,.05) 0,rgba(0,0,0,.35) 100%)}
-.cap{position:fixed;left:24px;bottom:18px;z-index:3;color:#fff;font-size:.85rem;letter-spacing:.25em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.cap{max-width:calc(100% - 48px);line-height:1.4;position:fixed;left:24px;bottom:18px;z-index:3;color:#fff;font-size:.85rem;letter-spacing:.25em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .login .box p{color:#4a5558}
 .login .logo{color:var(--teal)}
 
@@ -76,12 +77,12 @@ function onCred(r) {
 }
 (function () {
   var holder = document.getElementById("bgs"), cap = document.getElementById("cap");
-  var items = (window.PHOTOS && PHOTOS.length) ? PHOTOS.map(function (f) { return { name: "Florida", img: f }; }) : FLR_SCENES;
+  var items = (window.PHOTOS && PHOTOS.length) ? PHOTOS.map(function (f) { return { name: "Serving agents throughout Florida since 1999", img: f }; }) : FLR_SCENES;
   var it = items[Math.floor(Math.random() * items.length)];
   var d = document.createElement("div"); d.className = "bg on";
   if (it.img) d.style.backgroundImage = "url(" + it.img + ")"; else d.innerHTML = it.svg;
   holder.appendChild(d);
-  cap.textContent = it.name;
+  cap.textContent = (it.img ? it.name : "Serving agents throughout Florida since 1999");
 })();
 </script>
 </body>
