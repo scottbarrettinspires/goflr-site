@@ -19,11 +19,15 @@ foreach ($discs as $p) { if ($dk === '' || stripos($p['name'], 'completed') !== 
 $pk = '';
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
-$result = null; $rows = [['', 'buyer1']]; $addr = '';
+$result = null; $rows = [['', 'buyer1', '']]; $addr = '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];
     $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
-    $pre = []; if (!empty($bi['b1_email'])) $pre[] = [(string)$bi['b1_email'], 'buyer1']; if (!empty($bi['b2_email'])) $pre[] = [(string)$bi['b2_email'], 'buyer2'];
+    $mine = strtolower(trim((string)($_SESSION['name'] ?? ''))); $pre = [];
+    $n1 = trim((string)($bi['b1_name'] ?? '')); $n2 = trim((string)($bi['b2_name'] ?? ''));
+    if ($mine !== '' && strtolower($n1) === $mine) $n1 = ''; if ($mine !== '' && strtolower($n2) === $mine) $n2 = '';
+    if ($n1 !== '' || !empty($bi['b1_email'])) $pre[] = [(string)($bi['b1_email'] ?? ''), 'buyer1', $n1];
+    if ($n2 !== '' || !empty($bi['b2_email'])) $pre[] = [(string)($bi['b2_email'] ?? ''), 'buyer2', $n2];
     if ($pre) $rows = $pre;
 }
 if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -40,7 +44,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ((array)($_POST['email'] ?? []) as $i => $e) {
             $e = trim((string)$e); $r = (string)($_POST['role'][$i] ?? '');
             if ($e === '' && $r === '') continue;
-            $rows[] = [$e, $r];
+            $rows[] = [$e, $r, trim((string)($_POST['name'][$i] ?? ''))];
             if (!filter_var($e, FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . htmlspecialchars($e); break; }
             if (!isset($ROLES[$r])) { $err = 'Please choose a role for each signer.'; break; }
             if (isset($seen[$r])) { $err = 'Each role can only be used once.'; break; }
@@ -48,7 +52,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (!$err && (count($signers) < 1 || count($signers) > 6)) $err = 'Add between 1 and 6 signers.';
     }
-    if (!$rows) $rows = [['', 'buyer1']];
+    if (!$rows) $rows = [['', 'buyer1', '']];
     if ($err) { $result = ['ok' => false, 'msg' => $err]; }
     else {
         $_SESSION['sig_n'][] = time();
@@ -129,7 +133,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php foreach ($packets as $p): ?>
       <option value="<?= htmlspecialchars($p['id']) ?>"<?= $pk === $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
 <?php endforeach; ?>
-    </select><br><span class="note">Fill in the contract details first, then save the packet in this folder before sending.</span></p>
+    </select></p>
     <p><label for="dk"><strong>Buyer Disclosures</strong> (sent in the same email, signed and filed as a separate document)</label><br>
     <select name="dk" id="dk" class="txsel">
       <option value="">Do not send disclosures</option>
@@ -137,26 +141,22 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
       <option value="<?= htmlspecialchars($p['id']) ?>"<?= $dk === $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
 <?php endforeach; ?>
     </select></p>
-    <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"><br><span class="note">The signed packet is filed in Contract Offers under this address (the folder is created if it is not there).</span></p>
+    <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
     <p><strong>Who signs?</strong></p>
     <div id="signers">
-<?php foreach ($rows as $row): ?>
-      <div class="sg"><input type="email" name="email[]" placeholder="Signer's email" value="<?= htmlspecialchars($row[0]) ?>" required>
-        <select name="role[]">
-<?php foreach ($ROLES as $k => $lbl): ?>
-          <option value="<?= $k ?>"<?= $row[1] === $k ? ' selected' : '' ?>><?= htmlspecialchars($lbl) ?></option>
-<?php endforeach; ?>
-        </select></div>
+<?php foreach ($rows as $row): $rl = $ROLES[$row[1]] ?? ''; ?>
+      <div class="sg" style="display:block;margin:0 0 12px">
+        <div style="font-weight:600;margin-bottom:4px"><?= htmlspecialchars($row[2] !== '' ? $row[2] . ' (' . $rl . ')' : $rl) ?></div>
+        <input type="email" name="email[]" placeholder="<?= htmlspecialchars($rl) ?>'s email" value="<?= htmlspecialchars($row[0]) ?>" required style="width:100%;max-width:480px">
+        <input type="hidden" name="role[]" value="<?= htmlspecialchars($row[1]) ?>"><input type="hidden" name="name[]" value="<?= htmlspecialchars($row[2]) ?>">
+      </div>
 <?php endforeach; ?>
     </div>
-    <p><button type="button" class="btn ghost" id="add">+ Add a signer</button></p>
-    <p class="note">Check the packet before you send it. The signers' emails go out right away.</p>
     <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
   </form>
 <script>
-(function(){var box=document.getElementById("signers"),add=document.getElementById("add"),f=document.getElementById("sf");if(!box||!add)return;
-add.addEventListener("click",function(){if(box.children.length>=6)return;var c=box.children[0].cloneNode(true);c.querySelector("input").value="";var sel=c.querySelector("select"),used=[].map.call(box.querySelectorAll("select"),function(x){return x.value;}),order=["buyer2","buyer1","agent","broker","buyeragent","seller1","seller2","listingagent"];for(var i=0;i<order.length;i++){if(used.indexOf(order[i])<0){sel.value=order[i];break;}}box.appendChild(c);});
+(function(){var f=document.getElementById("sf");if(!f)return;
 f.addEventListener("submit",function(){var b=document.getElementById("go");b.disabled=true;b.innerHTML='<span class="bspin"></span>Sending...';});})();
 </script>
 <?php endif; endif; ?>
