@@ -81,8 +81,6 @@ if ($buyer) {
       <button type="button" class="tb" data-type="SIGNATURE">Signature</button>
       <button type="button" class="tb" data-type="INITIALS">Initials</button>
       <button type="button" class="tb" data-type="DATE">Date</button>
-      <button type="button" class="tb" id="auto" style="background:#fff7e6;border-color:#c2570c;color:#8a3e08">Auto-place all</button>
-      <label style="margin-left:6px"><input type="checkbox" id="every"> Initials/date on every page</label>
       <span class="note" id="hint" style="margin:0 0 0 auto;padding:4px 10px">Pick a buyer and a field, then click on the page. Click a box to remove it.</span>
     </div>
     <div id="docs"></div>
@@ -108,7 +106,7 @@ function draw(d,pi){var pg=d.pages[pi];pg.ov.innerHTML="";d.fields.forEach(funct
   el.style.cssText="left:"+(f.x/pg.w*100)+"%;top:"+(f.y/pg.h*100)+"%;width:"+(f.w/pg.w*100)+"%;height:"+(f.h/pg.h*100)+"%";el.textContent=(f.role==="buyer2"?"B2 ":"B1 ")+LBL[f.type];el.title="Click to remove";
   el.addEventListener("click",function(ev){ev.stopPropagation();d.fields.splice(d.fields.indexOf(f),1);redrawAll(d);});pg.ov.appendChild(el);});}
 function redrawAll(d){d.pages.forEach(function(_,i){draw(d,i);});}
-function place(d,pi,cx,cy){var sz=SIZE[type],every=document.getElementById("every").checked&&type!=="SIGNATURE",pg=d.pages[pi];
+function place(d,pi,cx,cy){var sz=SIZE[type],every=false,pg=d.pages[pi];
   var x=Math.max(0,Math.min(pg.w-sz[0],cx-sz[0]/2)),y=Math.max(0,Math.min(pg.h-sz[1],cy-sz[1]/2));
   (every?d.pages.map(function(_,i){return i;}):[pi]).forEach(function(i){var p=d.pages[i];d.fields.push({page:i,x:x,y:Math.min(y,p.h-sz[1]),w:sz[0],h:sz[1],type:type,role:role});});
   redrawAll(d);}
@@ -135,38 +133,6 @@ document.getElementById("files").addEventListener("change",async function(e){
   catch(err){msg.textContent="Could not open the file: "+err.message;msg.className="note sigerr";msg.hidden=false;}
 });
 
-// Quick placement: initials beside the "Buyer (___) (___)" blanks on every page, and signature + date on the last page's "Buyer: ___ Date: ___" lines.
-function autoPlace(){
-  var notes=[];
-  docs.forEach(function(d){
-    d.fields=[];var lastSig=false,P=d.pages.length;
-    d.pages.forEach(function(pg,pi){
-      var items=d.text[pi]||[],H=pg.h,found=false;
-      items.forEach(function(it){
-        var t=it.str||"",e=it.transform[4],f=it.transform[5],w=it.width||0,n=t.length||1;
-        var bi=t.search(/Buyer\s*\(/);
-        if(bi>-1){found=true;var a=t.indexOf("(",bi),b=t.indexOf("(",a+1);
-          BUY.forEach(function(by,k){var idx=k===0?a:b;if(idx<0)return;var x=e+w*((idx+3)/n)-21;d.fields.push({page:pi,x:Math.max(0,x),y:H-f-15,w:42,h:20,type:"INITIALS",role:by.role});});}
-      });
-      if(!found){BUY.forEach(function(by,k){d.fields.push({page:pi,x:pg.w-190+k*50,y:pg.h-42,w:42,h:20,type:"INITIALS",role:by.role});});notes.push(d.name+" page "+(pi+1)+" (initials placed near the bottom right; check)");}
-      // signature lines
-      var n1=0;
-      items.forEach(function(it){
-        var t=it.str||"";if(!/Buyer\s*:/.test(t)||n1>=BUY.length)return;
-        var e=it.transform[4],f=it.transform[5],w=it.width||0,n=t.length||1,by=BUY[n1++],bi=t.search(/Buyer\s*:/);
-        var u=t.indexOf("_",bi),ue=u>-1?u:bi+7,run=/_+/.exec(t.slice(ue)),ul=run?run[0].length:20;
-        var sx=e+w*(ue/n),sw=Math.min(190,Math.max(120,w*(ul/n)));
-        d.fields.push({page:pi,x:sx,y:H-f-18,w:sw,h:26,type:"SIGNATURE",role:by.role});lastSig=true;
-        var di=t.indexOf("Date",bi),dx=di>-1?e+w*((di+5)/n):sx+sw+120;
-        d.fields.push({page:pi,x:Math.min(dx,pg.w-100),y:H-f-14,w:84,h:18,type:"DATE",role:by.role});
-      });
-    });
-    if(!lastSig)notes.push(d.name+": no \"Buyer: ___\" signature line found, so no signature box was placed. Add it by hand.");
-    redrawAll(d);
-  });
-  msg.textContent=notes.length?"Placed what could be found. Please check: "+notes.join("; "):"Placed initials and signature/date boxes. Please look them over before sending.";msg.className="note";msg.hidden=false;
-}
-document.getElementById("auto").addEventListener("click",function(){if(!docs.length)return;autoPlace();});
 function b64(u){var s="";for(var o=0;o<u.length;o+=32768){s+=String.fromCharCode.apply(null,u.subarray(o,o+32768));}return btoa(s);}
 var RET=<?= json_encode(preg_match('/^(dr=[^&]{1,300}|draft=1)$/', (string)($_GET['ret'] ?? '')) ? (string)$_GET['ret'] : '') ?>;
 if(RET)document.getElementById("send").textContent="Add To Email For Signing";
