@@ -111,6 +111,7 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="forms.php" aria-current="page">Forms</a>
     <a href="signed.php">Signed</a>
     <a href="training.php">Training</a>
+    <a href="directory.php">Directory</a>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>

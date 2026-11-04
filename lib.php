@@ -80,3 +80,20 @@ function flr_store_photo($email, $dataUri) {
     }
     return @file_put_contents($path, $out) !== false;
 }
+
+// Staff / agent directory from the office script, cached for a few minutes in photos/ (web access denied).
+function flr_dir_dir() {
+    $d = __DIR__ . '/photos';
+    if (!is_dir($d)) { @mkdir($d, 0755, true); }
+    if (!is_file($d . '/.htaccess')) { @file_put_contents($d . '/.htaccess', "Require all denied\n"); }
+    return $d;
+}
+function flr_directory() {
+    $f = flr_dir_dir() . '/directory.json';
+    if (is_file($f) && time() - filemtime($f) < 300) { $j = json_decode((string)@file_get_contents($f), true); if (is_array($j)) return $j; }
+    $j = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=directory');
+    if (is_array($j) && !empty($j['ok'])) { @file_put_contents($f, json_encode($j), LOCK_EX); return $j; }
+    if (is_file($f)) { $o = json_decode((string)@file_get_contents($f), true); if (is_array($o)) return $o; }
+    return null;
+}
+function flr_dir_photo_key($fileId) { return substr(sha1('dir|' . $fileId), 0, 20); }

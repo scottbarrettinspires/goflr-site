@@ -70,6 +70,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
     <a href="forms.php">Forms</a>
     <a href="signed.php" aria-current="page">Signed</a>
     <a href="training.php">Training</a>
+    <a href="directory.php">Directory</a>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
