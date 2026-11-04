@@ -107,10 +107,26 @@
       try {
         await new Promise(function (r) { requestAnimationFrame(function () { setTimeout(r, 50); }); }); // let the spinner paint before the heavy work starts
         var bytes = await build(); lastBytes = bytes;
+        if (draft) {
+          // Nothing is saved to the folder yet: keep the filled documents in this browser and offer download or email-for-signing.
+          draft.completed = bytes; await root.FLRDraft.put(cfg.tx, draft);
+          res.innerHTML = '';
+          var pd = el('p', '', res);
+          var dlb = el('button', 'btn', pd); dlb.type = 'button'; dlb.textContent = 'Download Documents';
+          dlb.addEventListener('click', function () {
+            function dl1(u8, name) { var a1 = document.createElement('a'); a1.href = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' })); a1.download = name; document.body.appendChild(a1); a1.click(); a1.remove(); }
+            dl1(bytes, 'Contract Packet.pdf'); if (draft.disc) { setTimeout(function () { dl1(new Uint8Array(draft.disc), 'Buyer Disclosures.pdf'); }, 600); }
+          });
+          var em = el('a', 'btn ghost', pd); em.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx) + '&draft=1'; em.textContent = 'Email To Buyers For Signing'; em.style.marginLeft = '8px';
+          em.addEventListener('click', function () { em.innerHTML = '<span class="bspin"></span>Opening...'; em.style.pointerEvents = 'none'; });
+          res.hidden = false; status.hidden = true; document.querySelectorAll('#esave, #esave2').forEach(function (b) { b.closest('p').hidden = true; });
+          var bot = document.getElementById('esave2'); if (bot) { bot.closest('.ebar').hidden = true; }
+          try { res.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e6) {}
+          return;
+        }
         var bin = ''; for (var o = 0; o < bytes.length; o += 32768) { bin += String.fromCharCode.apply(null, bytes.subarray(o, o + 32768)); }
-        var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, kind: cfg.kind || 'packet', b64: btoa(bin), b64d: (draft && draft.disc) ? (function () { var u = new Uint8Array(draft.disc), x = ''; for (var q = 0; q < u.length; q += 32768) { x += String.fromCharCode.apply(null, u.subarray(q, q + 32768)); } return btoa(x); })() : '', property: String(values['Property_Address'] || '').trim() }) });
+        var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, kind: cfg.kind || 'packet', b64: btoa(bin), property: String(values['Property_Address'] || '').trim() }) });
         var j = await r.json();
-        if (j.ok && draft) { try { await root.FLRDraft.del(cfg.tx); } catch (e2) {} }
         var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         res.innerHTML = '';
         var p = el('p', j.ok ? '' : 'sigerr', res);
@@ -119,7 +135,7 @@
         if (j.ok) { var b = el('a', 'btn ghost', p2); b.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx); b.textContent = 'Send for signature'; b.style.marginLeft = '8px'; }
         res.hidden = false; status.textContent = j.ok ? 'Saved.' : 'Not saved.';
       } catch (e) { status.textContent = 'Something went wrong: ' + e.message; }
-      btns.forEach(function (b) { b.disabled = false; b.textContent = saveBtn.dataset.t || 'Continue For Signing'; });
+      if (!(draft && draft.completed)) { btns.forEach(function (b) { b.disabled = false; b.textContent = saveBtn.dataset.t || 'Continue For Signing'; }); }
       try { res.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e5) {} // the result is at the top of the page
     };
     saveBtn.addEventListener('click', onSave); if (saveBtn2) saveBtn2.addEventListener('click', onSave);

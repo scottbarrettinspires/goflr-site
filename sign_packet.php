@@ -19,6 +19,7 @@ foreach ($discs as $p) { if ($dk === '' || stripos($p['name'], 'completed') !== 
 $pk = '';
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
 foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
+$draft = $buyer && ((string)($_GET['draft'] ?? ($_POST['draft'] ?? '')) === '1'); // documents come from the agent's browser, not from the folder
 $SIG = $buyer ? sg_signers($me) : null;
 $result = null; $rows = [['', 'buyer1', '']]; $addr = '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -39,6 +40,10 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$err && count($_SESSION['sig_n']) >= 20) $err = 'Too many requests this hour. Please try again later.';
     $pick = null; foreach ($packets as $p) { if ($p['id'] === $pk) $pick = $p; }
     $dpick = null; foreach ($discs as $p) { if ($p['id'] === $dk) $dpick = $p; }
+    if ($draft) {
+        $pick = strlen((string)($_POST['pkb64'] ?? '')) > 100 ? ['id' => '', 'name' => 'Contract Packet.pdf'] : null;
+        $dpick = strlen((string)($_POST['dkb64'] ?? '')) > 100 ? ['id' => '', 'name' => 'Buyer Disclosures.pdf'] : null;
+    }
     if (!$err && !$pick && !$dpick) $err = 'Please choose the contract packet and/or the buyer disclosures to send.';
     if (!$err && ($addr === '' || strlen($addr) > 120 || preg_match('/[\\\\\/:*?"<>|]/', $addr))) $err = 'Please enter the property address (no slashes or special characters).';
     if (!$err) {
@@ -79,7 +84,8 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         };
         foreach ($jobs as $jb) {
             list($pp, $label, $what, $which) = $jb;
-            $file = sg_packet_pdf($me, $pp['id']);
+            if ($draft) { $raw = base64_decode((string)($_POST[$which . 'b64'] ?? ''), true); $file = ($raw !== false && substr($raw, 0, 4) === '%PDF') ? ['name' => $pp['name'], 'pdf' => $raw] : null; }
+            else { $file = sg_packet_pdf($me, $pp['id']); }
             if (!$file) { $fail = ['ok' => false, 'msg' => 'Could not load the ' . $what . '. Please try again.']; break; }
             $items[] = [$file['pdf'], $file['name'], 'Florida Luxury Realty: please sign your ' . $what . ' for ' . $addr, $name . ' (Florida Luxury Realty) has sent you ' . ($what === 'contract packet' ? 'a contract packet' : 'your buyer disclosures') . ' for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $docSigners($which)];
             if ($fail) break;
@@ -128,6 +134,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox"><h2>Sent</h2>
     <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, each signed document is filed separately in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
+    <?php if ($draft): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});</script><?php endif; ?>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
   <form method="get" class="panel sigbox"><p><label for="tx"><strong>Which buyer?</strong></label><br>
@@ -141,8 +148,11 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="tx" value="<?= htmlspecialchars($buyer['id']) ?>">
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
-    <?php if (!$packets && !$discs): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
+    <?php if (!$draft && !$packets && !$discs): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
     <?php else: ?>
+<?php if ($draft): ?>
+    <input type="hidden" name="draft" value="1"><textarea name="pkb64" id="pkb64" hidden></textarea><textarea name="dkb64" id="dkb64" hidden></textarea>
+<?php else: ?>
     <p><label for="pk"><strong>Contract packet</strong></label><br>
     <select name="pk" id="pk" class="txsel">
       <option value="">Choose a packet...</option>
@@ -157,6 +167,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
       <option value="<?= htmlspecialchars($p['id']) ?>"<?= $dk === $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
 <?php endforeach; ?>
     </select></p>
+<?php endif; ?>
     <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
     <p><strong>Who signs?</strong></p>
     <div id="signers">
@@ -175,9 +186,11 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
   </form>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="flrdraft.js?v=1"></script>
 <script>
 (function(){
 var f=document.getElementById("sf");if(!f)return;
+var DRAFT=<?= $draft ? "true" : "false" ?>,dd=null;
 var TX=<?= json_encode($buyer['id']) ?>, SIG=<?= json_encode($SIG) ?>, LBL={agent:"Agent",broker:"Broker",buyeragent:"Agent"};
 var go=document.getElementById("go"),xs=document.getElementById("xsign"),needs=document.getElementById("needs"),pk=document.getElementById("pk"),dk=document.getElementById("dk"),seq=0;
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
@@ -185,9 +198,11 @@ if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudfl
 // Which brokerage-side signatures does this saved PDF ask for? Read the DigiSigner text tags, e.g. [s:agent], [s:broker], [s:buyeragent].
 async function roles(id){
   var out={};if(!id||!window.pdfjsLib)return out;
-  var r=await fetch("editor_pdf.php?tx="+encodeURIComponent(TX)+"&id="+encodeURIComponent(id),{credentials:"same-origin"});
-  if(!r.ok)throw new Error("Could not read the document");
-  var doc=await pdfjsLib.getDocument({data:new Uint8Array(await r.arrayBuffer())}).promise;
+  var data;
+  if(DRAFT&&typeof id!=="string"){data=new Uint8Array(id).slice();}
+  else{var r=await fetch("editor_pdf.php?tx="+encodeURIComponent(TX)+"&id="+encodeURIComponent(id),{credentials:"same-origin"});
+  if(!r.ok)throw new Error("Could not read the document");data=new Uint8Array(await r.arrayBuffer());}
+  var doc=await pdfjsLib.getDocument({data:data}).promise;
   for(var n=1;n<=doc.numPages;n++){
     var tc=await (await doc.getPage(n)).getTextContent(), txt=tc.items.map(function(i){return i.str;}).join(" ").replace(/\s+/g," ");
     var re=/\[\s*[a-z]\s*:\s*(agent|broker|buyeragent)\s*\]/gi, m;
@@ -202,7 +217,9 @@ async function refresh(){
   var my=++seq;go.disabled=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
   var want={pk:{},dk:{}},all={};
   try{
-    var a=await roles(pk&&pk.value), b=await roles(dk&&dk.value);
+    var a,b;
+    if(DRAFT){if(!dd)dd=await FLRDraft.get(TX);if(!dd||!(dd.completed||dd.packet))throw new Error("The documents are no longer in this browser. Please start again from the wizard");a=await roles(dd.completed||dd.packet);b=dd.disc?await roles(dd.disc):{};}
+    else{a=await roles(pk&&pk.value);b=await roles(dk&&dk.value);}
     if(my!==seq)return;
     want.pk=a;want.dk=b;
     Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
@@ -214,7 +231,9 @@ async function refresh(){
   xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;
 }
 if(pk)pk.addEventListener("change",refresh);if(dk)dk.addEventListener("change",refresh);refresh();
-f.addEventListener("submit",function(){go.disabled=true;go.innerHTML='<span class="bspin"></span>Sending...';});
+function b64(u8){var x="",u=new Uint8Array(u8);for(var q=0;q<u.length;q+=32768){x+=String.fromCharCode.apply(null,u.subarray(q,q+32768));}return btoa(x);}
+f.addEventListener("submit",function(){if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.completed||dd.packet);document.getElementById("dkb64").value=dd.disc?b64(dd.disc):"";}
+  go.disabled=true;go.innerHTML='<span class="bspin"></span>Sending...';});
 })();
 </script>
 
