@@ -143,7 +143,7 @@ function sg_seller_items($docsIn, $emails, $addr, $me, $name) {
 function sg_send_multi($items, $signers, $bundle = null) {
     $docs = []; $ids = [];
     foreach ($items as $it) {
-        $sg = []; foreach (($it[4] ?? $signers) as $s) { $o = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; if (!empty($s['fields'])) { $o['fields'] = $s['fields']; } $sg[] = $o; } // each document can have its own signers
+        $sg = []; foreach (($it[4] ?? $signers) as $s) { $o = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; if (!empty($s['fields'])) { $o['fields'] = $s['fields']; unset($o['role']); } $sg[] = $o; } // each document can have its own signers
         $tmp = tempnam(sys_get_temp_dir(), 'flrsig'); file_put_contents($tmp, $it[0]);
         $ch = curl_init('https://api.digisigner.com/v1/documents');
         curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_POSTFIELDS => ['file' => new CURLFile($tmp, 'application/pdf', $it[1])], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_CONNECTTIMEOUT => 8]);
@@ -169,7 +169,11 @@ function sg_send_multi($items, $signers, $bundle = null) {
         $q = json_decode((string)$r, true);
         if ($code >= 200 && $code < 300 && !empty($q['signature_request_id'])) break;
     }
-    if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) return ['ok' => false, 'msg' => 'DigiSigner could not create the request (code ' . $code . '). Check that each role matches a signature tag in both documents.'];
+    if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) {
+        $why = is_array($q) ? (string)($q['message'] ?? $q['error'] ?? '') : ''; if ($why === '') $why = substr(trim(strip_tags((string)$r)), 0, 200);
+        sg_dir(); @file_put_contents(__DIR__ . '/logs/digisigner-errors.log', gmdate('c') . ' ' . $code . ' ' . substr((string)$r, 0, 600) . "\n", FILE_APPEND | LOCK_EX);
+        return ['ok' => false, 'msg' => 'DigiSigner could not create the request (code ' . $code . ')' . ($why !== '' ? ': ' . htmlspecialchars($why) : '') . '. Check that each role matches a signature tag in the documents.'];
+    }
     return ['ok' => true, 'id' => $q['signature_request_id'], 'docs' => $ids];
 }
 
