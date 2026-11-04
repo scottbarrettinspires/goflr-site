@@ -71,6 +71,7 @@ function sg_folders($email, $hint = '') {
 function sg_file_pdf($rec, $docId, $form) {
     $pdf = sg_api('GET', '/documents/' . rawurlencode($docId), true);
     if ($pdf === null || strlen($pdf) < 500) return [false, 'The signed copy is not ready to download yet.'];
+    if (strlen($pdf) > 32 * 1024 * 1024) return [false, 'The signed copy is ' . round(strlen($pdf) / 1048576) . ' MB, too large to file automatically. Use Download signed copy and add it to the transaction folder by hand.'];
     $name = 'Signed - ' . $form . ' - ' . gmdate('Y-m-d') . '.pdf';
     $post = ['op' => 'save', 'email' => $rec['agent'], 'name' => $name, 'b64' => base64_encode($pdf)];
     if (!empty($rec['offer_address'])) { $post['offerAddress'] = $rec['offer_address']; if (!empty($rec['hint'])) { $post['hint'] = $rec['hint']; } } else { $post['folderId'] = $rec['folder']['id']; }

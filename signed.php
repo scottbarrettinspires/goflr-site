@@ -9,12 +9,14 @@ $me = strtolower($_SESSION['email']);
 if (isset($_GET['dl'])) {
     $rec = sg_load($_GET['dl']);
     if (!$rec || strtolower($rec['agent']) !== $me) { http_response_code(404); exit('Not found'); }
-    sg_refresh($rec);
-    $pdf = sg_signed_pdf($rec);
-    if ($pdf === null) { http_response_code(409); exit('The signed copy is not ready yet.'); }
-    header('Content-Type: application/pdf');
+    if (empty($rec['completed']) || empty($rec['doc'])) { http_response_code(409); exit('The signed copy is not ready yet.'); }
+    @set_time_limit(280); while (ob_get_level()) { @ob_end_clean(); }
+    header('Content-Type: application/pdf'); header('X-Accel-Buffering: no');
     header('Content-Disposition: attachment; filename="Signed - ' . preg_replace('/[^A-Za-z0-9 ._()-]/', '', $rec['form']) . '.pdf"');
-    echo $pdf; exit;
+    // Stream it straight from DigiSigner so a large signed copy starts downloading at once instead of loading into memory first.
+    $ch = curl_init('https://api.digisigner.com/v1/documents/' . rawurlencode($rec['doc']));
+    curl_setopt_array($ch, [CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_TIMEOUT => 270, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_WRITEFUNCTION => function ($c, $d) { echo $d; flush(); return strlen($d); }]);
+    curl_exec($ch); curl_close($ch); exit;
 }
 
 $msg = '';
