@@ -53,6 +53,28 @@
         }
       });
     }
+    // Fields with the same name on different forms become ONE field with several widgets, so a value typed on one page shows on all.
+    var byName = {};
+    Array.from(roots).forEach(function (ref) {
+      var d = ctx.lookup(ref, PL.PDFDict), t = d && d.get(PL.PDFName.of('T')), ft = d && d.get(PL.PDFName.of('FT'));
+      if (!t || !t.decodeText || String(ft) !== '/Tx' || d.get(PL.PDFName.of('Kids'))) return;
+      (byName[t.decodeText()] = byName[t.decodeText()] || []).push(ref);
+    });
+    Object.keys(byName).forEach(function (name) {
+      var refs = byName[name]; if (refs.length < 2) return;
+      var first = ctx.lookup(refs[0], PL.PDFDict), val = null, da = first.get(PL.PDFName.of('DA'));
+      refs.forEach(function (r) { var v = ctx.lookup(r, PL.PDFDict).get(PL.PDFName.of('V')); if (!val && v && v.decodeText && v.decodeText() !== '') val = v; });
+      var par = ctx.obj({ FT: 'Tx', T: PL.PDFHexString.fromText(name), Kids: ctx.obj(refs) });
+      if (val) par.set(PL.PDFName.of('V'), val);
+      if (da) par.set(PL.PDFName.of('DA'), da);
+      var pref = ctx.register(par);
+      refs.forEach(function (r) {
+        var d = ctx.lookup(r, PL.PDFDict);
+        ['T', 'FT', 'V', 'DV', 'Ff'].forEach(function (k) { d.delete(PL.PDFName.of(k)); });
+        d.set(PL.PDFName.of('Parent'), pref); roots.delete(r);
+      });
+      roots.add(pref);
+    });
     var helv = ctx.register(ctx.obj({ Type: 'Font', Subtype: 'Type1', BaseFont: 'Helvetica', Encoding: 'WinAnsiEncoding' }));
     var fonts = { Helv: helv }; Object.keys(fontNames).forEach(function (n) { fonts[n] = helv; });
     var acro = ctx.obj({ Fields: ctx.obj(Array.from(roots)), DR: ctx.obj({ Font: ctx.obj(fonts) }), DA: PL.PDFString.of('/Helv 0 Tf 0 g') });
@@ -60,7 +82,7 @@
     // Give every text field a visible appearance (copies of a shared field otherwise look blank until clicked).
     try {
       var of = out.getForm(), ofont = await out.embedFont(PL.StandardFonts.Helvetica);
-      of.getFields().forEach(function (f) { if (f instanceof PL.PDFTextField) { try { f.updateAppearances(ofont); } catch (e) {} } });
+      of.getFields().forEach(function (f) { if (f instanceof PL.PDFTextField && (f.getText() || '').length) { try { f.updateAppearances(ofont); } catch (e) {} } });
     } catch (e) { notes.push('Note: field appearances could not be refreshed.'); }
     out.__notes = notes;
     return out;
