@@ -105,6 +105,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $s = sg_send_multi($items, $signers, ['subject' => 'Florida Luxury Realty: please sign your documents for ' . $addr, 'message' => $name . ' (Florida Luxury Realty) has sent you documents for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.']);
             if (!$s['ok']) { $fail = $s; }
             else {
+                if (!empty($s['merged'])) { $meta = [['form' => 'Contract Documents - ' . $addr, 'form_id' => $meta[0]['form_id'], 'what' => 'documents', 'file' => 'Contract Documents.pdf']]; } // DigiSigner returns one combined signed PDF
                 $rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => $meta[0]['form_id'], 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null];
                 for ($mi = 1; $mi < count($meta); $mi++) { $rec['extra'][] = ['form' => $meta[$mi]['form'], 'form_id' => $meta[$mi]['form_id'], 'doc' => $s['docs'][$mi], 'filed' => null]; }
                 sg_save($s['id'], $rec);
@@ -145,7 +146,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <p class="note">You need a buyer folder first: <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers &rsaquo; [buyer name]</strong>. <a href="wizard.php">Contract Forms Wizard</a></p>
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox"><h2>Sent</h2>
-    <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, each signed document is filed separately in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
+    <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, the signed documents are filed in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
     <?php if ($draft || $dr !== ''): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});FLRDraft.del(<?= json_encode($buyer['id'] . '|seller') ?>).catch(function(){});</script><?php endif; ?>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
@@ -173,7 +174,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
       <option value="<?= htmlspecialchars($p['id']) ?>"<?= $pk === $p['id'] ? ' selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
 <?php endforeach; ?>
     </select></p>
-    <p><label for="dk"><strong>Buyer Disclosures</strong> (sent in the same email, signed and filed as a separate document)</label><br>
+    <p><label for="dk"><strong>Buyer Disclosures</strong> (sent in the same email and signed together with the contract packet)</label><br>
     <select name="dk" id="dk" class="txsel">
       <option value="">Do not send disclosures</option>
 <?php foreach ($discs as $p): ?>
@@ -181,7 +182,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endforeach; ?>
     </select></p>
 <?php endif; ?>
-    <p id="sdrow" hidden><strong>Seller Disclosures</strong> (sent in the same email, signed and filed as separate documents)<br><span class="txsel" id="sdnames" style="display:inline-block;padding:12px 16px"></span> <a href="#" id="sdrm">Remove</a></p>
+    <p id="sdrow" hidden><strong>Seller Disclosures</strong> (sent in the same email and signed together with the other documents)<br><span class="txsel" id="sdnames" style="display:inline-block;padding:12px 16px"></span> <a href="#" id="sdrm">Remove</a></p>
     <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
     <div id="whosigns" hidden>
     <p><strong>Who signs?</strong></p>

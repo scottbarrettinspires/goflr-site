@@ -155,7 +155,7 @@ function sg_send_multi($items, $signers, $bundle = null) {
     }
     $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => $docs];
     $try = [$req];
-    if (false && count($docs) > 1) { // disabled: DigiSigner merges a bundle into ONE document, so the signed copies could not be filed separately // one email that carries every document (signed and returned as separate documents); fall back to one email per document if DigiSigner refuses
+    if (count($docs) > 1) { // one email; DigiSigner merges a bundle into ONE document that is signed and filed as one PDF // one email that carries every document (signed and returned as separate documents); fall back to one email per document if DigiSigner refuses
         $b = $req; $b['send_documents_as_bundle'] = true;
         $b['bundle_subject'] = $bundle['subject'] ?? 'Florida Luxury Realty: please sign your documents';
         $b['bundle_message'] = $bundle['message'] ?? 'Please review and sign the attached documents.';
@@ -174,7 +174,8 @@ function sg_send_multi($items, $signers, $bundle = null) {
         sg_dir(); @file_put_contents(__DIR__ . '/logs/digisigner-errors.log', gmdate('c') . ' ' . $code . ' ' . substr((string)$r, 0, 600) . "\n", FILE_APPEND | LOCK_EX);
         return ['ok' => false, 'msg' => 'DigiSigner could not create the request (code ' . $code . ')' . ($why !== '' ? ': ' . htmlspecialchars($why) : '') . '. Check that each role matches a signature tag in the documents.'];
     }
-    return ['ok' => true, 'id' => $q['signature_request_id'], 'docs' => $ids];
+    $rids = []; foreach ((array)($q['documents'] ?? []) as $dd) { if (!empty($dd['document_id'])) $rids[] = $dd['document_id']; }
+    return ['ok' => true, 'id' => $q['signature_request_id'], 'docs' => $rids ?: $ids, 'merged' => count($rids) > 0 && count($rids) < count($ids)];
 }
 
 // Brokerage-side signers (the signed-in agent and the broker) from the Agents tab through the office script.
