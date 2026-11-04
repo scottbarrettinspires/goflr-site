@@ -66,6 +66,7 @@ $pre = (string)($_GET['tx'] ?? '');
     <div id="res" hidden></div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="flrdraft.js?v=1"></script>
 <script src="wizlib.js?v=12"></script>
 <script>
 (function(){
@@ -156,18 +157,20 @@ btn.addEventListener('click',async function(){
     var notes=[],packBytes=null,discBytes=null,packB64='',discB64='';
     if(packUse.length){var pd=await FLRWiz.buildPacket(PDFLib,await load(packUse),clauses,fillMap());notes=notes.concat(pd.__notes||[]);packBytes=await pd.save();packB64=toB64(packBytes);}
     if(discUse.length){var dd=await FLRWiz.buildPacket(PDFLib,await load(discUse),[],fillMap());discBytes=await dd.save();discB64=toB64(discBytes);} // Buyer Disclosures stay a separate PDF
-    btn.innerHTML='<span class="bspin"></span>Saving to the buyer folder...';
-    var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:packB64,b64d:discB64,forms:use,property:((document.getElementById('paddr')||{}).value||'').trim(),price:((document.getElementById('pprice')||{}).value||'').trim()})});
-    var j=await r.json();
+    // Nothing is saved to the folder yet: the documents are kept in this browser until the agent completes them. Only the contract offer record is created.
+    btn.innerHTML='<span class="bspin"></span>Creating the contract offer record...';
+    var j={ok:false};
+    try{var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,offerOnly:true,forms:use,property:((document.getElementById('paddr')||{}).value||'').trim(),price:((document.getElementById('pprice')||{}).value||'').trim()})});j=await r.json();}catch(e3){}
     var out='<h2>Your contract packet</h2><ol>'+packUse.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
-    if(discUse.length)out+='<h2>Buyer Disclosures (separate document)</h2><ol>'+discUse.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
     notes.concat(warn).forEach(function(n){out+='<p class="note">'+esc(n)+'</p>';});
-    out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+':</p><ul>'+(j.name?'<li><a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a></li>':'')+(j.dname?'<li><a href="'+esc(j.durl)+'" target="_blank" rel="noopener">'+esc(j.dname)+'</a></li>':'')+'</ul>'+(j.offer?'<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>':'') : '<p class="sigerr">'+esc(j.msg||'The documents were built but could not be saved.')+' You can still download them below.</p>';
+    if(j.ok&&j.offer)out+='<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>';
+    var canEdit=false;
+    if(packBytes){try{await FLRDraft.put(txSel.value,{packet:packBytes,disc:discBytes,property:((document.getElementById('paddr')||{}).value||'').trim(),t:Date.now()});canEdit=true;}catch(e4){out+='<p class="sigerr">This browser could not hold the packet for editing. Use Download instead.</p>';}}
     out+='<p>';
-    if(packBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([packBytes],{type:'application/pdf'}))+'" download="Contract Packet.pdf">Download the packet</a> ';
-    if(discBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([discBytes],{type:'application/pdf'}))+'" download="Buyer Disclosures.pdf">Download the disclosures</a> ';
-    out+=(j.ok?'<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'">Review and complete</a> <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Send for signature</a>':'')+'</p>';
-    res.innerHTML=out;res.hidden=false;btn.disabled=false;btn.textContent='Build another packet';
+    if(packBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([packBytes],{type:'application/pdf'}))+'" download="Contract Packet.pdf">Download Packet</a> ';
+    if(canEdit)out+='<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1">Complete For Signing</a>';
+    out+='</p>';
+    res.innerHTML=out;res.hidden=false;btn.hidden=true;btn.disabled=false;btn.textContent='Build contract packet';
   }catch(e){fail('Something went wrong: '+e.message);}
 });
 })();

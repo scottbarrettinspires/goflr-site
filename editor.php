@@ -8,10 +8,15 @@ $me = $_SESSION['email'];
 $tx = (string)($_GET['tx'] ?? '');
 $all = preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) ? (sg_folders($me, $tx) ?: []) : [];
 $buyer = null; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $buyer = $f; }
-$files = $buyer ? sg_packets($me, $tx) : null;
+$draft = $buyer && (string)($_GET['draft'] ?? '') === '1';
+$files = ($buyer && !$draft) ? sg_packets($me, $tx) : null;
 $id = (string)($_GET['id'] ?? '');
 $pick = null;
-if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id) { $pick = $f; break; } } }
+if ($draft) { $pick = ['id' => '', 'name' => 'Contract packet (new, not saved yet)']; }
+elseif ($files) {
+    foreach ($files as $f) { if ($id !== '' && $f['id'] === $id) { $pick = $f; break; } }
+    if (!$pick) { foreach ($files as $f) { if (stripos($f['name'], 'Buyer Disclosures') !== 0) { $pick = $f; break; } } } // default to the contract packet, not the disclosures
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -43,7 +48,7 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
 <?php else: ?>
   <div class="panel sigbox ebar">
     <p><strong><?= htmlspecialchars($buyer['name']) ?></strong> &middot; <?= htmlspecialchars($pick['name']) ?>
-<?php if (count($files) > 1): ?>
+<?php if (!$draft && count($files) > 1): ?>
     <br><label for="pk">Packet: </label><select id="pk" class="txsel" onchange="location='editor.php?tx=<?= urlencode($tx) ?>&amp;id='+encodeURIComponent(this.value)">
 <?php foreach ($files as $f): ?><option value="<?= htmlspecialchars($f['id']) ?>"<?= $f['id'] === $pick['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option><?php endforeach; ?>
     </select>
@@ -56,9 +61,10 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
   <div id="pages" class="epages"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="editor.js?v=4"></script>
+<script src="flrdraft.js?v=1"></script>
+<script src="editor.js?v=5"></script>
 <script>
-FLREditor.start({pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,kind:<?= json_encode(stripos($pick['name'], 'Buyer Disclosures') === 0 ? 'disclosures' : 'packet') ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
+FLREditor.start({draft:<?= $draft ? 'true' : 'false' ?>,pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,kind:<?= json_encode(stripos($pick['name'], 'Buyer Disclosures') === 0 ? 'disclosures' : 'packet') ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
 </script>
 <?php endif; ?>
 </main>

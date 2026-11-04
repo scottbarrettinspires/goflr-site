@@ -10,16 +10,16 @@ $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload and try again.']);
 $b64 = (string)($j['b64'] ?? '');
 $b64d = (string)($j['b64d'] ?? '');
-if (($b64 === '' && $b64d === '') || strlen($b64) > 60000000 || strlen($b64d) > 60000000) out(['ok' => false, 'msg' => 'The packet is empty or too large.']);
+if ((empty($j['offerOnly']) && $b64 === '' && $b64d === '') || strlen($b64) > 60000000 || strlen($b64d) > 60000000) out(['ok' => false, 'msg' => 'The packet is empty or too large.']);
 $folders = sg_folders($_SESSION['email'], (string)($j['tx'] ?? '')) ?: [];
 $pick = null; foreach ($folders as $f) { if ($f['id'] === (string)($j['tx'] ?? '') && $f['group'] === '1 BUYERS / 1 Buyers') { $pick = $f; } }
 if (!$pick) out(['ok' => false, 'msg' => 'Please choose one of your buyer folders (1 BUYERS / 1 Buyers).']);
 $r = ['name' => '', 'url' => '']; $d = ['name' => '', 'url' => ''];
-if ($b64 !== '') {
+if ($b64 !== '' && empty($j['offerOnly'])) {
     $r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' => $pick['id'], 'name' => 'Contract Packet - ' . gmdate('Y-m-d') . '.pdf', 'b64' => $b64]);
     if (!is_array($r) || empty($r['ok'])) out(['ok' => false, 'msg' => 'Could not save to the transaction folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.']);
 }
-if ($b64d !== '') {
+if ($b64d !== '' && empty($j['offerOnly'])) {
     $d = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' => $pick['id'], 'name' => 'Buyer Disclosures - ' . gmdate('Y-m-d') . '.pdf', 'b64' => $b64d]);
     if (!is_array($d) || empty($d['ok'])) out(['ok' => false, 'msg' => 'The contract packet was saved, but the Buyer Disclosures could not be saved' . (is_array($d) && !empty($d['note']) ? ' (' . $d['note'] . ')' : '') . '.']);
 }

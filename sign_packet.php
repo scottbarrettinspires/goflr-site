@@ -17,6 +17,8 @@ foreach (($allpk ?: []) as $p) { if ($isD($p['name'])) $discs[] = $p; else $pack
 $dk = '';
 foreach ($discs as $p) { if ($dk === '' || stripos($p['name'], 'completed') !== false) $dk = $p['id']; } // preselect the completed copy when there is one
 $pk = '';
+foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
+foreach ($packets as $p) { if (stripos($p['name'], 'completed') !== false) { $pk = $p['id']; break; } } // preselect the completed packet
 $result = null; $rows = [['', 'buyer1']]; $addr = '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];

@@ -8,9 +8,16 @@
     var pagesEl = document.getElementById('pages'), status = document.getElementById('estatus'), saveBtn = document.getElementById('esave'), dl = document.getElementById('edl'), res = document.getElementById('eres');
     PDFJS.GlobalWorkerOptions.workerSrc = cfg.worker;
     status.textContent = 'Loading the packet...';
-    var resp = await fetch(cfg.pdfUrl, { credentials: 'same-origin' });
-    if (!resp.ok) throw new Error('Could not load the packet');
-    var orig = new Uint8Array(await resp.arrayBuffer());
+    var orig, draft = null;
+    if (cfg.draft) {
+      draft = await root.FLRDraft.get(cfg.tx);
+      if (!draft || !draft.packet) throw new Error('This draft is no longer in this browser. Please build the packet again in the wizard.');
+      orig = new Uint8Array(draft.packet);
+    } else {
+      var resp = await fetch(cfg.pdfUrl, { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error('Could not load the packet');
+      orig = new Uint8Array(await resp.arrayBuffer());
+    }
     var doc = await PDFJS.getDocument({ data: orig.slice() }).promise;
     var values = {}, dirty = {}, groups = {}; // groups[name] = [{el, kind, on}]
     function setAll(name, v, except) {
@@ -99,14 +106,15 @@
       try {
         var bytes = await build(); lastBytes = bytes;
         var bin = ''; for (var o = 0; o < bytes.length; o += 32768) { bin += String.fromCharCode.apply(null, bytes.subarray(o, o + 32768)); }
-        var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, kind: cfg.kind || 'packet', b64: btoa(bin), property: String(values['Property_Address'] || '').trim() }) });
+        var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, kind: cfg.kind || 'packet', b64: btoa(bin), b64d: (draft && draft.disc) ? (function () { var u = new Uint8Array(draft.disc), x = ''; for (var q = 0; q < u.length; q += 32768) { x += String.fromCharCode.apply(null, u.subarray(q, q + 32768)); } return btoa(x); })() : '', property: String(values['Property_Address'] || '').trim() }) });
         var j = await r.json();
+        if (j.ok && draft) { try { await root.FLRDraft.del(cfg.tx); } catch (e2) {} }
         var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         res.innerHTML = '';
         var p = el('p', j.ok ? '' : 'sigerr', res);
         p.innerHTML = j.ok ? '<strong>Saved</strong> in ' + esc(j.folder) + ' as <a href="' + esc(j.url) + '" target="_blank" rel="noopener">' + esc(j.name) + '</a>.' : esc(j.msg || 'Could not save.') + ' You can still download it.';
         var p2 = el('p', '', res); var a = el('a', 'btn', p2); a.href = url; a.download = 'Contract Packet - completed.pdf'; a.textContent = 'Download';
-        if (j.ok) { var b = el('a', 'btn ghost', p2); b.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx); b.textContent = 'Next: send it for signature'; b.style.marginLeft = '8px'; }
+        if (j.ok) { var b = el('a', 'btn ghost', p2); b.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx); b.textContent = 'Send for signature'; b.style.marginLeft = '8px'; }
         res.hidden = false; status.textContent = j.ok ? 'Saved.' : 'Not saved.';
       } catch (e) { status.textContent = 'Something went wrong: ' + e.message; }
       saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.t || 'Save completed packet';
