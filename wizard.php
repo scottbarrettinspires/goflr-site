@@ -4,11 +4,7 @@ require __DIR__ . "/sigtools.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
-$rules = sg_wizard_rules();
-$all = sg_folders($_SESSION['email'], (string)($_GET['tx'] ?? ''));
-$folders = [];
-foreach (($all ?: []) as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $folders[] = $f; }
-$pre = (string)($_GET['tx'] ?? '');
+header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
 ?>
 <!doctype html>
 <html lang="en">
@@ -33,6 +29,16 @@ $pre = (string)($_GET['tx'] ?? '');
 </div></header>
 <section class="hero"><h1>Contract Forms Wizard</h1><p>Buyer contract packet: answer the questions and the right forms are merged for you.</p></section>
 <main class="wrap">
+<style>#flrload{display:flex;align-items:center;gap:14px;padding:22px 4px;color:#006b68;font-weight:600}#flrload i{width:26px;height:26px;border:4px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite}@keyframes flrspin{to{transform:rotate(360deg)}}</style>
+<div id="flrload" role="status"><i></i><span>Opening the Contract Forms Wizard... loading your buyers and the form rules.</span></div>
+<?php echo str_repeat(' ', 1024); @flush();
+$rules = sg_wizard_rules();
+$all = sg_folders($_SESSION['email'], (string)($_GET['tx'] ?? ''));
+$folders = [];
+foreach (($all ?: []) as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $folders[] = $f; }
+$pre = (string)($_GET['tx'] ?? '');
+?>
+<script>var l=document.getElementById('flrload');if(l)l.parentNode.removeChild(l);</script>
 <?php if (!$rules): ?>
   <p class="note">The wizard rules could not be loaded right now. Please try again, or contact the office.</p>
 <?php elseif ($all === null): ?>
@@ -94,6 +100,7 @@ function loadInfo(){
   INFO=null;bsum.innerHTML='';
   if(!txSel.value)return;
   var id=txSel.value;
+  bsum.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i style="width:16px;height:16px;border:3px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite;display:inline-block"></i>Loading this buyer\'s saved info...</p>';
   fetch('wizard_info.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
     if(txSel.value!==id)return;
     INFO=(j&&j.ok&&j.info&&Object.keys(j.info).length)?j.info:null;
