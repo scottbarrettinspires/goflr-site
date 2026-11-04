@@ -21,11 +21,10 @@ $msg = '';
 $recs = sg_for_agent($me);
 // Check status of anything still open, and file anything that is done and has a transaction.
 sg_refresh_many($recs);
-$filed = 0;
-foreach ($recs as $i => $r) {
+$pendingFile = 0;
+foreach ($recs as $i => $r) { // filing happens in the background (file_pending.php) so this page loads fast
     $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
-    if (!empty($r['completed']) && $pend && sg_can_file($r) && $filed < 3) { sg_file($r); $filed++; }
-    $recs[$i] = $r;
+    if (!empty($r['completed']) && $pend && sg_can_file($r)) $pendingFile++;
 }
 // Assign a finished, unfiled document to a transaction.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) {
@@ -86,6 +85,8 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 <?php foreach (($r['extra'] ?? []) as $x): if (!empty($x['filed'])): ?>
         <p class="note">Also filed: <a href="<?= htmlspecialchars($x['filed']['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($x['filed']['name']) ?></a></p>
 <?php endif; endforeach; ?>
+      <?php elseif (sg_can_file($r)): ?>
+        <p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Filing the signed documents in your transaction record...</p>
       <?php else:
           if ($folders === null) { $fl = sg_folders($me); $folders = $fl ?: []; $fok = is_array($fl); } ?>
         <?php if ($folders): ?>
@@ -105,6 +106,17 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
     <?php endif; ?>
   </div>
 <?php endforeach; ?>
+<p id="fmsg" class="note" hidden></p>
+<?php if ($pendingFile): ?>
+<script>
+(async function(){var m=document.getElementById("fmsg");
+  try{var r=await fetch("file_pending.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>})});var j=await r.json();
+    if(j.ok&&j.filed>0&&!(j.errors||[]).length){location.reload();return;}
+    m.textContent=(j.errors&&j.errors.length)?"Could not file: "+j.errors.join("; "):(j.msg||"Could not file the signed documents.");m.className="note sigerr";m.hidden=false;
+  }catch(e){m.textContent="Could not file the signed documents: "+e.message;m.className="note sigerr";m.hidden=false;}
+})();
+</script>
+<?php endif; ?>
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
 </body>

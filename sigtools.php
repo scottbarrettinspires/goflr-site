@@ -86,8 +86,6 @@ function sg_file(&$rec) {
     if (!empty($rec['filed']) && !$pending) return [true, 'Already filed.'];
     if (!sg_can_file($rec)) return [false, 'No transaction chosen.'];
     if (empty($rec['filed'])) {
-        $pdf = sg_signed_pdf($rec);
-        if ($pdf === null) return [false, 'The signed copy is not ready to download yet.'];
         list($ok, $r) = sg_file_pdf($rec, $rec['doc'], $rec['form']);
         if (!$ok) return [false, $r];
         $rec['filed'] = $r;

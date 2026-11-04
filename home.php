@@ -11,13 +11,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
     header('Location: home.php'); exit;
 }
 // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
-$signedNotes = []; $checked = 0;
+$signedNotes = []; $checked = 0; $needFile = false;
 $myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
 sg_refresh_many($myrecs, 6);
 foreach ($myrecs as $r) {
     if (empty($r['completed'])) continue;
     $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
-    if ($pend && sg_can_file($r)) { sg_file($r); }
+    if ($pend && sg_can_file($r)) { $needFile = true; } // filed in the background by file_pending.php
     $signedNotes[] = $r;
 }
 $unsent = sg_draft_unsent($me);
@@ -102,6 +102,9 @@ foreach ($FLR_EVENTS as $ev) {
     <p>Your buyers have signed. These documents are filed in <strong><?= htmlspecialchars($where) ?></strong>:</p>
     <ul><?php foreach ($names as $nm): ?><li><?= htmlspecialchars($nm) ?></li><?php endforeach; ?></ul>
     <p><?php if ($link): ?><a class="btn" href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener">Open the record</a> <?php endif; ?><a class="btn ghost" href="signed.php">Signed Documents</a>
+    <?php elseif (sg_can_file($n)): ?>
+    <p style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Your buyers have signed. Filing the documents in your transaction record...</p>
+    <p>
     <?php else: ?>
     <p>Fully signed, but not filed in a transaction record yet.</p>
     <p><a class="btn" href="signed.php">Choose the record</a>
@@ -133,6 +136,11 @@ foreach ($FLR_EVENTS as $ev) {
       <span class="tag">Coming soon</span>
     </div>
   </div>
+<?php if ($needFile): ?>
+<script>
+(async function(){try{var r=await fetch("file_pending.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>})});var j=await r.json();if(j.ok&&j.filed>0&&!(j.errors||[]).length)location.reload();}catch(e){}})();
+</script>
+<?php endif; ?>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only. Having trouble signing in? Contact the office.</footer>
