@@ -81,6 +81,7 @@ if ($buyer) {
       <button type="button" class="tb" data-type="SIGNATURE">Signature</button>
       <button type="button" class="tb" data-type="INITIALS">Initials</button>
       <button type="button" class="tb" data-type="DATE">Date</button>
+      <button type="button" class="tb" id="auto" style="background:#fff7e6;border-color:#c2570c;color:#8a3e08">Auto-place all</button>
       <label style="margin-left:6px"><input type="checkbox" id="every"> Initials/date on every page</label>
       <span class="note" id="hint" style="margin:0 0 0 auto;padding:4px 10px">Pick a buyer and a field, then click on the page. Click a box to remove it.</span>
     </div>
@@ -113,7 +114,7 @@ function place(d,pi,cx,cy){var sz=SIZE[type],every=document.getElementById("ever
 async function addDoc(file){
   var bytes=new Uint8Array(await file.arrayBuffer());
   var pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
-  var d={name:file.name,bytes:bytes,fields:[],pages:[]};docs.push(d);
+  var d={name:file.name,bytes:bytes,fields:[],pages:[],text:[]};docs.push(d);
   var sec=document.createElement("div");sec.className="sddoc";sec.innerHTML="<h3>"+esc(file.name)+"</h3>";docsEl.appendChild(sec);
   for(var n=1;n<=pdf.numPages;n++){
     var page=await pdf.getPage(n),vp=page.getViewport({scale:SCALE}),w0=vp.width/SCALE,h0=vp.height/SCALE;
@@ -121,6 +122,7 @@ async function addDoc(file){
     var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;wrap.appendChild(cv);
     var ov=document.createElement("div");ov.style.cssText="position:absolute;inset:0";wrap.appendChild(ov);sec.appendChild(wrap);
     d.pages.push({w:w0,h:h0,ov:ov});
+    try{d.text.push((await page.getTextContent()).items);}catch(e0){d.text.push([]);}
     (function(pi,wrapEl,w,h){wrapEl.addEventListener("click",function(ev){var r=wrapEl.getBoundingClientRect();place(d,pi,(ev.clientX-r.left)/r.width*w,(ev.clientY-r.top)/r.height*h);});})(n-1,wrap,w0,h0);
     await page.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;
   }
@@ -131,6 +133,39 @@ document.getElementById("files").addEventListener("change",async function(e){
   try{for(var i=0;i<list.length;i++){if(!/\.pdf$/i.test(list[i].name)){continue;}if(list[i].size>12*1024*1024)throw new Error(list[i].name+" is larger than 12 MB.");await addDoc(list[i]);}}
   catch(err){msg.textContent="Could not open the file: "+err.message;msg.className="note sigerr";msg.hidden=false;}
 });
+
+// Quick placement: initials beside the "Buyer (___) (___)" blanks on every page, and signature + date on the last page's "Buyer: ___ Date: ___" lines.
+function autoPlace(){
+  var notes=[];
+  docs.forEach(function(d){
+    d.fields=[];var lastSig=false,P=d.pages.length;
+    d.pages.forEach(function(pg,pi){
+      var items=d.text[pi]||[],H=pg.h,found=false;
+      items.forEach(function(it){
+        var t=it.str||"",e=it.transform[4],f=it.transform[5],w=it.width||0,n=t.length||1;
+        var bi=t.search(/Buyer\s*\(/);
+        if(bi>-1){found=true;var a=t.indexOf("(",bi),b=t.indexOf("(",a+1);
+          BUY.forEach(function(by,k){var idx=k===0?a:b;if(idx<0)return;var x=e+w*((idx+3)/n)-21;d.fields.push({page:pi,x:Math.max(0,x),y:H-f-15,w:42,h:20,type:"INITIALS",role:by.role});});}
+      });
+      if(!found){BUY.forEach(function(by,k){d.fields.push({page:pi,x:pg.w-190+k*50,y:pg.h-42,w:42,h:20,type:"INITIALS",role:by.role});});notes.push(d.name+" page "+(pi+1)+" (initials placed near the bottom right; check)");}
+      // signature lines
+      var n1=0;
+      items.forEach(function(it){
+        var t=it.str||"";if(!/Buyer\s*:/.test(t)||n1>=BUY.length)return;
+        var e=it.transform[4],f=it.transform[5],w=it.width||0,n=t.length||1,by=BUY[n1++],bi=t.search(/Buyer\s*:/);
+        var u=t.indexOf("_",bi),ue=u>-1?u:bi+7,run=/_+/.exec(t.slice(ue)),ul=run?run[0].length:20;
+        var sx=e+w*(ue/n),sw=Math.min(190,Math.max(120,w*(ul/n)));
+        d.fields.push({page:pi,x:sx,y:H-f-18,w:sw,h:26,type:"SIGNATURE",role:by.role});lastSig=true;
+        var di=t.indexOf("Date",bi),dx=di>-1?e+w*((di+5)/n):sx+sw+120;
+        d.fields.push({page:pi,x:Math.min(dx,pg.w-100),y:H-f-14,w:84,h:18,type:"DATE",role:by.role});
+      });
+    });
+    if(!lastSig)notes.push(d.name+": no \"Buyer: ___\" signature line found, so no signature box was placed. Add it by hand.");
+    redrawAll(d);
+  });
+  msg.textContent=notes.length?"Placed what could be found. Please check: "+notes.join("; "):"Placed initials and signature/date boxes. Please look them over before sending.";msg.className="note";msg.hidden=false;
+}
+document.getElementById("auto").addEventListener("click",function(){if(!docs.length)return;autoPlace();});
 function b64(u){var s="";for(var o=0;o<u.length;o+=32768){s+=String.fromCharCode.apply(null,u.subarray(o,o+32768));}return btoa(s);}
 document.getElementById("send").addEventListener("click",async function(){
   var btn=this;msg.className="note";msg.hidden=true;
