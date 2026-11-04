@@ -103,7 +103,7 @@
     var lastBytes = null;
     var onSave = async function () {
       var btns = [saveBtn, saveBtn2].filter(Boolean);
-      saveBtn.disabled = true; if (saveBtn2) saveBtn2.disabled = true; res.hidden = true; status.textContent = 'Saving...'; saveBtn.dataset.t = saveBtn.textContent; btns.forEach(function (b) { b.innerHTML = '<span class="bspin"></span>Saving...'; });
+      saveBtn.disabled = true; if (saveBtn2) saveBtn2.disabled = true; res.hidden = true; status.textContent = 'Preparing...'; saveBtn.dataset.t = saveBtn.textContent; btns.forEach(function (b) { b.innerHTML = '<span class="bspin"></span>Preparing...'; });
       try {
         await new Promise(function (r) { requestAnimationFrame(function () { setTimeout(r, 50); }); }); // let the spinner paint before the heavy work starts
         var bytes = await build(); lastBytes = bytes;
