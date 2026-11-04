@@ -106,7 +106,41 @@ function sg_file(&$rec) {
 }
 
 // One signature request carrying several documents. $items = [[pdf, filename, subject, message], ...]. Returns ids and the document ids in order.
-function sg_send_multi($items, $signers) {
+if (!defined('SG_RECT_FROM_TOP')) { define('SG_RECT_FROM_TOP', false); } // DigiSigner rectangle = [x1,y1,x2,y2]; flip to true if boxes land upside down on a test
+// Seller-provided PDFs with signature boxes placed in the browser -> DigiSigner items. Returns ['err' => msg] or ['items' => ..., 'meta' => ...].
+function sg_seller_items($docsIn, $emails, $addr, $me, $name) {
+    $ROLE = ['buyer1' => 1, 'buyer2' => 1]; $TYPES = ['SIGNATURE' => 1, 'INITIALS' => 1, 'DATE' => 1];
+    if (!$docsIn || count($docsIn) > 8) return ['err' => 'Add between 1 and 8 seller documents.'];
+    $items = []; $meta = [];
+    foreach ($docsIn as $d) {
+        $title = trim(preg_replace('/[^A-Za-z0-9 ._()&,\'-]/', ' ', preg_replace('/\.pdf$/i', '', (string)($d['name'] ?? 'Seller Disclosure'))));
+        $title = trim(preg_replace('/\s+/', ' ', $title)) ?: 'Seller Disclosure';
+        $pdf = base64_decode((string)($d['b64'] ?? ''), true);
+        if ($pdf === false || strlen($pdf) < 500 || substr($pdf, 0, 4) !== '%PDF') return ['err' => '"' . $title . '" is not a readable PDF.'];
+        $by = [];
+        foreach ((array)($d['fields'] ?? []) as $f) {
+            $r = (string)($f['role'] ?? ''); $ty = (string)($f['type'] ?? '');
+            if (!isset($ROLE[$r]) || !isset($TYPES[$ty])) continue;
+            $pg = (int)($f['page'] ?? 0); $H = (float)($f['ph'] ?? 792);
+            $x = (float)($f['x'] ?? 0); $y = (float)($f['y'] ?? 0); $w = (float)($f['w'] ?? 0); $h = (float)($f['h'] ?? 0);
+            if ($w < 5 || $h < 5 || $pg < 0 || $pg > 400) continue;
+            $y1 = SG_RECT_FROM_TOP ? $y : $H - ($y + $h); $y2 = SG_RECT_FROM_TOP ? $y + $h : $H - $y;
+            $by[$r][] = ['type' => $ty, 'page' => $pg, 'rectangle' => [round($x, 1), round($y1, 1), round($x + $w, 1), round($y2, 1)], 'required' => true];
+        }
+        if (!$by) return ['err' => 'Place at least one signature box on "' . $title . '".'];
+        $sg = [];
+        foreach ($by as $r => $fields) {
+            $e = trim((string)($emails[$r] ?? ''));
+            if (!filter_var($e, FILTER_VALIDATE_EMAIL)) return ['err' => 'Please check the email address for ' . ($r === 'buyer1' ? 'Buyer 1' : 'Buyer 2') . '.'];
+            $sg[] = ['email' => $e, 'role' => $r, 'fields' => $fields];
+        }
+        $items[] = [$pdf, $title . '.pdf', 'Florida Luxury Realty: please sign ' . $title . ' for ' . $addr, $name . ' (Florida Luxury Realty) has sent you ' . $title . ' for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $sg];
+        $meta[] = ['form' => $title . ' - ' . $addr, 'what' => $title, 'file' => $title . '.pdf'];
+    }
+    return ['items' => $items, 'meta' => $meta];
+}
+
+function sg_send_multi($items, $signers, $bundle = null) {
     $docs = []; $ids = [];
     foreach ($items as $it) {
         $sg = []; foreach (($it[4] ?? $signers) as $s) { $o = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; if (!empty($s['fields'])) { $o['fields'] = $s['fields']; } $sg[] = $o; } // each document can have its own signers
@@ -120,10 +154,21 @@ function sg_send_multi($items, $signers) {
         $docs[] = ['document_id' => $d['document_id'], 'subject' => $it[2], 'message' => $it[3], 'signers' => $sg];
     }
     $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => $docs];
-    $ch = curl_init('https://api.digisigner.com/v1/signature_requests');
-    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($req), CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
-    $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
-    $q = json_decode((string)$r, true);
+    $try = [$req];
+    if (count($docs) > 1) { // one email that carries every document (signed and returned as separate documents); fall back to one email per document if DigiSigner refuses
+        $b = $req; $b['send_documents_as_bundle'] = true;
+        $b['bundle_subject'] = $bundle['subject'] ?? 'Florida Luxury Realty: please sign your documents';
+        $b['bundle_message'] = $bundle['message'] ?? 'Please review and sign the attached documents.';
+        array_unshift($try, $b);
+    }
+    $code = 0; $q = null;
+    foreach ($try as $rq) {
+        $ch = curl_init('https://api.digisigner.com/v1/signature_requests');
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($rq), CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
+        $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        $q = json_decode((string)$r, true);
+        if ($code >= 200 && $code < 300 && !empty($q['signature_request_id'])) break;
+    }
     if ($code < 200 || $code >= 300 || empty($q['signature_request_id'])) return ['ok' => false, 'msg' => 'DigiSigner could not create the request (code ' . $code . '). Check that each role matches a signature tag in both documents.'];
     return ['ok' => true, 'id' => $q['signature_request_id'], 'docs' => $ids];
 }

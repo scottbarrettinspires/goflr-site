@@ -93,6 +93,7 @@ if ($buyer) {
   </div>
   <div class="panel sigbox" id="done" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="flrdraft.js?v=1"></script>
 <script>
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>, TX=<?= json_encode($buyer['id']) ?>, BUY=<?= json_encode($B) ?>, SCALE=1.25;
@@ -167,11 +168,19 @@ function autoPlace(){
 }
 document.getElementById("auto").addEventListener("click",function(){if(!docs.length)return;autoPlace();});
 function b64(u){var s="";for(var o=0;o<u.length;o+=32768){s+=String.fromCharCode.apply(null,u.subarray(o,o+32768));}return btoa(s);}
+var RET=<?= json_encode(preg_match('/^(dr=[^&]{1,300}|draft=1)$/', (string)($_GET['ret'] ?? '')) ? (string)$_GET['ret'] : '') ?>;
+if(RET)document.getElementById("send").textContent="Add To Email For Signing";
 document.getElementById("send").addEventListener("click",async function(){
   var btn=this;msg.className="note";msg.hidden=true;
   if(!docs.length){msg.textContent="Choose the PDF(s) first.";msg.hidden=false;return;}
   var emails={};[].forEach.call(document.querySelectorAll(".bemail"),function(i){emails[i.dataset.role]=i.value.trim();});
   for(var i=0;i<docs.length;i++){if(!docs[i].fields.length){msg.textContent="Place at least one signature box on "+docs[i].name+".";msg.className="note sigerr";msg.hidden=false;return;}}
+  if(RET){ // came from the send page: hand the documents back so everything goes in ONE email
+    btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Adding...';
+    try{await FLRDraft.put(TX+"|seller",{docs:docs.map(function(d){return {name:d.name,bytes:d.bytes,fields:d.fields.map(function(f){return {page:f.page,x:f.x,y:f.y,w:f.w,h:f.h,type:f.type,role:f.role,ph:d.pages[f.page].h};})};})});
+      location.href="sign_packet.php?tx="+encodeURIComponent(TX)+"&sd=1&"+RET;return;}
+    catch(err){msg.textContent="This browser could not hold the documents: "+err.message;msg.className="note sigerr";msg.hidden=false;btn.disabled=false;btn.textContent="Add To Email For Signing";return;}
+  }
   btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Sending...';
   await new Promise(function(r){requestAnimationFrame(function(){setTimeout(r,50);});});
   try{

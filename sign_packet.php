@@ -94,12 +94,19 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($fail) break;
             $meta[] = ['form' => $label . ' - ' . $addr, 'form_id' => $pp['id'], 'what' => $what, 'file' => $file['name']];
         }
+        $sdj = json_decode((string)($_POST['sdjson'] ?? ''), true);
+        if (!$fail && is_array($sdj) && $sdj) { // seller-provided disclosures the buyers also sign, in the same email
+            $em = []; foreach ($signers as $x) { $em[$x['role']] = $x['email']; }
+            $si = sg_seller_items($sdj, $em, $addr, $me, $name);
+            if (!empty($si['err'])) { $fail = ['ok' => false, 'msg' => htmlspecialchars($si['err'])]; }
+            else { foreach ($si['items'] as $x) { $items[] = $x; } foreach ($si['meta'] as $x) { $x['form_id'] = ''; $meta[] = $x; } }
+        }
         if (!$fail) {
-            $s = sg_send_multi($items, $signers);
+            $s = sg_send_multi($items, $signers, ['subject' => 'Florida Luxury Realty: please sign your documents for ' . $addr, 'message' => $name . ' (Florida Luxury Realty) has sent you documents for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.']);
             if (!$s['ok']) { $fail = $s; }
             else {
                 $rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => $meta[0]['form_id'], 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null];
-                if (count($meta) > 1) { $rec['extra'] = [['form' => $meta[1]['form'], 'form_id' => $meta[1]['form_id'], 'doc' => $s['docs'][1], 'filed' => null]]; }
+                for ($mi = 1; $mi < count($meta); $mi++) { $rec['extra'][] = ['form' => $meta[$mi]['form'], 'form_id' => $meta[$mi]['form_id'], 'doc' => $s['docs'][$mi], 'filed' => null]; }
                 sg_save($s['id'], $rec);
                 sg_draft_mark($me, $addr, $buyer['id'], true);
                 if ($drRes || $draft) { sg_script_post(['op' => 'trashdrafts', 'email' => $me, 'hint' => $buyer['id'], 'address' => $addr]); }
@@ -139,7 +146,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox"><h2>Sent</h2>
     <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, each signed document is filed separately in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
-    <?php if ($draft || $dr !== ''): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});</script><?php endif; ?>
+    <?php if ($draft || $dr !== ''): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});FLRDraft.del(<?= json_encode($buyer['id'] . '|seller') ?>).catch(function(){});</script><?php endif; ?>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
   <form method="get" class="panel sigbox"><p><label for="tx"><strong>Which buyer?</strong></label><br>
@@ -186,10 +193,11 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endforeach; ?>
     </div>
     <div id="xsign"></div>
-    <input type="hidden" name="needs" id="needs" value="">
+    <input type="hidden" name="needs" id="needs" value=""><textarea name="sdjson" id="sdjson" hidden></textarea>
+    <p id="sdnote" class="note" hidden></p>
     <div id="choice" hidden>
       <p><strong>Did the seller provide any disclosures the buyers need to sign?</strong></p>
-      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
+      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
     </div>
     <p id="actions" hidden><button type="submit" class="btn" id="go">Email To Buyers For Signing</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
@@ -239,10 +247,19 @@ async function refresh(){
     h+='<div class="sg" style="display:block;margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px">'+esc((src.name||title)+" ("+title+")")+'</div><input type="email" name="xemail['+role+']" value="'+esc(src.email)+'" placeholder="'+esc(title)+' email" required style="width:100%;max-width:480px"></div>';});
   xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;choice.hidden=false;
 }
+async function loadSd(){
+  if(<?= isset($_GET['sd']) ? 'false' : 'true' ?>)return;
+  try{var sd=await FLRDraft.get(TX+"|seller");if(sd&&sd.docs&&sd.docs.length){window.__sd=sd;
+    var n=document.getElementById("sdnote");n.innerHTML="<strong>Seller disclosures included in this email:</strong> "+sd.docs.map(function(d){return esc(d.name);}).join(", ")+" &nbsp; <a href=\"#\" id=\"sdrm\">Remove</a>";n.hidden=false;
+    document.getElementById("sdrm").addEventListener("click",async function(e){e.preventDefault();window.__sd=null;await FLRDraft.del(TX+"|seller");n.hidden=true;choice.hidden=false;actions.hidden=true;});
+    choice.hidden=true;actions.hidden=false;}}catch(e){}
+}
+var _r0=refresh;refresh=async function(){await _r0();await loadSd();};
 noadd.addEventListener("click",function(){choice.hidden=true;actions.hidden=false;});
 if(pk)pk.addEventListener("change",refresh);if(dk)dk.addEventListener("change",refresh);refresh();
 function b64(u8){var x="",u=new Uint8Array(u8);for(var q=0;q<u.length;q+=32768){x+=String.fromCharCode.apply(null,u.subarray(q,q+32768));}return btoa(x);}
-f.addEventListener("submit",function(){if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.completed||dd.packet);document.getElementById("dkb64").value=dd.disc?b64(dd.disc):"";}
+f.addEventListener("submit",function(){if(window.__sd){document.getElementById("sdjson").value=JSON.stringify(window.__sd.docs.map(function(d){return {name:d.name,b64:b64(d.bytes),fields:d.fields};}));}
+  if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.completed||dd.packet);document.getElementById("dkb64").value=dd.disc?b64(dd.disc):"";}
   go.disabled=true;go.innerHTML='<span class="bspin"></span>Sending...';});
 })();
 </script>
