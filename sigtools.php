@@ -83,6 +83,15 @@ function sg_file_pdf($rec, $docId, $form) {
 
 // A request can carry extra documents (e.g. Buyer Disclosures sent with the packet); each is filed as its own PDF.
 function sg_file(&$rec) {
+    // Only one filing at a time per request (several page loads can ask at once, which used to file the same document repeatedly).
+    $lk = @fopen(sg_path($rec['id']) . '.lock', 'c');
+    if ($lk && !@flock($lk, LOCK_EX | LOCK_NB)) { @fclose($lk); return [false, 'Filing is already in progress.']; }
+    $fresh = sg_load($rec['id']); if (is_array($fresh)) { $rec = array_merge($rec, array_intersect_key($fresh, array_flip(['filed', 'extra', 'completed', 'doc']))); }
+    $res = sg_file_inner($rec);
+    if ($lk) { @flock($lk, LOCK_UN); @fclose($lk); }
+    return $res;
+}
+function sg_file_inner(&$rec) {
     $pending = false; foreach (($rec['extra'] ?? []) as $x) { if (empty($x['filed'])) $pending = true; }
     if (!empty($rec['filed']) && !$pending) return [true, 'Already filed.'];
     if (!sg_can_file($rec)) return [false, 'No transaction chosen.'];

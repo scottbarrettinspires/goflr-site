@@ -7,13 +7,13 @@ header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }
 $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload.']);
-$me = strtolower($_SESSION['email']); $filed = 0; $errs = []; $left = 0;
+$me = strtolower($_SESSION['email']); $filed = 0; $errs = []; $left = 0; $busy = false;
 foreach (sg_for_agent($me) as $r) {
     if (empty($r['completed'])) continue;
     $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
     if (!$pend || !sg_can_file($r)) continue;
     if ($filed >= 2) { $left++; continue; }
     list($ok, $m) = sg_file($r);
-    if ($ok) $filed++; else $errs[] = is_string($m) ? $m : 'Could not file a document.';
+    if ($ok) $filed++; elseif (is_string($m) && strpos($m, 'already in progress') !== false) $busy = true; else $errs[] = is_string($m) ? $m : 'Could not file a document.';
 }
-out(['ok' => true, 'filed' => $filed, 'left' => $left, 'errors' => $errs]);
+out(['ok' => true, 'filed' => $filed, 'left' => $left, 'errors' => $errs, 'busy' => $busy]);

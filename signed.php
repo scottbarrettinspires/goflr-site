@@ -116,6 +116,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 (async function(){var m=document.getElementById("fmsg");
   try{var r=await fetch("file_pending.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>})});var j=await r.json();
     if(j.ok&&j.filed>0&&!(j.errors||[]).length){location.reload();return;}
+    if(j.busy&&!(j.errors||[]).length){m.textContent="Filing is still in progress. Reload this page in a minute.";m.className="note";m.hidden=false;return;}
     m.textContent=(j.errors&&j.errors.length)?"Could not file: "+j.errors.join("; "):(j.msg||"Could not file the signed documents.");m.className="note sigerr";m.hidden=false;
   }catch(e){m.textContent="Could not file the signed documents: "+e.message;m.className="note sigerr";m.hidden=false;}
 })();
