@@ -81,7 +81,7 @@ if ($buyer) {
       <button type="button" class="tb" data-type="SIGNATURE">Signature</button>
       <button type="button" class="tb" data-type="INITIALS">Initials</button>
       <button type="button" class="tb" data-type="DATE">Date</button>
-      <span class="note" id="hint" style="margin:0 0 0 auto;padding:4px 10px">Pick a buyer and a field, then click on the page. Click a box to remove it.</span>
+      <span class="note" id="hint" style="flex-basis:100%;margin:0;padding:4px 10px;text-align:left">Pick a buyer and a field, then click on the page. Click a box to remove it.</span>
     </div>
     <div id="docs"></div>
     <div class="panel sigbox">
