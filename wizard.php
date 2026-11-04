@@ -40,7 +40,7 @@ $pre = (string)($_GET['tx'] ?? '');
 ?>
 <script>var l=document.getElementById('flrload');if(l)l.parentNode.removeChild(l);</script>
 <?php if (!$rules): ?>
-  <p class="note">The wizard rules could not be loaded right now. Please try again, or contact the office.</p>
+  <p class="note">The wizard rules could not be loaded right now. Please try again, or contact the office.<?php if (!empty($GLOBALS['sg_wizard_note'])): ?><br><small>Details: <?= htmlspecialchars($GLOBALS['sg_wizard_note']) ?></small><?php endif; ?></p>
 <?php elseif ($all === null): ?>
   <p class="note">Your transaction folders could not be loaded: <?= htmlspecialchars($GLOBALS['sg_folders_note'] ?? '') ?>. Please tell the office.</p>
 <?php elseif (!$folders): ?>

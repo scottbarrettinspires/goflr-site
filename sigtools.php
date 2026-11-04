@@ -144,9 +144,10 @@ function sg_signers($email) {
 // Contract Forms Wizard rules, read from the Wizard Rules sheet through the office script.
 function sg_wizard_rules() {
     $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=wizard');
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
-    $b = curl_exec($ch); curl_close($ch);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 90, CURLOPT_CONNECTTIMEOUT => 8]);
+    $b = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $cerr = curl_error($ch); curl_close($ch);
     $j = $b === false ? null : json_decode($b, true);
+    $GLOBALS['sg_wizard_note'] = $b === false ? 'no answer from the office script (' . $cerr . ')' : (is_array($j) ? (string)($j['note'] ?? '') : 'the office script answered with something that is not data (HTTP ' . $code . '): ' . substr(trim(strip_tags((string)$b)), 0, 160));
     return (is_array($j) && !empty($j['ok'])) ? $j : null;
 }
 
