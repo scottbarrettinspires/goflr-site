@@ -12,6 +12,12 @@ $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
 $packets = $buyer ? sg_packets($me, $buyer['id']) : null;
 $result = null; $rows = [['', 'buyer1']]; $addr = ''; $pk = '';
+if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];
+    $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
+    $pre = []; if (!empty($bi['b1_email'])) $pre[] = [(string)$bi['b1_email'], 'buyer1']; if (!empty($bi['b2_email'])) $pre[] = [(string)$bi['b2_email'], 'buyer2'];
+    if ($pre) $rows = $pre;
+}
 if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $rows = []; $signers = []; $err = ''; $seen = [];
     $addr = trim(preg_replace('/\s+/', ' ', (string)($_POST['addr'] ?? ''))); $pk = (string)($_POST['pk'] ?? '');

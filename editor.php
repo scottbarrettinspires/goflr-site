@@ -56,7 +56,7 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
   <div id="pages" class="epages"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="editor.js?v=1"></script>
+<script src="editor.js?v=2"></script>
 <script>
 FLREditor.start({pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
 </script>

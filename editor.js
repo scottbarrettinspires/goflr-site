@@ -99,7 +99,7 @@
       try {
         var bytes = await build(); lastBytes = bytes;
         var bin = ''; for (var o = 0; o < bytes.length; o += 32768) { bin += String.fromCharCode.apply(null, bytes.subarray(o, o + 32768)); }
-        var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, b64: btoa(bin) }) });
+        var r = await fetch(cfg.saveUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, b64: btoa(bin), property: String(values['Property_Address'] || '').trim() }) });
         var j = await r.json();
         var url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         res.innerHTML = '';

@@ -146,7 +146,7 @@ btn.addEventListener('click',async function(){
     var bytes=await doc.save();
     var bin='';for(var o=0;o<bytes.length;o+=32768){bin+=String.fromCharCode.apply(null,bytes.subarray(o,o+32768));}
     btn.textContent='Saving to the buyer folder...';
-    var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:btoa(bin),forms:use})});
+    var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:btoa(bin),forms:use,property:((document.getElementById('paddr')||{}).value||'').trim(),price:((document.getElementById('pprice')||{}).value||'').trim()})});
     var j=await r.json();
     var url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
     var out='<h2>Your contract packet</h2><ol>'+use.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';

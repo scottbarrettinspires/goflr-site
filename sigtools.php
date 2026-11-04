@@ -156,3 +156,13 @@ function sg_license($email) {
     if (is_array($j) && !empty($j['ok'])) $_SESSION['license'] = $lic;
     return $lic;
 }
+
+// Merge a few fields (like the property address) into a buyer's saved info. Best effort.
+function sg_buyer_info_merge($email, $folderId, $fields) {
+    $r = sg_buyer_info($email, $folderId);
+    if (empty($r['ok'])) return false;
+    $info = is_array($r['info'] ?? null) ? $r['info'] : [];
+    foreach ($fields as $k => $v) { if ($v !== '' && $v !== null) $info[$k] = mb_substr((string)$v, 0, 200); }
+    $w = sg_buyer_info_save($email, $folderId, $info);
+    return !empty($w['ok']);
+}

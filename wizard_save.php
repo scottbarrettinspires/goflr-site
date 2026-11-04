@@ -18,4 +18,6 @@ $r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' =
 if (!is_array($r) || empty($r['ok'])) out(['ok' => false, 'msg' => 'Could not save to the transaction folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.']);
 sg_dir();
 @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'packet' => $r['name'], 'agent' => $_SESSION['email'], 'folder' => $pick['group'] . ' / ' . $pick['name'], 'forms' => $j['forms'] ?? []]) . "\n", FILE_APPEND | LOCK_EX);
+$prop = trim(preg_replace('/\s+/', ' ', (string)($j['property'] ?? ''))); $price = trim((string)($j['price'] ?? ''));
+if ($prop !== '' || $price !== '') { sg_buyer_info_merge($_SESSION['email'], $pick['id'], ['property' => $prop, 'price' => $price]); }
 out(['ok' => true, 'name' => $r['name'], 'url' => $r['url'], 'folder' => $pick['group'] . ' / ' . $pick['name']]);
