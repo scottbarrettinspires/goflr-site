@@ -26,9 +26,10 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $pm = (string)($_POST['payment'] ?? '');
         $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
         $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
-        foreach (['b1', 'b2'] as $p) { if ($mine !== '' && strtolower($new[$p . '_name']) === $mine) { $new[$p . '_name'] = ''; $new[$p . '_phone'] = ''; $new[$p . '_email'] = ''; } }
+        $own = false;
+        foreach (['b1', 'b2'] as $p) { if ($mine !== '' && strtolower($new[$p . '_name']) === $mine) { $own = true; $new[$p . '_name'] = ''; $new[$p . '_phone'] = ''; $new[$p . '_email'] = ''; } }
         foreach (['b1_email', 'b2_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; } }
-        if (!$err && $new['b1_name'] === '') { $err = 'Please enter the buyer\'s name.'; }
+        if (!$err && $new['b1_name'] === '') { $err = $own ? 'That name is the signed-in agent, not a buyer, so it was removed. Please enter the buyer\'s name.' : 'Please enter the buyer\'s name.'; }
         $new['updated'] = gmdate('c');
         $info = $new;
         if (!$err) {
