@@ -114,7 +114,7 @@ btn.addEventListener('click',async function(){
     var notes=doc.__notes||[];
     var bytes=await doc.save();
     var bin='';for(var o=0;o<bytes.length;o+=32768){bin+=String.fromCharCode.apply(null,bytes.subarray(o,o+32768));}
-    btn.textContent='Saving to the buyer's folder...';
+    btn.textContent='Saving to the buyer folder...';
     var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:btoa(bin),forms:use})});
     var j=await r.json();
     var url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
