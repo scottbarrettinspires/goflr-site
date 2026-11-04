@@ -102,6 +102,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (count($meta) > 1) { $rec['extra'] = [['form' => $meta[1]['form'], 'form_id' => $meta[1]['form_id'], 'doc' => $s['docs'][1], 'filed' => null]]; }
                 sg_save($s['id'], $rec);
                 sg_draft_mark($me, $addr, $buyer['id'], true);
+                if ($drRes || $draft) { sg_script_post(['op' => 'trashdrafts', 'email' => $me, 'hint' => $buyer['id'], 'address' => $addr]); }
                 sg_dir();
                 @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'packet' => implode(' + ', array_map(function ($m) { return $m['file']; }, $meta)), 'address' => $addr, 'buyer_folder' => $buyer['name'], 'signers' => array_map(function ($x) { return $x['email'] . ' (' . $x['role'] . ')'; }, $signers), 'request' => $s['id']]) . "\n", FILE_APPEND | LOCK_EX);
             }
