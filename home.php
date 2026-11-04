@@ -1,6 +1,25 @@
 <?php
 require __DIR__ . "/guard.php";
 require __DIR__ . "/events.php";
+require __DIR__ . "/sigtools.php";
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$me = strtolower($_SESSION['email'] ?? '');
+// Agent dismissed a "signed" notice.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && isset($_POST['seen'])) {
+    $rec = sg_load((string)$_POST['seen']);
+    if ($rec && strtolower($rec['agent'] ?? '') === $me) { $rec['seen'] = true; sg_save($rec['id'], $rec); }
+    header('Location: home.php'); exit;
+}
+// Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
+$signedNotes = []; $checked = 0;
+foreach (sg_for_agent($me) as $r) {
+    if (!empty($r['seen'])) continue;
+    if (empty($r['completed'])) { if ($checked++ >= 8) continue; sg_refresh($r); }
+    if (empty($r['completed'])) continue;
+    $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
+    if ($pend && sg_can_file($r)) { sg_file($r); }
+    $signedNotes[] = $r;
+}
 $full = trim($_SESSION['name'] ?? '');
 $first = $full !== '' ? preg_split('/\s+/', $full)[0] : '';
 $pic = $_SESSION['pic'] ?? '';
@@ -64,6 +83,24 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+<?php foreach ($signedNotes as $n):
+    $names = []; $link = '';
+    if (!empty($n['filed'])) { $names[] = $n['filed']['name']; $link = $n['filed']['folder_url'] ?? ''; if ($link === '') $link = $n['filed']['url']; }
+    foreach (($n['extra'] ?? []) as $x) { if (!empty($x['filed'])) { $names[] = $x['filed']['name']; if (($n['filed']['folder_url'] ?? '') === '' && $link === '') $link = $x['filed']['url']; } }
+    $where = !empty($n['filed']) ? $n['filed']['folder'] : ''; ?>
+  <div class="panel sigbox" style="border-left:5px solid #2e8b57;margin-bottom:16px">
+    <p><strong>Signed: <?= htmlspecialchars($n['offer_address'] ?? preg_replace('/^[^-]*-\s*/', '', (string)($n['form'] ?? ''))) ?></strong></p>
+    <?php if ($names): ?>
+    <p>Your buyers have signed. These documents are filed in <strong><?= htmlspecialchars($where) ?></strong>:</p>
+    <ul><?php foreach ($names as $nm): ?><li><?= htmlspecialchars($nm) ?></li><?php endforeach; ?></ul>
+    <p><?php if ($link): ?><a class="btn" href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener">Open the record</a> <?php endif; ?><a class="btn ghost" href="signed.php">Signed Documents</a>
+    <?php else: ?>
+    <p>Fully signed, but not filed in a transaction record yet.</p>
+    <p><a class="btn" href="signed.php">Choose the record</a>
+    <?php endif; ?>
+    <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="seen" value="<?= htmlspecialchars($n['id']) ?>"> <button class="btn ghost" type="submit">Dismiss</button></form></p>
+  </div>
+<?php endforeach; ?>
   <div class="grid">
     <a class="card" href="my-transactions.php">
       <h2>My Transactions</h2>

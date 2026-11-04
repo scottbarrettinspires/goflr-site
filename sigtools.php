@@ -77,7 +77,7 @@ function sg_file_pdf($rec, $docId, $form) {
     $r = sg_script_post($post);
     if (!is_array($r) || empty($r['ok'])) return [false, 'Could not save to the transaction folder' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.'];
     $label = !empty($rec['offer_address']) ? '1 BUYERS / 2 Contract Offers / ' . ($r['folder'] ?? $rec['offer_address']) : ($rec['folder']['label'] ?? '');
-    return [true, ['name' => $r['name'], 'url' => $r['url'], 'at' => gmdate('c'), 'folder' => $label]];
+    return [true, ['name' => $r['name'], 'url' => $r['url'], 'folder_url' => (string)($r['folderUrl'] ?? ''), 'at' => gmdate('c'), 'folder' => $label]];
 }
 
 // A request can carry extra documents (e.g. Buyer Disclosures sent with the packet); each is filed as its own PDF.
