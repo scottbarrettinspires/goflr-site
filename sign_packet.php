@@ -234,7 +234,7 @@ async function roles(id){
   return out;
 }
 async function refresh(){
-  var my=++seq;go.disabled=true;actions.hidden=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
+  var my=++seq;go.disabled=true;actions.hidden=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Confirming if any additional signers such as agent or broker...</p>';
   var want={pk:{},dk:{}},all={};
   try{
     var a,b;
