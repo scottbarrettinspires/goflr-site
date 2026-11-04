@@ -72,7 +72,7 @@ if ($buyer) {
     <div style="margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px"><?= htmlspecialchars(($b['name'] !== '' ? $b['name'] . ' (' : '(') . $b['label'] . ')') ?></div>
       <input type="email" class="bemail" data-role="<?= $b['role'] ?>" value="<?= htmlspecialchars($b['email']) ?>" placeholder="<?= $b['label'] ?> email" style="width:100%;max-width:480px"></div>
 <?php endforeach; ?>
-    <p><label for="files"><strong>Seller disclosure PDFs</strong></label><br><input type="file" id="files" accept="application/pdf,.pdf" multiple></p>
+    <p><label for="files"><strong>Seller disclosure PDFs</strong></label> <span class="note" style="padding:2px 8px">Choose one or several, and add more any time. They are combined into one document so the buyers get one signing.</span><br><input type="file" id="files" accept="application/pdf,.pdf" multiple></p>
   </div>
   <div id="work" hidden>
     <div class="sdbar" id="bar">
@@ -91,6 +91,7 @@ if ($buyer) {
   </div>
   <div class="panel sigbox" id="done" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
 <script>
 (function(){
@@ -110,27 +111,43 @@ function place(d,pi,cx,cy){var sz=SIZE[type],every=false,pg=d.pages[pi];
   var x=Math.max(0,Math.min(pg.w-sz[0],cx-sz[0]/2)),y=Math.max(0,Math.min(pg.h-sz[1],cy-sz[1]/2));
   (every?d.pages.map(function(_,i){return i;}):[pi]).forEach(function(i){var p=d.pages[i];d.fields.push({page:i,x:x,y:Math.min(y,p.h-sz[1]),w:sz[0],h:sz[1],type:type,role:role});});
   redrawAll(d);}
-async function addDoc(file){
-  var bytes=new Uint8Array(await file.arrayBuffer());
+var parts=[]; // each uploaded PDF {name, start page}; all of them are combined into ONE continuous document
+async function addFiles(list){
+  var PL=window.PDFLib,out=await PL.PDFDocument.create(),old=docs[0]?docs[0].bytes:null,startNew=0;
+  if(old){var od=await PL.PDFDocument.load(old,{ignoreEncryption:true});(await out.copyPages(od,od.getPageIndices())).forEach(function(p){out.addPage(p);});}
+  startNew=out.getPageCount();
+  for(var i=0;i<list.length;i++){
+    var f=list[i];if(!/\.pdf$/i.test(f.name)){continue;}if(f.size>12*1024*1024)throw new Error(f.name+" is larger than 12 MB.");
+    var src=await PL.PDFDocument.load(new Uint8Array(await f.arrayBuffer()),{ignoreEncryption:true});
+    parts.push({name:f.name,start:out.getPageCount()});
+    (await out.copyPages(src,src.getPageIndices())).forEach(function(p){out.addPage(p);});
+  }
+  if(out.getPageCount()===startNew)return;
+  var bytes=new Uint8Array(await out.save());
+  if(bytes.length>25*1024*1024)throw new Error("The combined documents are larger than 25 MB.");
+  var keep=docs[0]?docs[0].fields:[];
+  var d={name:parts.length===1?parts[0].name:"Seller Disclosures.pdf",bytes:bytes,fields:keep,pages:[]};docs=[d];
+  docsEl.innerHTML="";
   var pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
-  var d={name:file.name,bytes:bytes,fields:[],pages:[],text:[]};docs.push(d);
-  var sec=document.createElement("div");sec.className="sddoc";sec.innerHTML="<h3>"+esc(file.name)+"</h3>";docsEl.appendChild(sec);
+  var sec=document.createElement("div");sec.className="sddoc";sec.innerHTML="<h3>"+(parts.length>1?"Seller Disclosures (all pages in one document)":esc(parts[0].name))+"</h3>";docsEl.appendChild(sec);
   for(var n=1;n<=pdf.numPages;n++){
+    for(var q=0;q<parts.length;q++){if(parts[q].start===n-1&&parts.length>1){var lb=document.createElement("p");lb.className="note";lb.style.margin="10px 0 4px";lb.textContent=parts[q].name;sec.appendChild(lb);}}
     var page=await pdf.getPage(n),vp=page.getViewport({scale:SCALE}),w0=vp.width/SCALE,h0=vp.height/SCALE;
     var wrap=document.createElement("div");wrap.className="sdpage";wrap.style.width=vp.width+"px";
     var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;wrap.appendChild(cv);
     var ov=document.createElement("div");ov.style.cssText="position:absolute;inset:0";wrap.appendChild(ov);sec.appendChild(wrap);
     d.pages.push({w:w0,h:h0,ov:ov});
-    try{d.text.push((await page.getTextContent()).items);}catch(e0){d.text.push([]);}
     (function(pi,wrapEl,w,h){wrapEl.addEventListener("click",function(ev){var r=wrapEl.getBoundingClientRect();place(d,pi,(ev.clientX-r.left)/r.width*w,(ev.clientY-r.top)/r.height*h);});})(n-1,wrap,w0,h0);
     await page.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;
+    draw(d,n-1);
   }
 }
 document.getElementById("files").addEventListener("change",async function(e){
-  var list=[].slice.call(e.target.files||[]);if(!list.length)return;
-  msg.hidden=true;work.hidden=false;docsEl.innerHTML="";docs=[];
-  try{for(var i=0;i<list.length;i++){if(!/\.pdf$/i.test(list[i].name)){continue;}if(list[i].size>12*1024*1024)throw new Error(list[i].name+" is larger than 12 MB.");await addDoc(list[i]);}}
+  var inp=e.target,list=[].slice.call(inp.files||[]);if(!list.length)return;
+  msg.hidden=true;work.hidden=false;
+  try{await addFiles(list);}
   catch(err){msg.textContent="Could not open the file: "+err.message;msg.className="note sigerr";msg.hidden=false;}
+  inp.value="";
 });
 
 function b64(u){var s="";for(var o=0;o<u.length;o+=32768){s+=String.fromCharCode.apply(null,u.subarray(o,o+32768));}return btoa(s);}
