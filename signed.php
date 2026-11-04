@@ -67,7 +67,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 <main class="wrap">
 <?php if ($msg): ?><p class="note"><strong><?= htmlspecialchars($msg) ?></strong></p><?php endif; ?>
 <?php if (!$recs): ?>
-  <p class="note">Nothing sent yet. Open <a href="forms.php">Forms</a> and choose "Send for signature" on a Buyer or Seller form.</p>
+  <p class="note">Nothing sent yet. Use the Contract Forms Wizard in <a href="my-transactions.php">My Transactions</a>, then Review and complete, then send it for signature.</p>
 <?php endif; ?>
 <?php foreach ($recs as $r):
     $who = []; foreach ($r['signers'] ?? [] as $s) { $d = !empty($r['signers_status'][$s['email']]); $who[] = htmlspecialchars($s['email']) . ($d ? ' &#10003;' : ''); }
