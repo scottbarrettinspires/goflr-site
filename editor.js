@@ -95,7 +95,7 @@
     }
     var lastBytes = null;
     saveBtn.addEventListener('click', async function () {
-      saveBtn.disabled = true; res.hidden = true; status.textContent = 'Saving...';
+      saveBtn.disabled = true; res.hidden = true; status.textContent = 'Saving...'; saveBtn.dataset.t = saveBtn.textContent; saveBtn.innerHTML = '<span class="bspin"></span>Saving...';
       try {
         var bytes = await build(); lastBytes = bytes;
         var bin = ''; for (var o = 0; o < bytes.length; o += 32768) { bin += String.fromCharCode.apply(null, bytes.subarray(o, o + 32768)); }
@@ -109,7 +109,7 @@
         if (j.ok) { var b = el('a', 'btn ghost', p2); b.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx); b.textContent = 'Next: send it for signature'; b.style.marginLeft = '8px'; }
         res.hidden = false; status.textContent = j.ok ? 'Saved.' : 'Not saved.';
       } catch (e) { status.textContent = 'Something went wrong: ' + e.message; }
-      saveBtn.disabled = false;
+      saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.t || 'Save completed packet';
     });
     function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     root.__editorBuild = build;

@@ -143,3 +143,8 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .efield .etx:focus{background:rgba(255,235,120,.55);box-shadow:0 0 0 1px var(--teal)}
 .efield .ecb{width:100%;height:100%;margin:0;accent-color:var(--teal);cursor:pointer}
 .ebar{max-width:900px}
+
+/* spinner shown inside a button while it works */
+.bspin{display:inline-block;width:14px;height:14px;margin-right:9px;vertical-align:-2px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:flrspin .8s linear infinite}
+.btn.ghost .bspin{border-color:rgba(0,107,104,.3);border-top-color:#006b68}
+@keyframes flrspin{to{transform:rotate(360deg)}}

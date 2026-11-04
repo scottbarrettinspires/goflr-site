@@ -85,7 +85,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Send packet for signature - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -155,7 +155,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 (function(){var box=document.getElementById("signers"),add=document.getElementById("add"),f=document.getElementById("sf");if(!box||!add)return;
 add.addEventListener("click",function(){if(box.children.length>=6)return;var c=box.children[0].cloneNode(true);c.querySelector("input").value="";var sel=c.querySelector("select"),used=[].map.call(box.querySelectorAll("select"),function(x){return x.value;}),order=["buyer2","buyer1","agent","broker","buyeragent","seller1","seller2","listingagent"];for(var i=0;i<order.length;i++){if(used.indexOf(order[i])<0){sel.value=order[i];break;}}box.appendChild(c);});
-f.addEventListener("submit",function(){var b=document.getElementById("go");b.disabled=true;b.textContent="Sending...";});})();
+f.addEventListener("submit",function(){var b=document.getElementById("go");b.disabled=true;b.innerHTML='<span class="bspin"></span>Sending...';});})();
 </script>
 <?php endif; endif; ?>
 </main>

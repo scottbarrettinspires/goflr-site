@@ -20,7 +20,7 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Review and Complete - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -56,7 +56,7 @@ if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id)
   <div id="pages" class="epages"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="editor.js?v=3"></script>
+<script src="editor.js?v=4"></script>
 <script>
 FLREditor.start({pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,kind:<?= json_encode(stripos($pick['name'], 'Buyer Disclosures') === 0 ? 'disclosures' : 'packet') ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
 </script>

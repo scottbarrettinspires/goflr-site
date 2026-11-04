@@ -13,7 +13,7 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Contract Forms Wizard - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -147,7 +147,7 @@ btn.addEventListener('click',async function(){
   var use=[];
   want.forEach(function(f){ if(R.files[f]) use.push(f); else warn.push(/\.pdf$/i.test(f)?'The file '+f+' was not found in the Buyer Forms folder, so it is not in the packet.':'Not in the packet yet: '+f+'.'); });
   if(!use.length)return fail('No forms were selected for those answers.');
-  btn.disabled=true;btn.textContent='Building... this can take a minute';
+  btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Building... this can take a minute';
   try{
     var DISC='Broker_Res_Buyer_Disclosures.pdf';
     var packUse=use.filter(function(f){return f!==DISC;}), discUse=use.filter(function(f){return f===DISC;});
@@ -156,7 +156,7 @@ btn.addEventListener('click',async function(){
     var notes=[],packBytes=null,discBytes=null,packB64='',discB64='';
     if(packUse.length){var pd=await FLRWiz.buildPacket(PDFLib,await load(packUse),clauses,fillMap());notes=notes.concat(pd.__notes||[]);packBytes=await pd.save();packB64=toB64(packBytes);}
     if(discUse.length){var dd=await FLRWiz.buildPacket(PDFLib,await load(discUse),[],fillMap());discBytes=await dd.save();discB64=toB64(discBytes);} // Buyer Disclosures stay a separate PDF
-    btn.textContent='Saving to the buyer folder...';
+    btn.innerHTML='<span class="bspin"></span>Saving to the buyer folder...';
     var r=await fetch('wizard_save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,tx:txSel.value,b64:packB64,b64d:discB64,forms:use,property:((document.getElementById('paddr')||{}).value||'').trim(),price:((document.getElementById('pprice')||{}).value||'').trim()})});
     var j=await r.json();
     var out='<h2>Your contract packet</h2><ol>'+packUse.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
