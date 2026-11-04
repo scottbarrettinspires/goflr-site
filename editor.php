@@ -1,0 +1,67 @@
+<?php
+require __DIR__ . "/guard.php";
+require __DIR__ . "/sigtools.php";
+@set_time_limit(120);
+header('Cache-Control: no-store');
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$me = $_SESSION['email'];
+$tx = (string)($_GET['tx'] ?? '');
+$all = preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) ? (sg_folders($me, $tx) ?: []) : [];
+$buyer = null; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $buyer = $f; }
+$files = $buyer ? sg_packets($me, $tx) : null;
+$id = (string)($_GET['id'] ?? '');
+$pick = null;
+if ($files) { foreach ($files as $f) { if ($id === '' ? true : $f['id'] === $id) { $pick = $f; break; } } }
+?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Review and Complete - FLR Agent Back Office</title>
+<link rel="stylesheet" href="style.css?v=15">
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
+  <nav>
+    <a href="home.php">Home</a>
+    <a href="my-transactions.php">My Transactions</a>
+    <a href="forms.php" aria-current="page">Forms</a>
+    <a href="signed.php">Signed</a>
+    <a href="training.php">Training</a>
+    <a href="logout.php">Sign out</a>
+  </nav>
+</div></header>
+<section class="hero"><h1>Review and Complete</h1><p>Fill in the contract packet here, save it, then send it for signature.</p></section>
+<main class="wrap">
+<?php if (!$buyer): ?>
+  <p class="note">Open this page from a buyer's contract packet: use <a href="wizard.php">the Contract Forms Wizard</a> first.</p>
+<?php elseif (!$pick): ?>
+  <p class="note">No contract packet found in <?= htmlspecialchars($buyer['name']) ?> yet. <a href="wizard.php?tx=<?= urlencode($tx) ?>">Build one with the wizard</a>.</p>
+<?php else: ?>
+  <div class="panel sigbox ebar">
+    <p><strong><?= htmlspecialchars($buyer['name']) ?></strong> &middot; <?= htmlspecialchars($pick['name']) ?>
+<?php if (count($files) > 1): ?>
+    <br><label for="pk">Packet: </label><select id="pk" class="txsel" onchange="location='editor.php?tx=<?= urlencode($tx) ?>&amp;id='+encodeURIComponent(this.value)">
+<?php foreach ($files as $f): ?><option value="<?= htmlspecialchars($f['id']) ?>"<?= $f['id'] === $pick['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option><?php endforeach; ?>
+    </select>
+<?php endif; ?>
+    </p>
+    <p id="estatus" class="note">Loading...</p>
+    <p><button type="button" class="btn" id="esave" disabled>Save completed packet</button></p>
+    <div id="eres" hidden></div>
+  </div>
+  <div id="pages" class="epages"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="editor.js?v=1"></script>
+<script>
+FLREditor.start({pdfUrl:'editor_pdf.php?tx=<?= urlencode($tx) ?>&id=<?= urlencode($pick['id']) ?>',worker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',saveUrl:'editor_save.php',csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>}).catch(function(e){document.getElementById('estatus').textContent='Could not open the packet: '+e.message;});
+</script>
+<?php endif; ?>
+</main>
+<footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
+</body>
+</html>

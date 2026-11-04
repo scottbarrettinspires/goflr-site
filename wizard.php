@@ -152,7 +152,7 @@ btn.addEventListener('click',async function(){
     var out='<h2>Your contract packet</h2><ol>'+use.map(function(f){return '<li>'+esc(title(f))+'</li>';}).join('')+'</ol>';
     notes.concat(warn).forEach(function(n){out+='<p class="note">'+esc(n)+'</p>';});
     out+= j.ok ? '<p><strong>Saved</strong> in '+esc(j.folder)+' as <a href="'+esc(j.url)+'" target="_blank" rel="noopener">'+esc(j.name)+'</a>.</p>' : '<p class="sigerr">'+esc(j.msg||'The packet was built but could not be saved.')+' You can still download it below.</p>';
-    out+='<p><a class="btn" href="'+url+'" download="Contract Packet.pdf">Download the packet</a>'+(j.ok?' <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Next: send it for signature</a>':'')+'</p>';
+    out+='<p><a class="btn" href="'+url+'" download="Contract Packet.pdf">Download the packet</a>'+(j.ok?' <a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'">Review and complete</a> <a class="btn ghost" href="sign_packet.php?tx='+encodeURIComponent(txSel.value)+'">Send it for signature</a>':'')+'</p>';
     res.innerHTML=out;res.hidden=false;btn.disabled=false;btn.textContent='Build another packet';
   }catch(e){fail('Something went wrong: '+e.message);}
 });
