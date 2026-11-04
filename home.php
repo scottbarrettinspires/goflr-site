@@ -10,6 +10,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
     if ($rec && strtolower($rec['agent'] ?? '') === $me) { $rec['seen'] = true; sg_save($rec['id'], $rec); }
     header('Location: home.php'); exit;
 }
+// Agent dismissed an announcement.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && isset($_POST['annseen'])) {
+    $aid = substr(preg_replace('/[^A-Za-z0-9_-]/', '', (string)$_POST['annseen']), 0, 40);
+    if ($aid !== '') { flr_ann_dismiss($me, $aid); sg_script_post(['op' => 'dismissann', 'email' => $me, 'id' => $aid]); }
+    header('Location: home.php'); exit;
+}
+$anns = flr_announcements($me);
 // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
 $signedNotes = []; $checked = 0; $needFile = false;
 $myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
@@ -85,6 +92,15 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+<?php foreach ($anns as $a): ?>
+  <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
+    <p><span class="tag"><?= !empty($a['personal']) ? 'Message for you' : 'Announcement' ?></span></p>
+    <?php if (!empty($a['title'])): ?><p><strong><?= htmlspecialchars($a['title']) ?></strong></p><?php endif; ?>
+    <p style="white-space:pre-line"><?= htmlspecialchars($a['message'] ?? '') ?></p>
+    <p class="note" style="background:none;border:0;padding:0;margin:0 0 10px"><?= htmlspecialchars(trim(($a['by'] ?? '') . (!empty($a['date']) ? ' · ' . date('M j, Y', strtotime($a['date'])) : ''), ' ·')) ?></p>
+    <form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="annseen" value="<?= htmlspecialchars($a['id']) ?>"><button class="btn ghost" type="submit">Dismiss</button></form>
+  </div>
+<?php endforeach; ?>
 <?php foreach ($unsent as $u): ?>
   <div class="panel sigbox" style="border-left:5px solid #c9a24b;margin-bottom:16px">
     <p><strong>Documents ready, not sent yet: <?= htmlspecialchars($u['addr']) ?></strong></p>

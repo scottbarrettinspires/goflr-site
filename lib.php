@@ -97,3 +97,20 @@ function flr_directory() {
     return null;
 }
 function flr_dir_photo_key($fileId) { return substr(sha1('dir|' . $fileId), 0, 20); }
+
+// Announcements from the FLR Announcements sheet (all-agent and agent-specific), cached briefly per agent; dismissals are kept per agent.
+function flr_ann_file($email, $kind) { return flr_dir_dir() . '/ann-' . $kind . '-' . sha1(strtolower(trim($email))) . '.json'; }
+function flr_ann_dismissed($email) { $j = json_decode((string)@file_get_contents(flr_ann_file($email, 'seen')), true); return is_array($j) ? $j : []; }
+function flr_ann_dismiss($email, $id) { $s = flr_ann_dismissed($email); if (!in_array($id, $s, true)) { $s[] = $id; @file_put_contents(flr_ann_file($email, 'seen'), json_encode(array_values($s)), LOCK_EX); } }
+function flr_announcements($email) {
+    $f = flr_ann_file($email, 'list'); $items = null;
+    if (is_file($f) && time() - filemtime($f) < 120) { $j = json_decode((string)@file_get_contents($f), true); if (is_array($j)) $items = $j; }
+    if ($items === null) {
+        $j = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=announcements&email=' . urlencode(strtolower($email)));
+        if (is_array($j) && !empty($j['ok'])) { $items = (array)($j['items'] ?? []); @file_put_contents($f, json_encode($items), LOCK_EX); }
+        elseif (is_file($f)) { $o = json_decode((string)@file_get_contents($f), true); $items = is_array($o) ? $o : []; }
+        else { $items = []; }
+    }
+    $seen = flr_ann_dismissed($email);
+    return array_values(array_filter($items, function ($a) use ($seen) { return !in_array($a['id'] ?? '', $seen, true); }));
+}
