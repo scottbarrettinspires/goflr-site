@@ -170,6 +170,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div id="xsign"></div>
     <input type="hidden" name="needs" id="needs" value="">
+    <p style="margin:0 0 10px"><a href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>">Need the buyers to sign PDFs from the seller side (seller disclosures)? Upload them here.</a></p>
     <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
   </form>

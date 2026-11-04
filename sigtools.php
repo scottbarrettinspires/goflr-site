@@ -109,7 +109,7 @@ function sg_file(&$rec) {
 function sg_send_multi($items, $signers) {
     $docs = []; $ids = [];
     foreach ($items as $it) {
-        $sg = []; foreach (($it[4] ?? $signers) as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; } // each document can have its own signers
+        $sg = []; foreach (($it[4] ?? $signers) as $s) { $o = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; if (!empty($s['fields'])) { $o['fields'] = $s['fields']; } $sg[] = $o; } // each document can have its own signers
         $tmp = tempnam(sys_get_temp_dir(), 'flrsig'); file_put_contents($tmp, $it[0]);
         $ch = curl_init('https://api.digisigner.com/v1/documents');
         curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_POSTFIELDS => ['file' => new CURLFile($tmp, 'application/pdf', $it[1])], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_CONNECTTIMEOUT => 8]);
