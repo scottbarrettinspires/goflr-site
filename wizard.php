@@ -167,6 +167,7 @@ btn.addEventListener('click',async function(){
     if(j.ok&&j.offer)out+='<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>';
     var canEdit=false;
     if(packBytes){try{await FLRDraft.put(txSel.value,{packet:packBytes,disc:discBytes,property:((document.getElementById('paddr')||{}).value||'').trim(),t:Date.now()});canEdit=true;}catch(e4){out+='<p class="sigerr">This browser could not hold the packet for editing. Use Download instead.</p>';}}
+    if(canEdit&&!warn.length&&(j.ok||!j.offer)){btn.innerHTML='<span class="bspin"></span>Preparing...';location.href='editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1';return;} // nothing to review here: go straight to completing the forms
     out+='<p>';
     if(packBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([packBytes],{type:'application/pdf'}))+'" download="Contract Packet.pdf">Download Packet</a> ';
     if(canEdit)out+='<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1" id="cfs">Complete For Signing</a>';
