@@ -12,6 +12,13 @@ $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
 $isNew = (($_GET['new'] ?? ($_POST['new'] ?? '')) === '1');
 $hint = (string)($_GET['hint'] ?? ($_POST['hint'] ?? ''));
 if ($isNew && !preg_match('/^[A-Za-z0-9_-]{10,80}$/', $hint)) { $isNew = false; }
+function bi_missing($n) {
+    if (($n['b1_name'] ?? '') === '') return 'Please enter the buyer\'s name.';
+    if (($n['b1_phone'] ?? '') === '') return 'Please enter Buyer 1\'s phone number.';
+    if (($n['b1_email'] ?? '') === '') return 'Please enter Buyer 1\'s email address.';
+    if (($n['b2_name'] ?? '') !== '' && ($n['b2_email'] ?? '') === '') return 'Buyer 2 needs an email address (phone is optional).';
+    return '';
+}
 $FIELDS = ['b1_name', 'b1_phone', 'b1_email', 'b2_name', 'b2_phone', 'b2_email', 'mailing', 'lender', 'preapproval'];
 $info = []; $msg = ''; $err = '';
 if ($buyer) {
@@ -29,7 +36,7 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $own = false;
         foreach (['b1', 'b2'] as $p) { if ($mine !== '' && strtolower($new[$p . '_name']) === $mine) { $own = true; $new[$p . '_name'] = ''; $new[$p . '_phone'] = ''; $new[$p . '_email'] = ''; } }
         foreach (['b1_email', 'b2_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; } }
-        if (!$err && $new['b1_name'] === '') { $err = $own ? 'That name is the signed-in agent, not a buyer, so it was removed. Please enter the buyer\'s name.' : 'Please enter the buyer\'s name.'; }
+        if (!$err) { $err = bi_missing($new); if ($err && $own && $new['b1_name'] === '') { $err = 'That name is the signed-in agent, not a buyer, so it was removed. Please enter the buyer\'s name.'; } }
         $new['updated'] = gmdate('c');
         $info = $new;
         if (!$err) {
@@ -52,6 +59,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
         foreach (['b1', 'b2'] as $p) { if ($mine !== '' && strtolower($new[$p . '_name']) === $mine) { $new[$p . '_name'] = ''; $new[$p . '_phone'] = ''; $new[$p . '_email'] = ''; $msg = 'Your own name was removed from a buyer line. '; } }
         $new['updated'] = gmdate('c');
+        if (!$err) { $err = bi_missing($new); }
         if (!$err) {
             $r = sg_buyer_info_save($me, $tx, $new);
             if (!empty($r['ok'])) { $info = $new; $msg .= 'Saved.'; } else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
@@ -103,12 +111,12 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <?php if ($buyer): ?><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><?php else: ?><input type="hidden" name="new" value="1"><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>"><?php endif; ?>
-    <fieldset class="wq"><legend>Buyer 1</legend>
+    <fieldset class="wq"><legend>Buyer 1 (all required)</legend>
       <label>Buyer full name<input type="text" name="f_b1_name" value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Phone<input type="text" name="f_b1_phone" value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Email<input type="email" name="f_b1_email" value="<?= $v('b1_email') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
-    <fieldset class="wq"><legend>Buyer 2 (if any)</legend>
+    <fieldset class="wq"><legend>Buyer 2 (if any: name and email required, phone optional)</legend>
       <label>Buyer full name<input type="text" name="f_b2_name" value="<?= $v('b2_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Phone<input type="text" name="f_b2_phone" value="<?= $v('b2_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Email<input type="email" name="f_b2_email" value="<?= $v('b2_email') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
