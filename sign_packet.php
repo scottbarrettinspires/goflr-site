@@ -96,7 +96,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $sdj = json_decode((string)($_POST['sdjson'] ?? ''), true);
         if (!$fail && is_array($sdj) && $sdj) { // seller-provided disclosures the buyers also sign, in the same email
-            $em = []; foreach ($signers as $x) { $em[$x['role']] = $x['email']; }
+            $em = []; foreach ($signers as $x) { $em[$x['role']] = $x['email']; } foreach (['agent', 'broker'] as $xr) { $xe = trim((string)($_POST['xemail'][$xr] ?? '')); if ($xe !== '') $em[$xr] = $xe; }
             $si = sg_seller_items($sdj, $em, $addr, $me, $name);
             if (!empty($si['err'])) { $fail = ['ok' => false, 'msg' => htmlspecialchars($si['err'])]; }
             else { foreach ($si['items'] as $x) { $items[] = $x; } foreach ($si['meta'] as $x) { $x['form_id'] = ''; $meta[] = $x; } }
@@ -244,6 +244,7 @@ async function refresh(){
     want.pk=a;want.dk=b;
     Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
   }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";actions.hidden=false;return;}
+  if(window.__sd){window.__sd.docs.forEach(function(d){d.fields.forEach(function(f){if(f.role==="broker")all.broker="broker";else if(f.role==="agent"&&!all.agent)all.agent="agent";});});}
   var h="",keys=Object.keys(all);
   if(keys.length)h+='<p><strong>Also signing for Florida Luxury Realty</strong></p>';
   keys.forEach(function(role){var src=all[role]==="broker"?SIG.broker:SIG.agent,title=all[role]==="broker"?"Broker":(role==="broker"?"Broker or Authorized Associate (the agent)":LBL[role]);

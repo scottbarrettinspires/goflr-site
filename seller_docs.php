@@ -16,6 +16,7 @@ if ($buyer) {
     $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
     foreach (['b1', 'b2'] as $k) { if ($mine !== '' && strtolower(trim((string)($bi[$k . '_name'] ?? ''))) === $mine) { $bi[$k . '_name'] = ''; } }
 }
+$SIG = $buyer ? sg_signers($me) : ['agent'=>['name'=>'','email'=>''],'broker'=>['name'=>'','email'=>'']];
 $B = [];
 if ($buyer) {
     if (!empty($bi['b1_name']) || !empty($bi['b1_email'])) $B[] = ['role' => 'buyer1', 'label' => 'Buyer 1', 'name' => (string)($bi['b1_name'] ?? ''), 'email' => (string)($bi['b1_email'] ?? '')];
@@ -38,7 +39,7 @@ if ($buyer) {
 .sdpage{position:relative;margin:0 auto 16px;box-shadow:0 1px 6px rgba(0,0,0,.18);background:#fff;cursor:crosshair;max-width:100%}
 .sdpage canvas{display:block;width:100%;height:auto}
 .sdbox{position:absolute;border:2px solid;border-radius:4px;font:600 11px/1.1 Arial,sans-serif;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
-.sdbox.r1{border-color:#006b68;background:rgba(0,107,104,.18);color:#00514f}.sdbox.r2{border-color:#c2570c;background:rgba(236,130,40,.2);color:#8a3e08}
+.sdbox.r1{border-color:#006b68;background:rgba(0,107,104,.18);color:#00514f}.sdbox.r2{border-color:#c2570c;background:rgba(236,130,40,.2);color:#8a3e08}.sdbox.ra{border-color:#5b3fa8;background:rgba(110,80,200,.16);color:#40298a}.sdbox.rb{border-color:#a8344a;background:rgba(200,60,90,.16);color:#7d2236}
 .sddoc h3{margin:18px 0 8px}
 </style>
 </head>
@@ -77,11 +78,12 @@ if ($buyer) {
   <div id="work" hidden>
     <div class="sdbar" id="bar">
 <?php foreach ($B as $b): ?><button type="button" class="tb" data-role="<?= $b['role'] ?>"><?= $b['label'] ?></button><?php endforeach; ?>
+      <button type="button" class="tb" data-role="agent">Agent (me)</button><button type="button" class="tb" data-role="broker">Broker</button>
       <span style="width:8px"></span>
       <button type="button" class="tb" data-type="SIGNATURE">Signature</button>
       <button type="button" class="tb" data-type="INITIALS">Initials</button>
       <button type="button" class="tb" data-type="DATE">Date</button>
-      <span class="note" id="hint" style="flex-basis:100%;margin:0;padding:4px 10px;text-align:left">Pick a buyer and a field, then click on the page. Click a box to remove it.</span>
+      <span class="note" id="hint" style="flex-basis:100%;margin:0;padding:4px 10px;text-align:left">Pick who signs (a buyer, you as the agent, or the broker) and a field, then click on the page. Use Agent or Broker where the form needs your signature or date. Click a box to remove it.</span>
     </div>
     <p id="busy" class="note" style="display:flex;align-items:center;gap:10px" hidden><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Preparing the documents... large files can take a minute.</p>
     <div id="docs"></div>
@@ -96,7 +98,7 @@ if ($buyer) {
 <script src="flrdraft.js?v=1"></script>
 <script>
 (function(){
-var CSRF=<?= json_encode($_SESSION['csrf']) ?>, TX=<?= json_encode($buyer['id']) ?>, BUY=<?= json_encode($B) ?>, SCALE=1.25;
+var CSRF=<?= json_encode($_SESSION['csrf']) ?>, TX=<?= json_encode($buyer['id']) ?>, BUY=<?= json_encode($B) ?>, SIGN=<?= json_encode($SIG) ?>, SCALE=1.25;
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 var SIZE={SIGNATURE:[170,30],INITIALS:[42,20],DATE:[84,18]}, LBL={SIGNATURE:"Sign",INITIALS:"Init",DATE:"Date"};
 var role=BUY[0].role, type="SIGNATURE", docs=[];
@@ -104,8 +106,8 @@ var bar=document.getElementById("bar"),docsEl=document.getElementById("docs"),wo
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function syncBar(){[].forEach.call(bar.querySelectorAll(".tb"),function(b){b.classList.toggle("on",b.dataset.role?b.dataset.role===role:b.dataset.type===type);});}
 bar.addEventListener("click",function(e){var b=e.target.closest(".tb");if(!b)return;if(b.dataset.role)role=b.dataset.role;else type=b.dataset.type;syncBar();});syncBar();
-function draw(d,pi){var pg=d.pages[pi];pg.ov.innerHTML="";d.fields.forEach(function(f,fi){if(f.page!==pi)return;var el=document.createElement("div");el.className="sdbox "+(f.role==="buyer2"?"r2":"r1");
-  el.style.cssText="left:"+(f.x/pg.w*100)+"%;top:"+(f.y/pg.h*100)+"%;width:"+(f.w/pg.w*100)+"%;height:"+(f.h/pg.h*100)+"%";el.textContent=(f.role==="buyer2"?"B2 ":"B1 ")+LBL[f.type];el.title="Click to remove";
+function draw(d,pi){var pg=d.pages[pi];pg.ov.innerHTML="";d.fields.forEach(function(f,fi){if(f.page!==pi)return;var el=document.createElement("div");el.className="sdbox "+(f.role==="buyer2"?"r2":f.role==="agent"?"ra":f.role==="broker"?"rb":"r1");
+  el.style.cssText="left:"+(f.x/pg.w*100)+"%;top:"+(f.y/pg.h*100)+"%;width:"+(f.w/pg.w*100)+"%;height:"+(f.h/pg.h*100)+"%";el.textContent=(f.role==="buyer2"?"B2 ":f.role==="agent"?"Agent ":f.role==="broker"?"Broker ":"B1 ")+LBL[f.type];el.title="Click to remove";
   el.addEventListener("click",function(ev){ev.stopPropagation();d.fields.splice(d.fields.indexOf(f),1);redrawAll(d);});pg.ov.appendChild(el);});}
 function redrawAll(d){d.pages.forEach(function(_,i){draw(d,i);});}
 function place(d,pi,cx,cy){var sz=SIZE[type],every=false,pg=d.pages[pi];
@@ -158,7 +160,7 @@ if(RET)document.getElementById("send").textContent="Add To Email For Signing";
 document.getElementById("send").addEventListener("click",async function(){
   var btn=this;msg.className="note";msg.hidden=true;
   if(!docs.length){msg.textContent="Choose the PDF(s) first.";msg.hidden=false;return;}
-  var emails={};[].forEach.call(document.querySelectorAll(".bemail"),function(i){emails[i.dataset.role]=i.value.trim();});
+  var emails={agent:SIGN.agent.email||"",broker:SIGN.broker.email||""};[].forEach.call(document.querySelectorAll(".bemail"),function(i){emails[i.dataset.role]=i.value.trim();});
   for(var i=0;i<docs.length;i++){if(!docs[i].fields.length){msg.textContent="Place at least one signature box on "+docs[i].name+".";msg.className="note sigerr";msg.hidden=false;return;}}
   if(RET){ // came from the send page: hand the documents back so everything goes in ONE email
     btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Adding...';

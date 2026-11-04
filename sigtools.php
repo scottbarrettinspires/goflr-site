@@ -162,7 +162,7 @@ function sg_file_inner(&$rec) {
 if (!defined('SG_RECT_FROM_TOP')) { define('SG_RECT_FROM_TOP', false); } // DigiSigner rectangle = [x1,y1,x2,y2]; flip to true if boxes land upside down on a test
 // Seller-provided PDFs with signature boxes placed in the browser -> DigiSigner items. Returns ['err' => msg] or ['items' => ..., 'meta' => ...].
 function sg_seller_items($docsIn, $emails, $addr, $me, $name) {
-    $ROLE = ['buyer1' => 1, 'buyer2' => 1]; $TYPES = ['SIGNATURE' => 1, 'INITIALS' => 1, 'DATE' => 1];
+    $ROLE = ['buyer1' => 1, 'buyer2' => 1, 'agent' => 1, 'broker' => 1]; $SGN = null; $TYPES = ['SIGNATURE' => 1, 'INITIALS' => 1, 'DATE' => 1];
     if (!$docsIn || count($docsIn) > 8) return ['err' => 'Add between 1 and 8 seller documents.'];
     $items = []; $meta = [];
     foreach ($docsIn as $d) {
@@ -184,7 +184,8 @@ function sg_seller_items($docsIn, $emails, $addr, $me, $name) {
         $sg = [];
         foreach ($by as $r => $fields) {
             $e = trim((string)($emails[$r] ?? ''));
-            if (!filter_var($e, FILTER_VALIDATE_EMAIL)) return ['err' => 'Please check the email address for ' . ($r === 'buyer1' ? 'Buyer 1' : 'Buyer 2') . '.'];
+            if (($r === 'agent' || $r === 'broker') && !filter_var($e, FILTER_VALIDATE_EMAIL)) { if ($SGN === null) $SGN = sg_signers($me); $e = trim((string)($SGN[$r]['email'] ?? '')); }
+            if (!filter_var($e, FILTER_VALIDATE_EMAIL)) return ['err' => 'Please check the email address for ' . ['buyer1' => 'Buyer 1', 'buyer2' => 'Buyer 2', 'agent' => 'the agent', 'broker' => 'the broker'][$r] . '.'];
             $sg[] = ['email' => $e, 'role' => $r, 'fields' => $fields];
         }
         $items[] = [$pdf, $title . '.pdf', 'Florida Luxury Realty: please sign ' . $title . ' for ' . $addr, $name . ' (Florida Luxury Realty) has sent you ' . $title . ' for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.', $sg];
