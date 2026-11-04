@@ -181,7 +181,9 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endforeach; ?>
     </select></p>
 <?php endif; ?>
+    <p id="sdrow" hidden><strong>Seller Disclosures</strong> (sent in the same email, signed and filed as separate documents)<br><span class="txsel" id="sdnames" style="display:inline-block;padding:12px 16px"></span> <a href="#" id="sdrm">Remove</a></p>
     <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
+    <div id="whosigns" hidden>
     <p><strong>Who signs?</strong></p>
     <div id="signers">
 <?php foreach ($rows as $row): $rl = $ROLES[$row[1]] ?? ''; ?>
@@ -193,9 +195,9 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php endforeach; ?>
     </div>
     <div id="xsign"></div>
+    </div>
     <input type="hidden" name="needs" id="needs" value=""><textarea name="sdjson" id="sdjson" hidden></textarea>
-    <p id="sdnote" class="note" hidden></p>
-    <div id="choice" hidden>
+    <div id="choice">
       <p><strong>Did the seller provide any disclosures the buyers need to sign?</strong></p>
       <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
     </div>
@@ -231,7 +233,7 @@ async function roles(id){
   return out;
 }
 async function refresh(){
-  var my=++seq;go.disabled=true;choice.hidden=true;actions.hidden=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
+  var my=++seq;go.disabled=true;actions.hidden=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
   var want={pk:{},dk:{}},all={};
   try{
     var a,b;
@@ -240,23 +242,28 @@ async function refresh(){
     if(my!==seq)return;
     want.pk=a;want.dk=b;
     Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
-  }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";choice.hidden=false;return;}
+  }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";actions.hidden=false;return;}
   var h="",keys=Object.keys(all);
   if(keys.length)h+='<p><strong>Also signing for Florida Luxury Realty</strong></p>';
   keys.forEach(function(role){var src=all[role]==="broker"?SIG.broker:SIG.agent,title=all[role]==="broker"?"Broker":(role==="broker"?"Broker or Authorized Associate (the agent)":LBL[role]);
     h+='<div class="sg" style="display:block;margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px">'+esc((src.name||title)+" ("+title+")")+'</div><input type="email" name="xemail['+role+']" value="'+esc(src.email)+'" placeholder="'+esc(title)+' email" required style="width:100%;max-width:480px"></div>';});
-  xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;choice.hidden=false;
+  xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;actions.hidden=false;
 }
-async function loadSd(){
-  if(<?= isset($_GET['sd']) ? 'false' : 'true' ?>)return;
-  try{var sd=await FLRDraft.get(TX+"|seller");if(sd&&sd.docs&&sd.docs.length){window.__sd=sd;
-    var n=document.getElementById("sdnote");n.innerHTML="<strong>Seller disclosures included in this email:</strong> "+sd.docs.map(function(d){return esc(d.name);}).join(", ")+" &nbsp; <a href=\"#\" id=\"sdrm\">Remove</a>";n.hidden=false;
-    document.getElementById("sdrm").addEventListener("click",async function(e){e.preventDefault();window.__sd=null;await FLRDraft.del(TX+"|seller");n.hidden=true;choice.hidden=false;actions.hidden=true;});
-    choice.hidden=true;actions.hidden=false;}}catch(e){}
+var decided=false;
+function decide(){decided=true;choice.hidden=true;document.getElementById("whosigns").hidden=false;refresh();}
+async function init(){
+  var found=false;
+  if(<?= isset($_GET['sd']) ? 'true' : 'false' ?>){
+    try{var sd=await FLRDraft.get(TX+"|seller");if(sd&&sd.docs&&sd.docs.length){window.__sd=sd;found=true;
+      document.getElementById("sdnames").innerHTML=sd.docs.map(function(d){return esc(d.name);}).join("<br>");document.getElementById("sdrow").hidden=false;}}catch(e){}
+  }
+  if(found)decide();
 }
-var _r0=refresh;refresh=async function(){await _r0();await loadSd();};
-noadd.addEventListener("click",function(){choice.hidden=true;actions.hidden=false;});
-if(pk)pk.addEventListener("change",refresh);if(dk)dk.addEventListener("change",refresh);refresh();
+document.getElementById("sdrm").addEventListener("click",async function(e){e.preventDefault();window.__sd=null;try{await FLRDraft.del(TX+"|seller");}catch(x){}
+  document.getElementById("sdrow").hidden=true;decided=false;seq++;document.getElementById("whosigns").hidden=true;actions.hidden=true;choice.hidden=false;});
+noadd.addEventListener("click",decide);
+if(pk)pk.addEventListener("change",function(){if(decided)refresh();});if(dk)dk.addEventListener("change",function(){if(decided)refresh();});
+init();
 function b64(u8){var x="",u=new Uint8Array(u8);for(var q=0;q<u.length;q+=32768){x+=String.fromCharCode.apply(null,u.subarray(q,q+32768));}return btoa(x);}
 f.addEventListener("submit",function(){if(window.__sd){document.getElementById("sdjson").value=JSON.stringify(window.__sd.docs.map(function(d){return {name:d.name,b64:b64(d.bytes),fields:d.fields};}));}
   if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.completed||dd.packet);document.getElementById("dkb64").value=dd.disc?b64(dd.disc):"";}
