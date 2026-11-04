@@ -62,6 +62,7 @@ function sg_folders($email) {
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 45, CURLOPT_CONNECTTIMEOUT => 8]);
     $b = curl_exec($ch); curl_close($ch);
     $j = $b === false ? null : json_decode($b, true);
+    $GLOBALS['sg_folders_root'] = is_array($j) ? (string)($j['root'] ?? '') . (empty($j['tops']) ? '' : ' [' . implode(', ', $j['tops']) . ']') : '';
     $GLOBALS['sg_folders_note'] = is_array($j) ? (string)($j['note'] ?? '') : 'The office script did not answer (is the newest version deployed?).';
     return (is_array($j) && !empty($j['ok'])) ? $j['folders'] : null;
 }
