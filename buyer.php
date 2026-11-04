@@ -9,11 +9,35 @@ $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 $all = sg_folders($me, $tx) ?: [];
 $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
+$isNew = (($_GET['new'] ?? ($_POST['new'] ?? '')) === '1');
+$hint = (string)($_GET['hint'] ?? ($_POST['hint'] ?? ''));
+if ($isNew && !preg_match('/^[A-Za-z0-9_-]{10,80}$/', $hint)) { $isNew = false; }
 $FIELDS = ['b1_name', 'b1_phone', 'b1_email', 'b2_name', 'b2_phone', 'b2_email', 'mailing', 'lender', 'preapproval'];
 $info = []; $msg = ''; $err = '';
 if ($buyer) {
     $r = sg_buyer_info($me, $tx);
     if (!empty($r['ok'])) { $info = is_array($r['info']) ? $r['info'] : []; } else { $err = 'Could not load the saved information: ' . ($r['note'] ?? ''); }
+}
+if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
+    else {
+        $new = [];
+        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST[$k] ?? '')), 0, 200); }
+        $pm = (string)($_POST['payment'] ?? '');
+        $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
+        $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
+        foreach (['b1', 'b2'] as $p) { if ($mine !== '' && strtolower($new[$p . '_name']) === $mine) { $new[$p . '_name'] = ''; $new[$p . '_phone'] = ''; $new[$p . '_email'] = ''; } }
+        foreach (['b1_email', 'b2_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; } }
+        if (!$err && $new['b1_name'] === '') { $err = 'Please enter the buyer\'s name.'; }
+        $new['updated'] = gmdate('c');
+        $info = $new;
+        if (!$err) {
+            $label = preg_replace('/\s+/', ' ', trim($new['b1_name'] . ($new['b2_name'] !== '' ? ' & ' . $new['b2_name'] : '')));
+            $r = sg_script_post(['op' => 'createbuyer', 'email' => $me, 'hint' => $hint, 'name' => $label, 'info' => $new]);
+            if (is_array($r) && !empty($r['ok']) && !empty($r['id'])) { header('Location: buyer.php?tx=' . urlencode($r['id']) . '&created=1'); exit; }
+            $err = 'Could not create the buyer record' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.';
+        }
+    }
 }
 if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
@@ -57,9 +81,9 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Buyer Info</h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
+<section class="hero"><h1><?= $isNew && !$buyer ? 'Create New Buyer Record' : 'Buyer Info' ?></h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
 <main class="wrap">
-<?php if (!$buyer): ?>
+<?php if (!$buyer && !$isNew): ?>
   <div class="panel sigbox">
     <form method="get"><p><label for="tx"><strong>Which buyer?</strong></label><br>
     <select id="tx" name="tx" class="txsel" onchange="this.form.submit()">
@@ -77,7 +101,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-    <input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>">
+    <?php if ($buyer): ?><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><?php else: ?><input type="hidden" name="new" value="1"><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>"><?php endif; ?>
     <fieldset class="wq"><legend>Buyer 1</legend>
       <label>Buyer full name<input type="text" name="f_b1_name" value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Phone<input type="text" name="f_b1_phone" value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
@@ -98,7 +122,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
       <label>Lender (if financing)<input type="text" name="f_lender" value="<?= $v('lender') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Pre-approval amount<input type="text" name="f_preapproval" value="<?= $v('preapproval') ?>" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
-    <p><button type="submit" class="btn">Save buyer info</button> <a class="btn ghost" href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer</a></p>
+    <p><button type="submit" class="btn"><?= $buyer ? 'Save buyer info' : 'Create buyer record' ?></button><?php if ($buyer): ?> <a class="btn ghost" href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer</a><?php endif; ?></p>
   </form>
 <?php endif; ?>
 </main>
