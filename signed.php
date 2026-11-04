@@ -87,6 +87,8 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 <?php endif; endforeach; ?>
       <?php elseif (sg_can_file($r)): ?>
         <p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Filing the signed documents in your transaction record...</p>
+      <?php elseif ((string)($_GET['assign'] ?? '') !== $r['id']): ?>
+        <p class="note">Not filed yet. <a class="btn ghost" href="signed.php?assign=<?= urlencode($r['id']) ?>">Assign to a transaction</a></p>
       <?php else:
           if ($folders === null) { $fl = sg_folders($me); $folders = $fl ?: []; $fok = is_array($fl); } ?>
         <?php if ($folders): ?>
