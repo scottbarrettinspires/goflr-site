@@ -187,8 +187,11 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div id="xsign"></div>
     <input type="hidden" name="needs" id="needs" value="">
-    <p style="margin:0 0 10px"><a href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>">Need the buyers to sign PDFs from the seller side (seller disclosures)? Upload them here.</a></p>
-    <p><button type="submit" class="btn" id="go">Send for signature</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
+    <div id="choice" hidden>
+      <p><strong>Did the seller provide any disclosures the buyers need to sign?</strong></p>
+      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
+    </div>
+    <p id="actions" hidden><button type="submit" class="btn" id="go">Email To Buyers For Signing</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
   </form>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -198,7 +201,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 var f=document.getElementById("sf");if(!f)return;
 var DRAFT=<?= $draft ? "true" : "false" ?>,dd=null,DR=<?= json_encode($drRes ? $dr : "") ?>;
 var TX=<?= json_encode($buyer['id']) ?>, SIG=<?= json_encode($SIG) ?>, LBL={agent:"Agent",broker:"Broker",buyeragent:"Agent"};
-var go=document.getElementById("go"),xs=document.getElementById("xsign"),needs=document.getElementById("needs"),pk=document.getElementById("pk"),dk=document.getElementById("dk"),seq=0;
+var go=document.getElementById("go"),choice=document.getElementById("choice"),actions=document.getElementById("actions"),noadd=document.getElementById("noadd"),xs=document.getElementById("xsign"),needs=document.getElementById("needs"),pk=document.getElementById("pk"),dk=document.getElementById("dk"),seq=0;
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 // Which brokerage-side signatures does this saved PDF ask for? Read the DigiSigner text tags, e.g. [s:agent], [s:broker], [s:buyeragent].
@@ -220,7 +223,7 @@ async function roles(id){
   return out;
 }
 async function refresh(){
-  var my=++seq;go.disabled=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
+  var my=++seq;go.disabled=true;choice.hidden=true;actions.hidden=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Checking who needs to sign...</p>';
   var want={pk:{},dk:{}},all={};
   try{
     var a,b;
@@ -229,13 +232,14 @@ async function refresh(){
     if(my!==seq)return;
     want.pk=a;want.dk=b;
     Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
-  }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";return;}
+  }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";choice.hidden=false;return;}
   var h="",keys=Object.keys(all);
   if(keys.length)h+='<p><strong>Also signing for Florida Luxury Realty</strong></p>';
   keys.forEach(function(role){var src=all[role]==="broker"?SIG.broker:SIG.agent,title=all[role]==="broker"?"Broker":(role==="broker"?"Broker or Authorized Associate (the agent)":LBL[role]);
     h+='<div class="sg" style="display:block;margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px">'+esc((src.name||title)+" ("+title+")")+'</div><input type="email" name="xemail['+role+']" value="'+esc(src.email)+'" placeholder="'+esc(title)+' email" required style="width:100%;max-width:480px"></div>';});
-  xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;
+  xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;choice.hidden=false;
 }
+noadd.addEventListener("click",function(){choice.hidden=true;actions.hidden=false;});
 if(pk)pk.addEventListener("change",refresh);if(dk)dk.addEventListener("change",refresh);refresh();
 function b64(u8){var x="",u=new Uint8Array(u8);for(var q=0;q<u.length;q+=32768){x+=String.fromCharCode.apply(null,u.subarray(q,q+32768));}return btoa(x);}
 f.addEventListener("submit",function(){if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.completed||dd.packet);document.getElementById("dkb64").value=dd.disc?b64(dd.disc):"";}
