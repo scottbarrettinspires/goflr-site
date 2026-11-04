@@ -71,7 +71,7 @@ foreach ($FLR_EVENTS as $ev) {
     <?php if ($pic): ?><img class="av" src="<?= htmlspecialchars($pic === 'photo.php' ? 'photo.php?v=' . (int)@filemtime(flr_photo_path($_SESSION['email'] ?? '')) : $pic) ?>" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;av&quot;><?= htmlspecialchars($ini) ?></span>'"><?php else: ?><span class="av"><?= htmlspecialchars($ini) ?></span><?php endif; ?>
     <div>
       <h1>Welcome<?= $first !== '' ? ', ' . htmlspecialchars($first) : '' ?></h1>
-      <p>Your FLR back office. Everything you need to run your business, in one place.</p>
+      <p>What needs your attention today.</p>
     </div>
   </div>
 <?php if ($next): ?>
@@ -130,26 +130,14 @@ foreach ($FLR_EVENTS as $ev) {
   </div>
 <?php endforeach; ?>
   <div class="grid">
-    <a class="card" href="my-transactions.php">
-      <h2>My Transactions</h2>
-      <p>Your active files and documents, organized by Buyers, Sellers and status.</p>
-    </a>
-    <a class="card" href="forms.php">
-      <h2>Forms</h2>
-      <p>Current Buyer, Seller, Agent and Referral contract forms. Download, then fill in.</p>
-    </a>
-    <a class="card" href="training.php">
-      <h2>Training</h2>
-      <p>Round Table schedule, Zoom links and special events.</p>
-    </a>
     <div class="card soon">
-      <h2>Contacts and Directory</h2>
-      <p>Office staff and key contacts.</p>
+      <h2>Hot Leads</h2>
+      <p>New and waiting leads assigned to you will show here.</p>
       <span class="tag">Coming soon</span>
     </div>
     <div class="card soon">
-      <h2>Support</h2>
-      <p>How to reach the office.</p>
+      <h2>Upcoming Contract Deadlines</h2>
+      <p>Inspection, financing, appraisal and closing dates on your open contracts.</p>
       <span class="tag">Coming soon</span>
     </div>
   </div>
