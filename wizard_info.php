@@ -9,4 +9,7 @@ $all = sg_folders($_SESSION['email'], $tx) ?: [];
 $okf = false; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $okf = true; }
 if (!$okf) { echo json_encode(['ok' => false]); exit; }
 $r = sg_buyer_info($_SESSION['email'], $tx);
-echo json_encode(['ok' => !empty($r['ok']), 'info' => $r['info'] ?? null]);
+$info = is_array($r['info'] ?? null) ? $r['info'] : null;
+$mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
+if ($info && $mine !== '') { foreach (['b1', 'b2'] as $p) { if (strtolower(trim((string)($info[$p . '_name'] ?? ''))) === $mine) { $info[$p . '_name'] = ''; $info[$p . '_phone'] = ''; $info[$p . '_email'] = ''; } } }
+echo json_encode(['ok' => !empty($r['ok']), 'info' => $info]);
