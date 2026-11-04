@@ -34,6 +34,7 @@
 <?php $perm = $_SESSION['perm'] ?? []; ?>
 <?php $perm = $_SESSION['perm'] ?? []; ?>
 <?php $perm = $_SESSION['perm'] ?? []; ?>
+<?php $perm = $_SESSION['perm'] ?? []; ?>
 <main class="wrap">
   <div class="tips">
     <div><b>1</b><span>Pick a category: Buyer, Seller, Agent<?php if(!empty($perm['commercial'])): ?>, Commercial<?php endif; ?><?php if(!empty($perm['leasing'])): ?>, Leasing<?php endif; ?>.</span></div>
@@ -41,7 +42,7 @@
     <div><b>3</b><span>Open the downloaded PDF to fill in the fields.</span></div>
   </div>
   <div class="ftabs" role="tablist">
-<button type="button" class="ftab" data-k="buyer">Buyer <span>24</span></button>
+<button type="button" class="ftab" data-k="buyer">Buyer <span>23</span></button>
 <button type="button" class="ftab" data-k="seller">Seller <span>16</span></button>
 <button type="button" class="ftab" data-k="agent">Agent</button>
 <?php if(!empty($perm["commercial"])): ?><button type="button" class="ftab" data-k="commercial">Commercial</button><?php endif; ?>
@@ -56,9 +57,8 @@
 <div class="frow" data-t="showing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Showing Agreement</span><a class="fs" href="sign.php?f=17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8">Download</a></div>
 <div class="frow" data-t="unrepresented buyer"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Unrepresented Buyer</span><a class="fs" href="sign.php?f=1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W">Download</a></div>
 </div></section>
-<section class="fsec"><h2>Buyer Disclosures <span>2</span></h2><div class="flist">
+<section class="fsec"><h2>Buyer Disclosures <span>1</span></h2><div class="flist">
 <div class="frow" data-t="buyer disclosures"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Buyer Disclosures</span><a class="fs" href="sign.php?f=1NYrkj4ma4OfJOFZkO6HoUOyudz4wsZaZ&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1NYrkj4ma4OfJOFZkO6HoUOyudz4wsZaZ/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1NYrkj4ma4OfJOFZkO6HoUOyudz4wsZaZ">Download</a></div>
-<div class="frow" data-t="(p) lead-based paint disclosure (pre-1978)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(P) Lead-Based Paint Disclosure (Pre-1978)</span><a class="fs" href="sign.php?f=1OTSs6RJ4soTsVVrWRX-RBxuNFMcQmgoC&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1OTSs6RJ4soTsVVrWRX-RBxuNFMcQmgoC/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1OTSs6RJ4soTsVVrWRX-RBxuNFMcQmgoC">Download</a></div>
 </div></section>
 <section class="fsec"><h2>Contracts and Addendums <span>8</span></h2><div class="flist">
 <div class="frow" data-t="(aa) licensee personal interest in property"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(AA) Licensee Personal Interest in Property</span><a class="fs" href="sign.php?f=12x3kPLMjsfABh6YzlTq3RAcsBVhGihjD&amp;s=b">Send for signature</a><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/12x3kPLMjsfABh6YzlTq3RAcsBVhGihjD/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=12x3kPLMjsfABh6YzlTq3RAcsBVhGihjD">Download</a></div>
