@@ -117,14 +117,14 @@ async function addFiles(list){
   if(old){var od=await PL.PDFDocument.load(old,{ignoreEncryption:true});(await out.copyPages(od,od.getPageIndices())).forEach(function(p){out.addPage(p);});}
   startNew=out.getPageCount();
   for(var i=0;i<list.length;i++){
-    var f=list[i];if(!/\.pdf$/i.test(f.name)){continue;}if(f.size>12*1024*1024)throw new Error(f.name+" is larger than 12 MB.");
+    var f=list[i];if(!/\.pdf$/i.test(f.name)){continue;}if(f.size>25*1024*1024)throw new Error(f.name+" is larger than 25 MB.");
     var src=await PL.PDFDocument.load(new Uint8Array(await f.arrayBuffer()),{ignoreEncryption:true});
     parts.push({name:f.name,start:out.getPageCount()});
     (await out.copyPages(src,src.getPageIndices())).forEach(function(p){out.addPage(p);});
   }
   if(out.getPageCount()===startNew)return;
   var bytes=new Uint8Array(await out.save());
-  if(bytes.length>25*1024*1024)throw new Error("The combined documents are larger than 25 MB.");
+  if(bytes.length>40*1024*1024)throw new Error("The combined documents are larger than 40 MB.");
   var keep=docs[0]?docs[0].fields:[];
   var d={name:parts.length===1?parts[0].name:"Seller Disclosures.pdf",bytes:bytes,fields:keep,pages:[]};docs=[d];
   docsEl.innerHTML="";
