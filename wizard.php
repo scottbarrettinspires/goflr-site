@@ -169,9 +169,10 @@ btn.addEventListener('click',async function(){
     if(packBytes){try{await FLRDraft.put(txSel.value,{packet:packBytes,disc:discBytes,property:((document.getElementById('paddr')||{}).value||'').trim(),t:Date.now()});canEdit=true;}catch(e4){out+='<p class="sigerr">This browser could not hold the packet for editing. Use Download instead.</p>';}}
     out+='<p>';
     if(packBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([packBytes],{type:'application/pdf'}))+'" download="Contract Packet.pdf">Download Packet</a> ';
-    if(canEdit)out+='<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1">Complete For Signing</a>';
+    if(canEdit)out+='<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1" id="cfs">Complete For Signing</a>';
     out+='</p>';
-    res.innerHTML=out;res.hidden=false;btn.hidden=true;btn.disabled=false;btn.textContent='Build contract packet';
+    res.innerHTML=out;res.hidden=false;
+    var cfs=document.getElementById('cfs');if(cfs)cfs.addEventListener('click',function(){cfs.innerHTML='<span class="bspin"></span>Opening...';cfs.style.pointerEvents='none';});btn.hidden=true;btn.disabled=false;btn.textContent='Build contract packet';
   }catch(e){fail('Something went wrong: '+e.message);}
 });
 })();
