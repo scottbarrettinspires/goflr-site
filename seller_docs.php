@@ -83,6 +83,7 @@ if ($buyer) {
       <button type="button" class="tb" data-type="DATE">Date</button>
       <span class="note" id="hint" style="flex-basis:100%;margin:0;padding:4px 10px;text-align:left">Pick a buyer and a field, then click on the page. Click a box to remove it.</span>
     </div>
+    <p id="busy" class="note" style="display:flex;align-items:center;gap:10px" hidden><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Preparing the documents... large files can take a minute.</p>
     <div id="docs"></div>
     <div class="panel sigbox">
       <p id="msg" class="note" hidden></p>
@@ -144,10 +145,11 @@ async function addFiles(list){
 }
 document.getElementById("files").addEventListener("change",async function(e){
   var inp=e.target,list=[].slice.call(inp.files||[]);if(!list.length)return;
-  msg.hidden=true;work.hidden=false;
+  msg.hidden=true;work.hidden=false;var busy=document.getElementById("busy");busy.hidden=false;
+  await new Promise(function(r){requestAnimationFrame(function(){setTimeout(r,50);});}); // let the spinner paint before the heavy work
   try{await addFiles(list);}
   catch(err){msg.textContent="Could not open the file: "+err.message;msg.className="note sigerr";msg.hidden=false;}
-  inp.value="";
+  busy.hidden=true;inp.value="";
 });
 
 function b64(u){var s="";for(var o=0;o<u.length;o+=32768){s+=String.fromCharCode.apply(null,u.subarray(o,o+32768));}return btoa(s);}

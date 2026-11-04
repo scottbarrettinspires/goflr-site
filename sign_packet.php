@@ -199,7 +199,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="hidden" name="needs" id="needs" value=""><textarea name="sdjson" id="sdjson" hidden></textarea>
     <div id="choice">
       <p><strong>Did the seller provide any disclosures the buyers need to sign?</strong></p>
-      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
+      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>" id="upl">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
     </div>
     <p id="actions" hidden><button type="submit" class="btn" id="go">Email To Buyers For Signing</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
@@ -249,6 +249,7 @@ async function refresh(){
     h+='<div class="sg" style="display:block;margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px">'+esc((src.name||title)+" ("+title+")")+'</div><input type="email" name="xemail['+role+']" value="'+esc(src.email)+'" placeholder="'+esc(title)+' email" required style="width:100%;max-width:480px"></div>';});
   xs.innerHTML=h;needs.value=JSON.stringify({pk:Object.keys(want.pk),dk:Object.keys(want.dk)});go.disabled=false;actions.hidden=false;
 }
+document.getElementById("upl").addEventListener("click",function(){var a=this;setTimeout(function(){a.innerHTML='<span class="bspin"></span>Opening...';a.style.pointerEvents="none";},0);});
 var decided=false;
 function decide(){decided=true;choice.hidden=true;document.getElementById("whosigns").hidden=false;refresh();}
 async function init(){
