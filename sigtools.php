@@ -68,11 +68,10 @@ function sg_folders($email, $hint = '') {
 }
 
 // File the signed PDF into the chosen transaction folder (brokerage copy). Never overwrites. Returns [ok, message].
-function sg_file_pdf($rec, $docId, $form) {
-    $pdf = sg_api('GET', '/documents/' . rawurlencode($docId), true);
-    if ($pdf === null || strlen($pdf) < 500) return [false, 'The signed copy is not ready to download yet.'];
-    if (strlen($pdf) > 32 * 1024 * 1024) return [false, 'The signed copy is ' . round(strlen($pdf) / 1048576) . ' MB, too large to file automatically. Use Download signed copy and add it to the transaction folder by hand.'];
-    $name = 'Signed - ' . $form . ' - ' . gmdate('Y-m-d') . '.pdf';
+// Save PDF bytes into the transaction record (offer-address folder, or the chosen folder). Never overwrites.
+function sg_save_bytes($rec, $pdf, $name) {
+    if (strlen($pdf) < 500 || substr($pdf, 0, 4) !== '%PDF') return [false, 'The signed copy is not a readable PDF.'];
+    if (strlen($pdf) > 32 * 1024 * 1024) return [false, '"' . $name . '" is ' . round(strlen($pdf) / 1048576) . ' MB, too large to file automatically. Use Download signed copy and add it to the transaction folder by hand.'];
     $post = ['op' => 'save', 'email' => $rec['agent'], 'name' => $name, 'b64' => base64_encode($pdf)];
     if (!empty($rec['offer_address'])) { $post['offerAddress'] = $rec['offer_address']; if (!empty($rec['hint'])) { $post['hint'] = $rec['hint']; } } else { $post['folderId'] = $rec['folder']['id']; }
     $r = sg_script_post($post);
@@ -80,35 +79,81 @@ function sg_file_pdf($rec, $docId, $form) {
     $label = !empty($rec['offer_address']) ? '1 BUYERS / 2 Contract Offers / ' . ($r['folder'] ?? $rec['offer_address']) : ($rec['folder']['label'] ?? '');
     return [true, ['name' => $r['name'], 'url' => $r['url'], 'folder_url' => (string)($r['folderUrl'] ?? ''), 'at' => gmdate('c'), 'folder' => $label]];
 }
+function sg_file_pdf($rec, $docId, $form) {
+    $pdf = sg_api('GET', '/documents/' . rawurlencode($docId), true);
+    if ($pdf === null || strlen($pdf) < 500) return [false, 'The signed copy is not ready to download yet.'];
+    return sg_save_bytes($rec, $pdf, 'Signed - ' . $form . ' - ' . gmdate('Y-m-d') . '.pdf');
+}
+// DigiSigner returns ONE signed PDF for a single document, or a ZIP of the separate signed PDFs when several documents were sent together.
+// Returns a list of [entry name or null, bytes], or null when it is not available.
+function sg_signed_entries($rec) {
+    $raw = sg_api('GET', '/documents/' . rawurlencode((string)($rec['doc'] ?? '')), true);
+    if ($raw === null || strlen($raw) < 500) return null;
+    if (substr($raw, 0, 2) !== 'PK') return [[null, $raw]];
+    if (!class_exists('ZipArchive')) return null;
+    $tmp = tempnam(sys_get_temp_dir(), 'flrz'); file_put_contents($tmp, $raw); unset($raw);
+    $z = new ZipArchive(); $out = [];
+    if ($z->open($tmp) === true) {
+        for ($i = 0; $i < $z->numFiles; $i++) { $n = $z->getNameIndex($i); if (preg_match('/\.pdf$/i', $n)) { $out[] = [basename($n), $z->getFromIndex($i)]; } }
+        $z->close();
+    }
+    @unlink($tmp);
+    usort($out, function ($a, $b) { $pa = stripos($a[0], 'Contract Packet') === 0 ? 0 : (stripos($a[0], 'Buyer Disclosures') === 0 ? 1 : 2); $pb = stripos($b[0], 'Contract Packet') === 0 ? 0 : (stripos($b[0], 'Buyer Disclosures') === 0 ? 1 : 2); return $pa - $pb; });
+    return $out ?: null;
+}
+function sg_entry_title($zname) {
+    $b = preg_replace('/\.pdf$/i', '', $zname);
+    $b = preg_replace('/\s*\((draft|ready to sign)[^)]*\)/i', '', $b);
+    $b = trim(preg_replace('/\s*-\s*\d{4}-\d{2}-\d{2}(\s*\(\d+\))?\s*$/', '', $b));
+    return $b !== '' ? $b : 'Document';
+}
 
 // A request can carry extra documents (e.g. Buyer Disclosures sent with the packet); each is filed as its own PDF.
 function sg_file(&$rec) {
     // Only one filing at a time per request (several page loads can ask at once, which used to file the same document repeatedly).
     $lk = @fopen(sg_path($rec['id']) . '.lock', 'c');
     if ($lk && !@flock($lk, LOCK_EX | LOCK_NB)) { @fclose($lk); return [false, 'Filing is already in progress.']; }
-    $fresh = sg_load($rec['id']); if (is_array($fresh)) { $rec = array_merge($rec, array_intersect_key($fresh, array_flip(['filed', 'extra', 'completed', 'doc']))); }
+    $fresh = sg_load($rec['id']); if (is_array($fresh)) { $rec = array_merge($rec, array_intersect_key($fresh, array_flip(['filed', 'extra', 'completed', 'doc', 'zip']))); }
     $res = sg_file_inner($rec);
     if ($lk) { @flock($lk, LOCK_UN); @fclose($lk); }
     return $res;
 }
+function sg_log_filed($rec, $r) { @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $r['folder'], 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX); }
 function sg_file_inner(&$rec) {
     $pending = false; foreach (($rec['extra'] ?? []) as $x) { if (empty($x['filed'])) $pending = true; }
     if (!empty($rec['filed']) && !$pending) return [true, 'Already filed.'];
     if (!sg_can_file($rec)) return [false, 'No transaction chosen.'];
+    $ents = sg_signed_entries($rec);
+    if (!$ents) return [false, 'The signed copy is not ready to download yet.'];
+    $date = gmdate('Y-m-d'); $addr = (string)($rec['offer_address'] ?? '');
+    if (count($ents) > 1 || $ents[0][0] !== null) { // several documents were signed together: file each as its own PDF
+        $rec['zip'] = true; $first = true; $seen = [];
+        foreach ($rec['extra'] ?? [] as $x) { if (!empty($x['zname'])) $seen[$x['zname']] = 1; }
+        foreach ($ents as $en) {
+            list($zn, $bytes) = $en; $title = sg_entry_title($zn);
+            $isMain = $first; $first = false;
+            $done = $isMain ? (!empty($rec['filed']) && ($rec['filed']['zname'] ?? '') === $zn) : isset($seen[$zn]);
+            if ($isMain && !empty($rec['filed']) && empty($rec['filed']['zname'])) { $done = true; } // an older single filing
+            if ($done) continue;
+            list($ok, $r) = sg_save_bytes($rec, $bytes, 'Signed - ' . $title . ($addr !== '' ? ' - ' . $addr : '') . ' - ' . $date . '.pdf');
+            if (!$ok) { sg_save($rec['id'], $rec); return [false, $r]; }
+            $r['zname'] = $zn;
+            if ($isMain) { $rec['filed'] = $r; $rec['form'] = $title . ($addr !== '' ? ' - ' . $addr : ''); }
+            else { $rec['extra'][] = ['form' => $title . ($addr !== '' ? ' - ' . $addr : ''), 'doc' => $rec['doc'], 'zname' => $zn, 'filed' => $r]; }
+            sg_save($rec['id'], $rec); sg_log_filed($rec, $r);
+        }
+        return [true, 'Filed in ' . ($rec['filed']['folder'] ?? 'the transaction record') . '.'];
+    }
     if (empty($rec['filed'])) {
-        list($ok, $r) = sg_file_pdf($rec, $rec['doc'], $rec['form']);
+        list($ok, $r) = sg_save_bytes($rec, $ents[0][1], 'Signed - ' . $rec['form'] . ' - ' . $date . '.pdf');
         if (!$ok) return [false, $r];
-        $rec['filed'] = $r;
-        sg_save($rec['id'], $rec);
-        @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $r['folder'], 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX);
+        $rec['filed'] = $r; sg_save($rec['id'], $rec); sg_log_filed($rec, $r);
     }
     foreach (($rec['extra'] ?? []) as $i => $x) {
         if (!empty($x['filed'])) continue;
         list($ok, $r) = sg_file_pdf($rec, $x['doc'], $x['form']);
         if (!$ok) return [false, $r];
-        $rec['extra'][$i]['filed'] = $r;
-        sg_save($rec['id'], $rec);
-        @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $r['folder'], 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX);
+        $rec['extra'][$i]['filed'] = $r; sg_save($rec['id'], $rec); sg_log_filed($rec, $r);
     }
     return [true, 'Filed in ' . $rec['filed']['folder'] . '.'];
 }

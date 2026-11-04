@@ -11,15 +11,22 @@ if (isset($_GET['dl'])) {
     if (!$rec || strtolower($rec['agent']) !== $me) { http_response_code(404); exit('Not found'); }
     if (empty($rec['completed']) || empty($rec['doc'])) { http_response_code(409); exit('The signed copy is not ready yet.'); }
     @set_time_limit(280); while (ob_get_level()) { @ob_end_clean(); }
-    header('Content-Type: application/pdf'); header('X-Accel-Buffering: no');
-    header('Content-Disposition: attachment; filename="Signed - ' . preg_replace('/[^A-Za-z0-9 ._()-]/', '', $rec['form']) . '.pdf"');
+    header('X-Accel-Buffering: no'); $fn = 'Signed - ' . preg_replace('/[^A-Za-z0-9 ._()-]/', '', $rec['form']); $started = false;
     // Stream it straight from DigiSigner so a large signed copy starts downloading at once instead of loading into memory first.
     $ch = curl_init('https://api.digisigner.com/v1/documents/' . rawurlencode($rec['doc']));
-    curl_setopt_array($ch, [CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_TIMEOUT => 270, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_WRITEFUNCTION => function ($c, $d) { echo $d; flush(); return strlen($d); }]);
+    curl_setopt_array($ch, [CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_TIMEOUT => 270, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_WRITEFUNCTION => function ($c, $d) use (&$started, $fn) {
+        if (!$started) { $started = true; $zip = substr($d, 0, 2) === 'PK'; // several documents signed together come back as a ZIP of separate PDFs
+            header('Content-Type: ' . ($zip ? 'application/zip' : 'application/pdf')); header('Content-Disposition: attachment; filename="' . $fn . ($zip ? '.zip' : '.pdf') . '"'); }
+        echo $d; flush(); return strlen($d); }]);
     curl_exec($ch); curl_close($ch); exit;
 }
 
 $msg = '';
+if (isset($_GET['refile'])) { // file this request's documents again (clears what was filed before)
+    $rr = sg_load((string)$_GET['refile']);
+    if ($rr && strtolower($rr['agent'] ?? '') === $me && !empty($rr['completed'])) { $rr['filed'] = null; unset($rr['extra'], $rr['zip']); sg_save($rr['id'], $rr); }
+    header('Location: signed.php'); exit;
+}
 $recs = sg_for_agent($me);
 // Check status of anything still open, and file anything that is done and has a transaction.
 sg_refresh_many($recs);
@@ -83,6 +90,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
     <?php else: ?>
       <p><strong>Fully signed.</strong> <a class="btn" href="signed.php?dl=<?= urlencode($r['id']) ?>">Download signed copy</a></p>
       <?php if (!empty($r['filed'])): ?>
+        <p class="note"><a href="signed.php?refile=<?= urlencode($r['id']) ?>">File the signed documents again</a> (use this if the filed copy would not open)</p>
         <p class="note">Filed in <?= htmlspecialchars($r['filed']['folder']) ?> as <a href="<?= htmlspecialchars($r['filed']['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($r['filed']['name']) ?></a></p>
 <?php foreach (($r['extra'] ?? []) as $x): if (!empty($x['filed'])): ?>
         <p class="note">Also filed: <a href="<?= htmlspecialchars($x['filed']['url']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars($x['filed']['name']) ?></a></p>
