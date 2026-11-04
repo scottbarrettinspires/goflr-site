@@ -51,7 +51,7 @@ html,body{height:100%}
 <div class="cap" id="cap"></div>
 <main class="box">
   <div class="logo"><img src="logo.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></div>
-  <h1>Welcome back</h1>
+  <h1>Serving. Growing. Succeeding.</h1>
   <p>Your transactions, forms and training in one place.</p>
   <div id="g_id_onload" data-client_id="635313816169-b0ibgp7e6056ohnali4oq6kq42cv9kd4.apps.googleusercontent.com" data-callback="onCred" data-auto_prompt="false" data-use_fedcm_for_prompt="true"></div>
   <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="signin_with" data-shape="pill" data-logo_alignment="left" data-width="300"></div>
