@@ -109,13 +109,17 @@
         var bytes = await build(); lastBytes = bytes;
         if (draft) {
           // Nothing is saved to the folder yet: keep the filled documents in this browser and offer download or email-for-signing.
-          draft.completed = bytes; await root.FLRDraft.put(cfg.tx, draft);
+          draft.completed = bytes;
+          // The copies that go out for signing are flattened: everything typed in becomes permanent and cannot be changed at signing. The editable copies stay as drafts.
+          var flat = async function (u8) { var fd = await PL.PDFDocument.load(new Uint8Array(u8), { ignoreEncryption: true, updateMetadata: false }); try { fd.getForm().flatten(); } catch (ef) {} return await fd.save(); };
+          draft.flat = await flat(bytes); draft.flatDisc = draft.disc ? await flat(draft.disc) : null;
+          await root.FLRDraft.put(cfg.tx, draft);
           // Quietly keep a copy in Contract Offers / [address] / Drafts - Not Signed so the unsigned documents can't be lost.
           draft.dr = '';
           try {
             var enc = function (u8) { u8 = new Uint8Array(u8); var x = ''; for (var q = 0; q < u8.length; q += 32768) { x += String.fromCharCode.apply(null, u8.subarray(q, q + 32768)); } return btoa(x); };
             var paddr = String(values['Property_Address'] || draft.property || '').trim();
-            var dsr = await fetch('draft_save.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, property: paddr, b64: enc(bytes), b64d: draft.disc ? enc(draft.disc) : '' }) });
+            var dsr = await fetch('draft_save.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, property: paddr, b64: enc(bytes), b64d: draft.disc ? enc(draft.disc) : '', b64f: enc(draft.flat), b64fd: draft.flatDisc ? enc(draft.flatDisc) : '' }) });
             var dj = await dsr.json(); if (dj && dj.ok) { draft.dr = dj.addr; }
           } catch (e7) {}
           res.innerHTML = '';

@@ -13,7 +13,7 @@ $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
 $dr = trim(preg_replace('/\s+/', ' ', (string)($_GET['dr'] ?? ($_POST['dr'] ?? ''))));
 if ($dr !== '' && (strlen($dr) > 120 || preg_match('/[\\\\\/:*?"<>|]/', $dr))) $dr = '';
 $drRes = ($buyer && $dr !== '') ? sg_drafts($me, $buyer['id'], $dr) : null;
-$allpk = $drRes ? $drRes['files'] : ($buyer ? sg_packets($me, $buyer['id']) : null);
+$allpk = $drRes ? array_values(array_filter($drRes['files'], function ($x) { return stripos($x['name'], 'ready to sign') !== false; })) : ($buyer ? sg_packets($me, $buyer['id']) : null); // saved drafts: send the flattened (ready to sign) copies
 $isD = function ($n) { return stripos((string)$n, 'Buyer Disclosures') === 0; };
 $packets = []; $discs = [];
 foreach (($allpk ?: []) as $p) { if ($isD($p['name'])) $discs[] = $p; else $packets[] = $p; }
@@ -238,7 +238,7 @@ async function refresh(){
   var want={pk:{},dk:{}},all={};
   try{
     var a,b;
-    if(DRAFT){if(!dd)dd=await FLRDraft.get(TX);if(!dd||!(dd.completed||dd.packet))throw new Error("The documents are no longer in this browser. Please start again from the wizard");a=await roles(dd.completed||dd.packet);b=dd.disc?await roles(dd.disc):{};}
+    if(DRAFT){if(!dd)dd=await FLRDraft.get(TX);if(!dd||!(dd.flat||dd.completed||dd.packet))throw new Error("The documents are no longer in this browser. Please start again from the wizard");a=await roles(dd.flat||dd.completed||dd.packet);b=(dd.flatDisc||dd.disc)?await roles(dd.flatDisc||dd.disc):{};}
     else{a=await roles(pk&&pk.value);b=await roles(dk&&dk.value);}
     if(my!==seq)return;
     want.pk=a;want.dk=b;
@@ -268,7 +268,7 @@ if(pk)pk.addEventListener("change",function(){if(decided)refresh();});if(dk)dk.a
 init();
 function b64(u8){var x="",u=new Uint8Array(u8);for(var q=0;q<u.length;q+=32768){x+=String.fromCharCode.apply(null,u.subarray(q,q+32768));}return btoa(x);}
 f.addEventListener("submit",function(){if(window.__sd){document.getElementById("sdjson").value=JSON.stringify(window.__sd.docs.map(function(d){return {name:d.name,b64:b64(d.bytes),fields:d.fields};}));}
-  if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.completed||dd.packet);document.getElementById("dkb64").value=dd.disc?b64(dd.disc):"";}
+  if(DRAFT&&dd){document.getElementById("pkb64").value=b64(dd.flat||dd.completed||dd.packet);document.getElementById("dkb64").value=(dd.flatDisc||dd.disc)?b64(dd.flatDisc||dd.disc):"";}
   go.disabled=true;go.innerHTML='<span class="bspin"></span>Sending...';});
 })();
 </script>
