@@ -49,13 +49,14 @@ $pre = (string)($_GET['tx'] ?? '');
       <option value="<?= htmlspecialchars($f['id']) ?>"<?= $pre === $f['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option>
 <?php endforeach; if ($g !== '') echo "      </optgroup>\n"; ?>
     </select></p>
+    <div id="bsum" class="wsum"></div>
     <div id="qs"></div>
     <p class="sgerr" id="err" hidden></p>
     <p><button type="button" class="btn" id="build">Build contract packet</button></p>
     <div id="res" hidden></div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="wizlib.js?v=4"></script>
+<script src="wizlib.js?v=5"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>;
@@ -79,6 +80,31 @@ Q.forEach(function(x){
 });
 qs.innerHTML=h;
 qs.addEventListener('change',function(){ [].forEach.call(qs.querySelectorAll('.wf'),function(d){var m=/^f(\w+)_(\d+)$/.exec(d.id);var c=qs.querySelector('input[name="q'+m[1]+'"]:checked');d.hidden=!(c&&c.value===m[2]);}); });
+var INFO=null, bsum=document.getElementById('bsum');
+function fillMap(){
+  if(!INFO)return null;
+  var names=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and '), ph=[INFO.b1_phone,INFO.b2_phone].filter(Boolean).join(' / '), em=[INFO.b1_email,INFO.b2_email].filter(Boolean).join(' / ');
+  return {Buyer_Names:names,Buyer_NoticeAddress_1:INFO.mailing||'',Buyer_NoticeAddress_2:ph?'Phone: '+ph:'',Buyer_NoticeAddress_3:em?'Email: '+em:''};
+}
+function loadInfo(){
+  INFO=null;bsum.innerHTML='';
+  if(!txSel.value)return;
+  var id=txSel.value;
+  fetch('wizard_info.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+    if(txSel.value!==id)return;
+    INFO=(j&&j.ok&&j.info&&Object.keys(j.info).length)?j.info:null;
+    var edit='<a href="buyer.php?tx='+encodeURIComponent(id)+'">'+(INFO?'Edit buyer info':'Add buyer info')+'</a>';
+    if(!INFO){bsum.innerHTML='<p class="note">No buyer info saved yet. '+edit+' to fill in names, contact details and payment method automatically.</p>';return;}
+    var pm={cash:'Cash',conventional:'Conventional financing',fhava:'FHA / VA financing'}[INFO.payment]||'';
+    var nm=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and ');
+    bsum.innerHTML='<p class="note">Using saved buyer info: <strong>'+esc(nm||'(no name)')+'</strong>'+(pm?' &middot; '+esc(pm):'')+'. '+edit+'</p>';
+    var re={conventional:/^conventional/i,fhava:/^fha/i}[INFO.payment];
+    if(re){Q.forEach(function(x){x.rows.forEach(function(r,i){if(re.test(r.answer)){var el=qs.querySelector('input[name="q'+x.q+'"][value="'+i+'"]');if(el)el.checked=true;}});});}
+    else if(INFO.payment==='cash'){bsum.innerHTML+='<p class="note">Cash purchase: choose with or without the appraisal contingency below.</p>';}
+  }).catch(function(){});
+}
+txSel.addEventListener('change',loadInfo);
+loadInfo();
 function fail(m){err.textContent=m;err.hidden=false;btn.disabled=false;btn.textContent='Build contract packet';}
 function num(v){return String(v||'').replace(/[$,%\s,]/g,'');}
 btn.addEventListener('click',async function(){
@@ -110,7 +136,7 @@ btn.addEventListener('click',async function(){
   try{
     var bufs=await Promise.all(use.map(function(f){return fetch('wizard_pdf.php?id='+encodeURIComponent(R.files[f]),{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('Could not load '+title(f));return r.arrayBuffer();});}));
     var src=use.map(function(f,i){return {bytes:new Uint8Array(bufs[i]),isContract:/AS_IS_Residential_Contract|Vacant_Land_Contract/.test(f)};});
-    var doc=await FLRWiz.buildPacket(PDFLib,src,clauses);
+    var doc=await FLRWiz.buildPacket(PDFLib,src,clauses,fillMap());
     var notes=doc.__notes||[];
     var bytes=await doc.save();
     var bin='';for(var o=0;o<bytes.length;o+=32768){bin+=String.fromCharCode.apply(null,bytes.subarray(o,o+32768));}

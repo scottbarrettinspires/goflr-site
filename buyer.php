@@ -1,0 +1,104 @@
+<?php
+require __DIR__ . "/guard.php";
+require __DIR__ . "/sigtools.php";
+@set_time_limit(120);
+header('Cache-Control: no-store');
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$me = $_SESSION['email'];
+$tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
+$all = sg_folders($me, $tx) ?: [];
+$buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
+$buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
+$FIELDS = ['b1_name', 'b1_phone', 'b1_email', 'b2_name', 'b2_phone', 'b2_email', 'mailing', 'lender', 'preapproval'];
+$info = []; $msg = ''; $err = '';
+if ($buyer) {
+    $r = sg_buyer_info($me, $tx);
+    if (!empty($r['ok'])) { $info = is_array($r['info']) ? $r['info'] : []; } else { $err = 'Could not load the saved information: ' . ($r['note'] ?? ''); }
+}
+if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
+    else {
+        $new = [];
+        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST[$k] ?? '')), 0, 200); }
+        $pm = (string)($_POST['payment'] ?? '');
+        $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
+        foreach (['b1_email', 'b2_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; } }
+        $new['updated'] = gmdate('c');
+        if (!$err) {
+            $r = sg_buyer_info_save($me, $tx, $new);
+            if (!empty($r['ok'])) { $info = $new; $msg = 'Saved.'; } else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
+            $info = $new;
+        } else { $info = $new; }
+    }
+}
+$v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '')); };
+?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Buyer Info - FLR Agent Back Office</title>
+<link rel="stylesheet" href="style.css?v=12">
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
+  <nav>
+    <a href="home.php">Home</a>
+    <a href="my-transactions.php">My Transactions</a>
+    <a href="forms.php" aria-current="page">Forms</a>
+    <a href="signed.php">Signed</a>
+    <a href="training.php">Training</a>
+    <a href="logout.php">Sign out</a>
+  </nav>
+</div></header>
+<section class="hero"><h1>Buyer Info</h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
+<main class="wrap">
+<?php if (!$buyer): ?>
+  <div class="panel sigbox">
+    <form method="get"><p><label for="tx"><strong>Which buyer?</strong></label><br>
+    <select id="tx" name="tx" class="txsel" onchange="this.form.submit()">
+      <option value="">Choose a buyer...</option>
+<?php foreach ($buyers as $f): ?>
+      <option value="<?= htmlspecialchars($f['id']) ?>"><?= htmlspecialchars($f['name']) ?></option>
+<?php endforeach; ?>
+    </select></p>
+<?php if (!$buyers): ?><p class="note">No buyer folders found yet. Create one in My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers first.</p><?php endif; ?>
+    <noscript><button class="btn" type="submit">Open</button></noscript></form>
+  </div>
+<?php else: ?>
+  <form method="post" class="panel sigbox bi">
+    <h2><?= htmlspecialchars($buyer['name']) ?></h2>
+<?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
+<?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
+    <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+    <input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>">
+    <fieldset class="wq"><legend>Buyer 1</legend>
+      <label>Full name<input type="text" name="b1_name" value="<?= $v('b1_name') ?>" autocomplete="off"></label>
+      <label>Phone<input type="text" name="b1_phone" value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off"></label>
+      <label>Email<input type="email" name="b1_email" value="<?= $v('b1_email') ?>" autocomplete="off"></label>
+    </fieldset>
+    <fieldset class="wq"><legend>Buyer 2 (if any)</legend>
+      <label>Full name<input type="text" name="b2_name" value="<?= $v('b2_name') ?>" autocomplete="off"></label>
+      <label>Phone<input type="text" name="b2_phone" value="<?= $v('b2_phone') ?>" inputmode="tel" autocomplete="off"></label>
+      <label>Email<input type="email" name="b2_email" value="<?= $v('b2_email') ?>" autocomplete="off"></label>
+    </fieldset>
+    <fieldset class="wq"><legend>Buyer mailing address (used as the address for notices)</legend>
+      <label>Street, city, state, zip<input type="text" name="mailing" value="<?= $v('mailing') ?>" autocomplete="off"></label>
+    </fieldset>
+    <fieldset class="wq"><legend>Method of payment</legend>
+<?php foreach (['cash' => 'Cash', 'conventional' => 'Conventional financing', 'fhava' => 'FHA / VA financing'] as $k => $l): ?>
+      <label class="wr"><input type="radio" name="payment" value="<?= $k ?>"<?= ($info['payment'] ?? '') === $k ? ' checked' : '' ?>> <?= $l ?></label>
+<?php endforeach; ?>
+      <label>Lender (if financing)<input type="text" name="lender" value="<?= $v('lender') ?>" autocomplete="off"></label>
+      <label>Pre-approval amount<input type="text" name="preapproval" value="<?= $v('preapproval') ?>" inputmode="decimal" autocomplete="off"></label>
+    </fieldset>
+    <p><button type="submit" class="btn">Save buyer info</button> <a class="btn ghost" href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer</a></p>
+  </form>
+<?php endif; ?>
+</main>
+<footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
+</body>
+</html>

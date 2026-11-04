@@ -28,10 +28,14 @@
   }
 
   // sources: [{bytes, isContract}], clauses: [text]. Returns merged PDFDocument.
-  async function buildPacket(PL, sources, clauses) {
+  async function buildPacket(PL, sources, clauses, fill) {
     var out = await PL.PDFDocument.create(), ctx = out.context, roots = new Set(), fontNames = {}, notes = [];
     for (var i = 0; i < sources.length; i++) {
       var src = await PL.PDFDocument.load(sources[i].bytes, { ignoreEncryption: true, updateMetadata: false });
+      if (fill) {
+        var sf = src.getForm();
+        Object.keys(fill).forEach(function (k) { if (!fill[k]) return; try { sf.getTextField(k).setText(String(fill[k])); } catch (e) {} });
+      }
       if (sources[i].isContract && clauses && clauses.length) {
         var r = await fillAdditionalTerms(PL, src, clauses);
         notes.push(r.ok ? 'Additional Terms filled (' + r.lines + ' line' + (r.lines === 1 ? '' : 's') + ').' : 'The Additional Terms lines are full (' + r.needed + ' needed, ' + r.available + ' free); add the clause by hand.');

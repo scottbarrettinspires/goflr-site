@@ -131,3 +131,6 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .wf{margin:6px 0 8px 22px}
 .wf input{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
 .fwiz{margin:0 0 16px}
+
+.bi label{display:block;margin:8px 0;font-size:.95rem}.bi label.wr{display:block}.bi input[type=text],.bi input[type=email]{display:block;width:100%;max-width:520px;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--white);color:inherit;margin-top:4px;box-sizing:border-box}.bi label.wr input{width:auto;display:inline;margin:0 6px 0 0}
+.wsum{margin:0 0 16px}

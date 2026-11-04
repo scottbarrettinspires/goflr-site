@@ -131,3 +131,16 @@ function sg_packet_pdf($email, $fileId) {
     $pdf = (is_array($j) && !empty($j['ok']) && !empty($j['b64'])) ? base64_decode($j['b64'], true) : false;
     return ($pdf !== false && strlen($pdf) > 500) ? ['name' => $j['name'], 'pdf' => $pdf] : null;
 }
+
+// Buyer Info: one data file per buyer folder, read and written through the office script.
+function sg_buyer_info($email, $folderId) {
+    $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=buyerinfo&email=' . urlencode(strtolower($email)) . '&folderId=' . urlencode($folderId));
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 45, CURLOPT_CONNECTTIMEOUT => 8]);
+    $b = curl_exec($ch); curl_close($ch);
+    $j = $b === false ? null : json_decode($b, true);
+    return is_array($j) ? $j : ['ok' => false, 'note' => 'The office script did not answer (is the newest version deployed?).'];
+}
+function sg_buyer_info_save($email, $folderId, $info) {
+    $r = sg_script_post(['op' => 'savebuyerinfo', 'email' => $email, 'folderId' => $folderId, 'info' => $info]);
+    return is_array($r) ? $r : ['ok' => false, 'note' => 'The office script did not answer (is the newest version deployed?).'];
+}
