@@ -55,7 +55,7 @@ $pre = (string)($_GET['tx'] ?? '');
     <div id="res" hidden></div>
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="wizlib.js?v=1"></script>
+<script src="wizlib.js?v=2"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>;

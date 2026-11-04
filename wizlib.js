@@ -57,6 +57,11 @@
     var fonts = { Helv: helv }; Object.keys(fontNames).forEach(function (n) { fonts[n] = helv; });
     var acro = ctx.obj({ Fields: ctx.obj(Array.from(roots)), DR: ctx.obj({ Font: ctx.obj(fonts) }), DA: PL.PDFString.of('/Helv 0 Tf 0 g') });
     out.catalog.set(PL.PDFName.of('AcroForm'), ctx.register(acro));
+    // Give every text field a visible appearance (copies of a shared field otherwise look blank until clicked).
+    try {
+      var of = out.getForm(), ofont = await out.embedFont(PL.StandardFonts.Helvetica);
+      of.getFields().forEach(function (f) { if (f instanceof PL.PDFTextField) { try { f.updateAppearances(ofont); } catch (e) {} } });
+    } catch (e) { notes.push('Note: field appearances could not be refreshed.'); }
     out.__notes = notes;
     return out;
   }
