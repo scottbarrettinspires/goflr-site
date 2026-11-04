@@ -5,7 +5,7 @@
 
   async function start(cfg) {
     var PDFJS = root.pdfjsLib;
-    var pagesEl = document.getElementById('pages'), status = document.getElementById('estatus'), saveBtn = document.getElementById('esave'), dl = document.getElementById('edl'), res = document.getElementById('eres');
+    var saveBtn2 = document.getElementById('esave2'), pagesEl = document.getElementById('pages'), status = document.getElementById('estatus'), saveBtn = document.getElementById('esave'), dl = document.getElementById('edl'), res = document.getElementById('eres');
     PDFJS.GlobalWorkerOptions.workerSrc = cfg.worker;
     status.textContent = 'Loading the packet...';
     var orig, draft = null;
@@ -83,7 +83,7 @@
     function scale() { wraps.forEach(function (w) { w.style.setProperty('--s', (w.clientWidth / Number(w.dataset.w))); }); }
     scale(); root.addEventListener('resize', scale);
     status.textContent = 'Click a field to fill it. Fields with the same name (like Buyer and Seller) update on every form.';
-    saveBtn.disabled = false;
+    saveBtn.disabled = false; if (saveBtn2) saveBtn2.disabled = false;
 
     async function build() {
       var pdf = await PL.PDFDocument.load(orig, { ignoreEncryption: true, updateMetadata: false });
@@ -101,8 +101,9 @@
       return await pdf.save();
     }
     var lastBytes = null;
-    saveBtn.addEventListener('click', async function () {
-      saveBtn.disabled = true; res.hidden = true; status.textContent = 'Saving...'; saveBtn.dataset.t = saveBtn.textContent; saveBtn.innerHTML = '<span class="bspin"></span>Saving...';
+    var onSave = async function () {
+      var btns = [saveBtn, saveBtn2].filter(Boolean);
+      saveBtn.disabled = true; if (saveBtn2) saveBtn2.disabled = true; res.hidden = true; status.textContent = 'Saving...'; saveBtn.dataset.t = saveBtn.textContent; btns.forEach(function (b) { b.innerHTML = '<span class="bspin"></span>Saving...'; });
       try {
         await new Promise(function (r) { requestAnimationFrame(function () { setTimeout(r, 50); }); }); // let the spinner paint before the heavy work starts
         var bytes = await build(); lastBytes = bytes;
@@ -118,8 +119,10 @@
         if (j.ok) { var b = el('a', 'btn ghost', p2); b.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx); b.textContent = 'Send for signature'; b.style.marginLeft = '8px'; }
         res.hidden = false; status.textContent = j.ok ? 'Saved.' : 'Not saved.';
       } catch (e) { status.textContent = 'Something went wrong: ' + e.message; }
-      saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.t || 'Save completed packet';
-    });
+      btns.forEach(function (b) { b.disabled = false; b.textContent = saveBtn.dataset.t || 'Save completed packet'; });
+      try { res.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e5) {} // the result is at the top of the page
+    };
+    saveBtn.addEventListener('click', onSave); if (saveBtn2) saveBtn2.addEventListener('click', onSave);
     function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     root.__editorBuild = build;
   }
