@@ -125,7 +125,7 @@ function sg_seller_items($docsIn, $emails, $addr, $me, $name) {
             $x = (float)($f['x'] ?? 0); $y = (float)($f['y'] ?? 0); $w = (float)($f['w'] ?? 0); $h = (float)($f['h'] ?? 0);
             if ($w < 5 || $h < 5 || $pg < 0 || $pg > 400) continue;
             $y1 = SG_RECT_FROM_TOP ? $y : $H - ($y + $h); $y2 = SG_RECT_FROM_TOP ? $y + $h : $H - $y;
-            $by[$r][] = ['type' => $ty, 'page' => $pg, 'rectangle' => [round($x, 1), round($y1, 1), round($x + $w, 1), round($y2, 1)], 'required' => true];
+            $by[$r][] = ['type' => $ty, 'page' => $pg, 'rectangle' => [(int)round($x), (int)round($y1), (int)round($x + $w), (int)round($y2)], 'required' => true];
         }
         if (!$by) return ['err' => 'Place at least one signature box on "' . $title . '".'];
         $sg = [];
