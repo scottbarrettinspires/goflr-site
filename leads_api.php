@@ -23,6 +23,7 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today) {
         $L = array_merge($L, $f);
         $want = (array)($j['roles'] ?? []);
         foreach (LD_CATS as $k => $c) {
+            if (($L['roles'][$k]['sub'] ?? '') === 'client') continue; // in My Transactions: only "closed sale" moves it on
             $sub = (string)($want[$k] ?? '');
             if ($sub === '' || !isset($c['subs'][$sub])) { unset($L['roles'][$k]); continue; }
             if (($L['roles'][$k]['sub'] ?? '') !== $sub) { $L['roles'][$k] = ['sub' => $sub, 'since' => $today, 'touches' => 0, 'last' => '']; }
@@ -33,6 +34,18 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today) {
     }
     $i = $find($id); if ($i < 0) return 'That lead was not found.';
     if ($act === 'delete') { array_splice($db['leads'], $i, 1); return null; }
+    if ($act === 'closeclient') {
+        $L = &$db['leads'][$i]; $sp = (string)($j['sphere'] ?? '');
+        if (!isset(LD_CATS['sphere']['subs'][$sp]) || $sp === 'dnc') return 'Choose a Sphere category.';
+        foreach (['buyer', 'seller'] as $k) {
+            if (($L['roles'][$k]['sub'] ?? '') !== 'client') continue;
+            $L['closed'][] = ['role' => $k, 'folder' => $L['roles'][$k]['folder'] ?? '', 'record' => $L['roles'][$k]['record'] ?? '', 'date' => $today];
+            $L['log'][] = ['d' => $today, 'role' => $k, 'mid' => '', 'note' => 'Closed sale. Moved to Sphere.'];
+            unset($L['roles'][$k]);
+        }
+        $L['roles']['sphere'] = ['sub' => $sp, 'since' => $today, 'touches' => 0, 'last' => ''];
+        return null;
+    }
     $role = (string)($j['role'] ?? '');
     if (!in_array($role, ['new', 'buyer', 'seller', 'sphere'], true) || empty($db['leads'][$i]['roles'][$role])) return 'Unknown category.';
     $R = &$db['leads'][$i]['roles'][$role];

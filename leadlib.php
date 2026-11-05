@@ -104,7 +104,7 @@ function ld_view($email, $agent, $phone) {
         foreach ($list as $k) {
             $r = $k === 'new' ? ($L['roles']['new'] ?? ['since' => $L['added'] ?? $today, 'touches' => 0]) : $L['roles'][$k];
             if ($k === 'new') $r['sub'] = 'new';
-            $nx = ld_next($k, $r); $v = ['role' => $k, 'sub' => $r['sub'], 'touches' => (int)($r['touches'] ?? 0), 'last' => $r['last'] ?? '', 'since' => $r['since'] ?? ''];
+            $nx = ld_next($k, $r); $v = ['role' => $k, 'sub' => $r['sub'], 'touches' => (int)($r['touches'] ?? 0), 'last' => $r['last'] ?? '', 'since' => $r['since'] ?? '', 'folder' => $r['folder'] ?? '', 'record' => $r['record'] ?? ''];
             if ($nx && empty($nx['done'])) {
                 $v += ['due' => $nx['due'], 'over' => ld_days($nx['due'], $today), 'step' => $nx['step'], 'of' => $nx['of'], 'plan' => $nx['plan'], 'mid' => $nx['msg']['id'], 'ch' => $nx['msg']['ch'],
                        'subj' => ld_fill($nx['msg']['subj'], $L, $agent, $phone), 'text' => ld_fill($nx['msg']['text'], $L, $agent, $phone), 'goal' => $nx['msg']['goal']];

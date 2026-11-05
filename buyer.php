@@ -11,6 +11,18 @@ $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') 
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
 $isNew = (($_GET['new'] ?? ($_POST['new'] ?? '')) === '1');
 $hint = (string)($_GET['hint'] ?? ($_POST['hint'] ?? ''));
+// Started from a lead: carry the lead's details into the new buyer record and link the two.
+$leadId = preg_match('/^[a-z0-9]{2,20}$/', (string)($_GET['lead'] ?? ($_POST['lead'] ?? ''))) ? (string)($_GET['lead'] ?? ($_POST['lead'] ?? '')) : '';
+$lead = null;
+if ($leadId !== '') {
+    require_once __DIR__ . "/leadlib.php";
+    foreach (ld_load($me)['leads'] as $x) { if (($x['id'] ?? '') === $leadId) $lead = $x; }
+    if (!$lead) { $leadId = ''; }
+    elseif ($isNew && !preg_match('/^[A-Za-z0-9_-]{10,80}$/', $hint)) {
+        $jr = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=mytxroot&email=' . urlencode(strtolower($me)));
+        if (is_array($jr) && !empty($jr['ok']) && !empty($jr['id'])) { $hint = (string)$jr['id']; }
+    }
+}
 if ($isNew && !preg_match('/^[A-Za-z0-9_-]{10,80}$/', $hint)) { $isNew = false; }
 function bi_missing($n) {
     if (($n['b1_name'] ?? '') === '') return 'Please enter the buyer\'s name.';
@@ -21,6 +33,9 @@ function bi_missing($n) {
 }
 $FIELDS = ['b1_name', 'b1_phone', 'b1_email', 'b2_name', 'b2_phone', 'b2_email', 'mailing', 'lender', 'preapproval'];
 $info = []; $msg = ''; $err = '';
+if ($isNew && $lead && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $info = ['b1_name' => trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')), 'b1_phone' => (string)($lead['phone'] ?? ''), 'b1_email' => (string)($lead['email'] ?? '')];
+}
 if ($buyer) {
     $r = sg_buyer_info($me, $tx);
     if (!empty($r['ok'])) { $info = is_array($r['info']) ? $r['info'] : []; } else { $err = 'Could not load the saved information: ' . ($r['note'] ?? ''); }
@@ -41,8 +56,20 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $info = $new;
         if (!$err) {
             $label = preg_replace('/\s+/', ' ', trim($new['b1_name'] . ($new['b2_name'] !== '' ? ' & ' . $new['b2_name'] : '')));
+            if ($lead) { $new['lead_source'] = (string)($lead['source'] ?? ''); $new['lead_added'] = (string)($lead['added'] ?? ''); $new['lead_notes'] = (string)($lead['notes'] ?? ''); }
             $r = sg_script_post(['op' => 'createbuyer', 'email' => $me, 'hint' => $hint, 'name' => $label, 'info' => $new]);
-            if (is_array($r) && !empty($r['ok']) && !empty($r['id'])) { header('Location: buyer.php?tx=' . urlencode($r['id']) . '&created=1'); exit; }
+            if (is_array($r) && !empty($r['ok']) && !empty($r['id'])) {
+                if ($lead) {
+                    $fid = (string)$r['id'];
+                    ld_update($me, function (&$db) use ($leadId, $fid, $label) {
+                        foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $leadId) continue;
+                            $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label];
+                            $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer record created in My Transactions'];
+                        }
+                    });
+                }
+                header('Location: buyer.php?tx=' . urlencode($r['id']) . '&created=1'); exit;
+            }
             $err = 'Could not create the buyer record' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.';
         }
     }
@@ -107,11 +134,11 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </div>
 <?php else: ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
-    <h2><?= htmlspecialchars($buyer['name']) ?></h2>
+    <h2><?= htmlspecialchars($buyer['name'] ?? ($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer')) ?></h2>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-    <?php if ($buyer): ?><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><?php else: ?><input type="hidden" name="new" value="1"><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>"><?php endif; ?>
+    <?php if ($buyer): ?><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><?php else: ?><input type="hidden" name="new" value="1"><?php if ($leadId): ?><input type="hidden" name="lead" value="<?= htmlspecialchars($leadId) ?>"><?php endif; ?><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>"><?php endif; ?>
     <fieldset class="wq"><legend>Buyer 1 (all required)</legend>
       <label>Buyer full name<input type="text" name="f_b1_name" required value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Phone<input type="text" name="f_b1_phone" required value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>

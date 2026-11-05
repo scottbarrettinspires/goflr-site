@@ -28,7 +28,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .sb{font:inherit;font-weight:700;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
 .sb.on{outline:3px solid #1f2a2c;outline-offset:2px}
-.h0{background:#b71c1c;color:#fff}.h1{background:#e53935;color:#fff}.h2{background:#f6b1aa;color:#5c1410}.h3{background:#fff;color:#2b3a3c}.h4{background:#a9cbe9;color:#0f3558}.h5{background:#1f5fa8;color:#fff}
+.h0{background:#b71c1c;color:#fff}.h1{background:#e53935;color:#fff}.h2{background:#f6b1aa;color:#5c1410}.h3{background:#fff;color:#2b3a3c}.h4{background:#a9cbe9;color:#0f3558}.h5{background:#1f5fa8;color:#fff}.h6{background:#036f72;color:#fff}
 .lpanel{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;min-height:200px}
 .lpanel h2{margin:0 0 12px;font-size:1.15rem}
 .lrow{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;margin:0 0 8px;cursor:pointer;background:var(--white)}
@@ -87,7 +87,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 <script>
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>, CATS=<?= json_encode($cats) ?>, LEADS=<?= json_encode($leads) ?>, TODAY=<?= json_encode(ld_today()) ?>;
-var HEAT={new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5};
+var HEAT={new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5,client:6};
 var SOURCES=["Website","Landing page","Facebook","Instagram","Google","Zillow","Realtor.com","Open house","Sign call","Referral","Sphere","Other"];
 var view={tab:"overview",sub:null,q:""};
 var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal");
@@ -95,12 +95,13 @@ function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
 function digits(p){return String(p||"").replace(/[^0-9+]/g,"");}
-function subLabel(role,sub){if(role==="new")return "NEW";return (CATS[role]&&CATS[role].subs[sub])||sub;}
+function subLabel(role,sub){if(role==="new")return "NEW";if(sub==="client")return "In My Transactions";return (CATS[role]&&CATS[role].subs[sub])||sub;}
 function heatClass(sub){return "h"+(sub==="new"?0:HEAT[sub]);}
 function inRole(L,role){return role==="new"?!L.view.some(function(v){return v.role!=="new";}):!!(L.roles&&L.roles[role]);}
 function vfor(L,role){for(var i=0;i<L.view.length;i++){if(L.view[i].role===role)return L.view[i];}return null;}
 function dueBadge(v){
   if(!v)return "";
+  if(v.sub==="client")return '<span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span>';
   if(v.sub==="dnc")return '<span class="due off">Do not contact</span>';
   if(v.done)return '<span class="due later">Plan finished</span>';
   if(v.over>0)return '<span class="due over">Overdue '+v.over+' day'+(v.over===1?"":"s")+' · '+esc(v.ch)+'</span>';
@@ -137,6 +138,7 @@ function renderOverview(){
    +'<div class="stat hot"><b>'+readyB+'</b><span>Ready buyers</span></div>'
    +'<div class="stat hot"><b>'+readyS+'</b><span>Ready sellers</span></div>'
    +'<div class="stat"><b>'+sa+'</b><span>Sphere A Yes</span></div>'
+   +'<div class="stat" style="border-left:5px solid #036f72"><b>'+LEADS.filter(function(L){return L.roles&&((L.roles.buyer&&L.roles.buyer.sub==="client")||(L.roles.seller&&L.roles.seller.sub==="client"));}).length+'</b><span>Clients in My Transactions</span></div>'
    +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
    +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
    +'<div class="stat cold"><b>'+cold+'</b><span>Cold (Undetermined, D, Do Not Contact)</span></div></div>';
@@ -151,10 +153,13 @@ function renderCat(){
   if(role==="new"){side+='<button class="sb h1 on">All NEW <span class="n">'+counts().new+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'">'+esc(subs[k])+' <span class="n">'+n+'</span></button>';});
+  if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
+    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">In My Transactions <span class="n">'+nc+'</span></button>';}
   var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub);});
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
-  var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+subs[view.sub];
+  var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+(view.sub==="client"?"In My Transactions":subs[view.sub]);
+  if(view.sub==="client")CATS[role].stage.client=role==="buyer"?"Signed or signing a buyer broker agreement. The record lives in My Transactions until the sale closes.":"Signed or signing a listing agreement. The record lives in My Transactions until the sale closes.";
   var main='<div class="lpanel"><h2>'+esc(title)+'</h2>'+(role!=="new"&&CATS[role].stage[view.sub]?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">'+esc(CATS[role].stage[view.sub])+'</p>':(role==="new"?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">Leads from your website, landing pages and social media. Reach them, learn what they need, then move them to Buyers, Sellers or Sphere.</p>':''))+'<input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
     +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet.</p>')+'</div>';
   body.innerHTML='<div class="lwrap"><div class="lside">'+side+'</div><div>'+main+'</div></div>';
@@ -165,7 +170,7 @@ function renderCat(){
 function render(){renderTabs();if(view.tab==="overview")renderOverview();else renderCat();}
 body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
-function mv(role,cur){var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b><button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>';
+function mv(role,cur){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b><button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>';
   Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
 function openLead(L,preset){
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
@@ -183,7 +188,11 @@ function openLead(L,preset){
     L.view.forEach(function(v){
       var head=(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
       h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+esc(head)+'</span>'+dueBadge(v)+'</div>';
-      if(v.sub==="dnc"){h+='<p class="goal">This person asked not to be contacted. No messages are scheduled.</p>';}
+      if(v.sub==="client"){h+='<p class="goal">Record in My Transactions: <strong>'+esc(v.record||"")+'</strong>. Follow-up messages stop while the transaction is open.</p><div class="btns">'
+          +(v.folder?'<a class="btn sm" href="buyer.php?tx='+encodeURIComponent(v.folder)+'">Open buyer record</a><a class="btn sm ghost" href="wizard.php?tx='+encodeURIComponent(v.folder)+'">Make a contract offer</a>':'')
+          +'<button class="btn sm ghost t_close">Closed sale: move to Sphere</button></div><div class="t_sph" hidden><p class="goal">Which Sphere category?</p><div class="btns">'
+          +Object.keys(CATS.sphere.subs).filter(function(k){return k!=="dnc";}).map(function(k,i){return '<button class="mvb h'+(i+1)+' t_sp" style="opacity:1" data-sp="'+k+'">'+esc(CATS.sphere.subs[k])+'</button>';}).join("")+'</div></div>';}
+      else if(v.sub==="dnc"){h+='<p class="goal">This person asked not to be contacted. No messages are scheduled.</p>';}
       else if(v.done){h+='<p class="goal">This plan is finished. Sort the lead into Buyers, Sellers or Sphere so it keeps getting follow-up.</p>';}
       else if(v.text){
         h+='<div class="goal">'+(v.step>v.of?'Touch '+v.step+' (ongoing)':'Step '+v.step+' of '+v.of)+' · '+esc(v.ch)+'</div>';
@@ -194,6 +203,7 @@ function openLead(L,preset){
         if(L.email&&/Email/.test(v.ch))h+='<a class="btn sm t_mail" href="#">Email</a>';
         h+='<button class="btn sm ghost t_copy">Copy message</button><button class="btn sm t_done" data-role="'+v.role+'" data-mid="'+esc(v.mid)+'">Mark done</button>'+(v.touches?'<button class="btn sm ghost t_undo" data-role="'+v.role+'">Undo last</button>':"")+'</div>';
       }
+      if(v.role==="buyer"&&v.sub!=="client"&&v.sub!=="dnc"){h+='<p class="goal" style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px">Ready to sign a buyer broker agreement? <a href="buyer.php?new=1&amp;lead='+encodeURIComponent(L.id)+'">Start the buyer record in My Transactions</a>. The agreement is then sent and filed there, and this lead moves to In My Transactions.</p>';}
       h+='</div>';
     });
     var lg=(L.log||[]).slice().reverse();
@@ -221,6 +231,8 @@ function openLead(L,preset){
     var s=t.querySelector(".t_sms");if(s)s.onclick=function(e){e.preventDefault();location.href="sms:"+digits(L.phone)+"?&body="+encodeURIComponent(tx.value);};
     var m=t.querySelector(".t_mail");if(m)m.onclick=function(e){e.preventDefault();location.href="mailto:"+encodeURIComponent(L.email)+"?subject="+encodeURIComponent(sj?sj.value:"")+"&body="+encodeURIComponent(tx.value);};
     var c=t.querySelector(".t_copy");if(c)c.onclick=function(){var v=(sj&&sj.value?sj.value+"\n\n":"")+tx.value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){c.textContent="Copied";},function(){tx.select();document.execCommand("copy");c.textContent="Copied";});};
+    var cl=t.querySelector(".t_close");if(cl)cl.onclick=function(){t.querySelector(".t_sph").hidden=false;cl.disabled=true;};
+    t.querySelectorAll(".t_sp").forEach(function(b){b.onclick=async function(){b.disabled=true;try{await api({action:"closeclient",id:L.id,sphere:b.dataset.sp});reopen(L.id);render();}catch(e){say(e.message,true);b.disabled=false;}};});
     var d=t.querySelector(".t_done");if(d)d.onclick=async function(){d.disabled=true;try{await api({action:"touch",id:L.id,role:d.dataset.role,mid:d.dataset.mid});reopen(L.id);render();}catch(e){say(e.message,true);d.disabled=false;}};
     var u=t.querySelector(".t_undo");if(u)u.onclick=async function(){u.disabled=true;try{await api({action:"untouch",id:L.id,role:u.dataset.role});reopen(L.id);render();}catch(e){say(e.message,true);u.disabled=false;}};
   });
