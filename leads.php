@@ -103,6 +103,8 @@ function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
 function digits(p){return String(p||"").replace(/[^0-9+]/g,"");}
+var ICON={new:"\u2728",ready:"\uD83D\uDD25",soon:"\u2600\uFE0F",later:"\uD83C\uDF24\uFE0F",unid:"\uD83C\uDF2B\uFE0F",dnc:"\u2744\uFE0F",a:"\uD83D\uDD25",b:"\u2600\uFE0F",c:"\uD83C\uDF24\uFE0F",d:"\uD83C\uDF27\uFE0F",client:"\uD83E\uDD1D"};
+function ico(sub){return ICON[sub]?ICON[sub]+" ":"";}
 function subLabel(role,sub){if(role==="new")return "NEW";if(sub==="client")return "In My Transactions";return (CATS[role]&&CATS[role].subs[sub])||sub;}
 function heatClass(sub){return "h"+({new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5,client:6}[sub]);}
 function inRole(L,role){return role==="new"?!L.view.some(function(v){return v.role!=="new";}):!!(L.roles&&L.roles[role]);}
@@ -167,12 +169,12 @@ function renderOverview(){
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
   if(view.sub===null)view.sub=role==="new"?"all":keys[0];
-  var side=role==="new"?"":'<button class="sb h0" id="addHere">+ NEW <span class="n">add</span></button>';
-  if(role==="new"){side+='<button class="sb h1 on">All NEW <span class="n">'+counts().new+'</span></button>';}
+  var side=role==="new"?"":'<button class="sb h0" id="addHere">\u2795 NEW <span class="n">add</span></button>';
+  if(role==="new"){side+='<button class="sb h1 on">'+ico("new")+'All NEW <span class="n">'+counts().new+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
-    side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'">'+esc(subs[k])+' <span class="n">'+n+'</span></button>';});
+    side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'">'+ico(k)+esc(subs[k])+' <span class="n">'+n+'</span></button>';});
   if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
-    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">In My Transactions <span class="n">'+nc+'</span></button>';}
+    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">'+ico("client")+'In My Transactions <span class="n">'+nc+'</span></button>';}
   var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub);});
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
@@ -237,8 +239,8 @@ function openSources(){
 
 body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
-function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b>'+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Start the buyer record in My Transactions and get the buyer broker agreement signed">Execute Agreement</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Start the Pre Listing record in My Transactions and prepare for the listing appointment">Prelisting</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
-  Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
+function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b>'+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Start the buyer record in My Transactions and get the buyer broker agreement signed">\u270D\uFE0F Execute Agreement</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Start the Pre Listing record in My Transactions and prepare for the listing appointment">\uD83C\uDFE1 Prelisting</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
+  Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+ico(k)+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
 // Move lead: only the stages of the lead's own main category, with small buttons for the occasional cross-over.
 // Chosen tags show as pills beside a Choose button; the button opens the agent's own options from My Lead Sources.
 function pickBlock(kind,sel,all,label){
@@ -290,7 +292,7 @@ function openLead(L,preset){
    +'<div class="btns"><button class="btn" id="m_save">'+(isNew?"Add lead":"Save changes")+'</button><button class="btn ghost" id="m_close">Close</button>'+(isNew?"":'<button class="btn ghost" id="m_del" style="margin-left:auto;color:#b71c1c;border-color:#e3b4b4">Delete</button>')+'</div><p class="note" id="m_msg" hidden></p>';
   if(!isNew){
     L.view.forEach(function(v){
-      var head=(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
+      var head=ico(v.sub)+(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
       h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+esc(head)+'</span>'+dueBadge(v)+'</div>';
       if(v.sub==="client"){
         var isB=v.role==="buyer",open=v.folder?(isB?'buyer.php?tx='+encodeURIComponent(v.folder):'https://drive.google.com/drive/folders/'+encodeURIComponent(v.folder)):"";
