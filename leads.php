@@ -64,7 +64,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .mvrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.mvrow b{width:64px;font-size:.88rem}
 .mvb{font:inherit;font-size:.85rem;font-weight:700;padding:7px 11px;border-radius:9px;border:2px solid rgba(0,0,0,.1);cursor:pointer;opacity:.55}
 .mvb.on{opacity:1;outline:3px solid #1f2a2c;outline-offset:1px}.mvb.none{background:#f1f4f4;color:#4b5b5d}.mvb:hover{opacity:1}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chip{font:inherit;font-size:.85rem;font-weight:600;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:#4b5b5d;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.picksum{display:contents}.picksum .goal{font-size:.88rem;color:#6a777a}.chip{font:inherit;font-size:.85rem;font-weight:600;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:#4b5b5d;cursor:pointer}
 .chip.on{background:var(--teal);border-color:var(--teal);color:#fff}.chip .n{font-weight:700;opacity:.8;margin-left:4px}
 .ltabs .srcbtn{margin-left:auto;font-weight:600;color:#4b5b5d}
 .bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#f4f8f8;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 12px}
@@ -240,17 +240,23 @@ async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",
 function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b>'+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Start the buyer record in My Transactions and get the buyer broker agreement signed">Execute Agreement</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Start the Pre Listing record in My Transactions and prepare for the listing appointment">Prelisting</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
   Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
 // Move lead: only the stages of the lead's own main category, with small buttons for the occasional cross-over.
-function tagChips(L,isNew){var t=(L.tags||[]).slice(),all=MYSRC.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});
-  if(!all.length)return '<p class="goal">Set up <a href="#" class="opensrc">My Lead Sources</a> to tag leads by how you got them.</p>';
-  return '<div class="chips" id="tagbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-tag="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div><a href="#" class="opensrc" style="font-size:.82rem">Edit my choices</a>';}
+// Chosen tags show as pills beside a Choose button; the button opens the agent's own options from My Lead Sources.
+function pickBlock(kind,sel,all,label){
+  if(!all.length)return '<p class="goal">'+(kind==="tag"?'Set up':'Choose your interests and connections in')+' <a href="#" class="opensrc">My Lead Sources</a>'+(kind==="tag"?' to tag leads by how you got them.':' to tag people with them.')+'</p>';
+  var box=kind==="tag"?"tagbox":"intbox",attr=kind==="tag"?"data-tag":"data-int";
+  return '<div class="chips"><span class="picksum" data-for="'+box+'">'+pills(sel)+'</span><button type="button" class="chip pickbtn" data-box="'+box+'" style="border-style:dashed">'+(sel.length?"Change":"+ "+label)+'</button></div>'
+    +'<div class="pickwrap" data-box="'+box+'" hidden style="border:1px solid var(--line);border-radius:12px;padding:10px;margin:4px 0 8px"><div class="chips" id="'+box+'">'+all.map(function(x){return '<button type="button" class="chip'+(sel.indexOf(x)>-1?" on":"")+'" '+attr+'="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div>'
+    +'<button type="button" class="btn sm" data-done="'+box+'">Done</button> <a href="#" class="opensrc" style="font-size:.82rem">Edit my choices</a></div>';
+}
+function pills(sel){return sel.length?sel.map(function(x){return '<span class="chip on" style="cursor:default">'+esc(x)+'</span>';}).join(""):'<span class="goal" style="align-self:center">None chosen</span>';}
+function tagChips(L,isNew){var t=(L.tags||[]).slice(),all=MYSRC.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});return pickBlock("tag",t,all,"Choose lead source");}
+function intChips(L){var t=(L.interests||[]).slice(),all=MYINT.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});return pickBlock("int",t,all,"Choose interests");}
+
 function sphereList(L){return LEADS.filter(function(x){return x.id!==L.id&&x.roles&&x.roles.sphere;}).sort(function(a,b){return nm(a).localeCompare(nm(b));});}
 function refLabel(x){return nm(x)+(x.phone?" · "+x.phone:"");}
 function refPicker(L){var cur=L.ref?LEADS.filter(function(x){return x.id===L.ref;})[0]:null;
   return '<input id="f_ref" list="refopts" placeholder="Start typing a Sphere contact\'s name" value="'+esc(cur?refLabel(cur):"")+'" autocomplete="off"><datalist id="refopts">'+sphereList(L).map(function(x){return '<option value="'+esc(refLabel(x))+'">';}).join("")+'</datalist>';}
 function readRef(L){var v=(document.getElementById("f_ref")||{value:""}).value.trim();if(!v)return "";var m=sphereList(L).filter(function(x){return refLabel(x)===v||nm(x)===v;})[0];return m?m.id:null;}
-function intChips(L){var t=(L.interests||[]).slice(),all=MYINT.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});
-  if(!all.length)return '<p class="goal">Choose your interests and connections in <a href="#" class="opensrc">My Lead Sources</a> to tag people with them.</p>';
-  return '<div class="chips" id="intbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-int="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div><a href="#" class="opensrc" style="font-size:.82rem">Edit my choices</a>';}
 function readInts(){var o=[];modal.querySelectorAll("#intbox .chip.on").forEach(function(b){o.push(b.dataset.int);});return o;}
 function readTags(){var o=[];modal.querySelectorAll("#tagbox .chip.on").forEach(function(b){o.push(b.dataset.tag);});return o;}
 var MV_ACT=false;
@@ -330,6 +336,11 @@ function openLead(L,preset){
   if(!isNew&&L.roles&&L.roles.sphere){var refd=LEADS.filter(function(x){return x.ref===L.id;});
     var rb=document.createElement("div");rb.className="touch";rb.innerHTML='<div class="hd"><span>Referrals from '+esc(nm(L))+'</span><span class="due later">'+refd.length+'</span></div>'+(refd.length?refd.map(function(x){return '<div><a href="#" data-open="'+esc(x.id)+'">'+esc(nm(x))+'</a> <span class="goal">'+esc(x.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub);}).join(", "))+'</span></div>';}).join(""):'<p class="goal">No referrals yet. When a lead names this person in Referred by, it shows here.</p>');
     modal.insertBefore(rb,document.getElementById("mvbox"));rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
+  function refreshPills(box){var sum=modal.querySelector('.picksum[data-for="'+box+'"]'),sel=[];modal.querySelectorAll("#"+box+" .chip.on").forEach(function(c){sel.push(c.dataset.tag||c.dataset.int);});
+    if(sum)sum.innerHTML=pills(sel);var pb=modal.querySelector('.pickbtn[data-box="'+box+'"]');if(pb)pb.textContent=sel.length?"Change":(box==="tagbox"?"+ Choose lead source":"+ Choose interests");}
+  modal.querySelectorAll(".pickbtn").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.pickwrap[data-box="'+b.dataset.box+'"]');w.hidden=!w.hidden;};});
+  modal.querySelectorAll("[data-done]").forEach(function(b){b.onclick=function(){modal.querySelector('.pickwrap[data-box="'+b.dataset.done+'"]').hidden=true;};});
+  modal.querySelectorAll("#tagbox .chip, #intbox .chip").forEach(function(c){c.addEventListener("click",function(){setTimeout(function(){refreshPills(c.parentNode.id);},0);});});
   modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
