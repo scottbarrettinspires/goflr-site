@@ -125,11 +125,29 @@ function ld_view($email, $agent, $phone) {
             } elseif ($nx) { $v += ['done' => true, 'plan' => $nx['plan']]; }
             $roles[] = $v;
         }
+        if (!isset($L['tags'])) { $L['tags'] = ld_auto_tags($L['source'] ?? ''); }
         $L['view'] = $roles; $out[] = $L;
     }
     return $out;
 }
 
+// How agents get leads. Agents pick theirs in My Lead Sources; picked sources become tags on leads.
+const LD_SOURCES = ['Social media', 'Facebook', 'Instagram', 'Website', 'Landing page', 'Agent App', 'Open houses', 'FSBO', 'Expireds', 'Networking', 'Community events', 'Hosting seminars',
+    'Sphere / friends and family', 'Past clients', 'Referrals', 'Agent referrals', 'Zillow', 'Realtor.com', 'Sign calls', 'Door knocking', 'Cold calling', 'Direct mail', 'Email campaigns',
+    'Pre-foreclosure', 'Probate', 'Investors', 'Relocation', 'New construction', 'Renters'];
+// Tags an incoming lead gets from where it came in.
+function ld_auto_tags($source) {
+    $s = trim((string)$source); if ($s === '') return [];
+    $map = ['facebook' => ['Facebook', 'Social media'], 'instagram' => ['Instagram', 'Social media'], 'agent app' => ['Agent App'], 'landing page' => ['Landing page'], 'website' => ['Website'], 'lead form' => ['Website'],
+        'zillow' => ['Zillow'], 'realtor.com' => ['Realtor.com'], 'email signature' => ['Email campaigns'], 'zapier' => ['Website'],
+        'open house' => ['Open houses'], 'referral' => ['Referrals'], 'sign call' => ['Sign calls'], 'sphere' => ['Sphere / friends and family'], 'google' => ['Website'], 'other' => []];
+    return $map[strtolower($s)] ?? [mb_substr($s, 0, 40)];
+}
+function ld_clean_tags($a) {
+    $out = [];
+    foreach ((array)$a as $t) { $t = ld_clean(is_scalar($t) ? $t : '', 40); if ($t !== '' && !in_array($t, $out, true)) $out[] = $t; if (count($out) >= 25) break; }
+    return $out;
+}
 function ld_stage_name($role, $n) {
     $m = $role === 'seller' ? [1 => 'Pre Listing', 2 => 'Active Listing', 3 => 'Pending Listing', 4 => 'Archived'] : [1 => 'Buyer Agreement', 3 => 'Pending Contract', 4 => 'Archived'];
     return $m[(int)$n] ?? 'My Transactions';
@@ -182,12 +200,13 @@ function ld_intake_add($file, $in) {
             $L['log'][] = ['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'New inquiry via ' . $in['source']];
             if (!empty($in['consent'])) $L['consent'] = $in['consent'];
             $L['inquiry'] = date('c');
+            $L['tags'] = ld_clean_tags(array_merge((array)($L['tags'] ?? []), ld_auto_tags($in['source'])));
             return ['dup' => true, 'id' => $L['id']];
         }
         unset($L);
         $id = bin2hex(random_bytes(6));
         array_unshift($db['leads'], ['id' => $id, 'first' => $in['first'], 'last' => $in['last'], 'phone' => $in['phone'], 'email' => $in['email'], 'source' => $in['source'],
-            'added' => $today, 'created' => date('c'), 'notes' => $note, 'consent' => $in['consent'], 'inbound' => true,
+            'added' => $today, 'created' => date('c'), 'notes' => $note, 'consent' => $in['consent'], 'inbound' => true, 'tags' => ld_auto_tags($in['source']),
             'roles' => ['new' => ['since' => $today, 'touches' => 0]], 'log' => [['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'Lead came in via ' . $in['source']]]]);
         return ['dup' => false, 'id' => $id];
     });

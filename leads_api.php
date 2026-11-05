@@ -13,6 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { out(['ok' => true, 'warn' => $warn,
 $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload.']);
 $act = (string)($j['action'] ?? ''); $today = ld_today();
+if ($act === 'sources') {
+    $src = ld_clean_tags($j['sources'] ?? []);
+    ld_update($me, function (&$db) use ($src) { $db['sources'] = $src; });
+    out(['ok' => true, 'sources' => $src, 'leads' => ld_view($me, $agent, $phone)]);
+}
 if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.
 $pre = [];
@@ -56,6 +61,8 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
         if ($i < 0) { $L = ['id' => bin2hex(random_bytes(6)), 'added' => $today, 'created' => date('c'), 'roles' => ['new' => ['since' => $today, 'touches' => 0]], 'log' => []]; }
         else { $L = $db['leads'][$i]; }
         $L = array_merge($L, $f);
+        if (isset($j['tags'])) { $L['tags'] = ld_clean_tags($j['tags']); }
+        elseif ($i < 0) { $L['tags'] = ld_auto_tags($f['source']); }
         $want = (array)($j['roles'] ?? []);
         foreach (LD_CATS as $k => $c) {
             if (($L['roles'][$k]['sub'] ?? '') === 'client') continue; // in My Transactions: only "closed sale" moves it on
