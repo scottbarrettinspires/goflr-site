@@ -172,15 +172,18 @@ body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
 function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b>'+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
   Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
-// Move lead: only the sub-categories of the main category (or categories) the lead is in. Other main categories sit behind a link.
+// Move lead: only the stages of the lead's own main category, with small buttons for the occasional cross-over.
 function mvBox(L,isNew,rs){
   var cur=["buyer","seller","sphere"].filter(function(k){return rs[k];});
   if(!cur.length){return '<h3>Category</h3>'+mv("buyer","",true)+mv("seller","",true)+mv("sphere","",true)+'<div style="font-size:.82rem;color:#5a6a6c">'+(isNew?'Choose at least one. A lead can be both a buyer and a seller.':'Choose where this lead belongs. It leaves NEW right away.')+'</div>';}
   var h='<h3>'+(isNew?'Category':'Move lead')+'</h3>'+cur.map(function(k){return mv(k,rs[k],false);}).join("");
-  var other=["buyer","seller","sphere"].filter(function(k){return !rs[k];});
-  h+='<div style="font-size:.82rem;color:#5a6a6c">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan. ')+'<a href="#" class="mvmore">Other categories</a></div>';
-  h+='<div class="mvx" hidden style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">'+other.map(function(k){return mv(k,"",true);}).join("")
-    +(isNew?'':cur.filter(function(k){return rs[k]!=="client";}).map(function(k){return '<button type="button" class="btn sm ghost mvrm" data-role="'+k+'" style="margin:4px 6px 0 0">Remove from '+esc(CATS[k].label)+'</button>';}).join(""))+'</div>';
+  var extra=[],has=function(k){return cur.indexOf(k)>-1;};
+  if(!has("seller")&&(has("buyer")||has("sphere")))extra.push(["seller","add",has("buyer")?"Add As Seller Also":"Add As Seller"]);
+  if(!has("buyer")&&(has("seller")||has("sphere")))extra.push(["buyer","add",has("seller")?"Add As Buyer Also":"Add As Buyer"]);
+  if(!has("sphere")&&(has("buyer")||has("seller")))extra.push(["sphere","move","Move To Sphere"]);
+  h+=["buyer","seller","sphere"].filter(function(k){return !has(k);}).map(function(k){return '<div class="mvh" data-role="'+k+'" hidden>'+mv(k,"",false)+'</div>';}).join("");
+  if(extra.length){h+='<div class="btns" style="margin-top:4px">'+extra.map(function(x){return '<button type="button" class="btn sm ghost mvx" data-role="'+x[0]+'" data-mode="'+x[1]+'">'+esc(x[2])+'</button>';}).join("")+'</div>';}
+  h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan.')+'</div>';
   return h;
 }
 function openLead(L,preset){
@@ -222,11 +225,14 @@ function openLead(L,preset){
   modal.innerHTML=h;mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
   if(!isNew){modal.insertBefore(document.getElementById("mvbox"),fg);}
-  var mm=modal.querySelector(".mvmore");if(mm)mm.onclick=function(e){e.preventDefault();modal.querySelector(".mvx").hidden=false;mm.remove();};
-  modal.querySelectorAll(".mvrm").forEach(function(b){b.onclick=async function(){var row=modal.querySelector('.mvrow[data-role="'+b.dataset.role+'"]');if(!row)return;row.dataset.val="";b.disabled=true;
-    try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles()});reopen(L.id);render();}catch(err){say(err.message,true);b.disabled=false;}};});
+  var sphereMove=false;
+  modal.querySelectorAll(".mvx").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.mvh[data-role="'+b.dataset.role+'"]');if(w)w.hidden=false;
+    if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
+    else{modal.querySelector(".mvtip").textContent="Pick the "+(b.dataset.role==="seller"?"seller":"buyer")+" stage. Both plans then run side by side.";}
+    b.remove();};});
   modal.querySelectorAll(".mvrow").forEach(function(r){r.addEventListener("click",async function(e){var b=e.target.closest(".mvb");if(!b||b.classList.contains("on"))return;
     var prev=r.dataset.val;r.dataset.val=b.dataset.v;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x===b);});
+    if(sphereMove&&r.dataset.role==="sphere"){modal.querySelectorAll('.mvrow[data-role="buyer"],.mvrow[data-role="seller"]').forEach(function(o){if(o.dataset.val!=="client")o.dataset.val="";});}
     if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles()});var lbl=CATS[r.dataset.role].label+" · "+(b.dataset.v?CATS[r.dataset.role].subs[b.dataset.v]:"none");reopen(L.id);render();var hh=document.querySelector("#mvbox h3");if(hh)hh.innerHTML="Move lead <span style=\"font-weight:500;color:#2e8b57\">· Saved: "+esc(lbl)+"</span>";}
     catch(err){r.dataset.val=prev;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x.dataset.v===prev);});say(err.message,true);}
