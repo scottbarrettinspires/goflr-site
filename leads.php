@@ -242,15 +242,15 @@ function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data
 // Move lead: only the stages of the lead's own main category, with small buttons for the occasional cross-over.
 function tagChips(L,isNew){var t=(L.tags||[]).slice(),all=MYSRC.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});
   if(!all.length)return '<p class="goal">Set up <a href="#" class="opensrc">My Lead Sources</a> to tag leads by how you got them.</p>';
-  return '<div class="chips" id="tagbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-tag="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div>';}
+  return '<div class="chips" id="tagbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-tag="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div><a href="#" class="opensrc" style="font-size:.82rem">Edit my choices</a>';}
 function sphereList(L){return LEADS.filter(function(x){return x.id!==L.id&&x.roles&&x.roles.sphere;}).sort(function(a,b){return nm(a).localeCompare(nm(b));});}
 function refLabel(x){return nm(x)+(x.phone?" · "+x.phone:"");}
 function refPicker(L){var cur=L.ref?LEADS.filter(function(x){return x.id===L.ref;})[0]:null;
   return '<input id="f_ref" list="refopts" placeholder="Start typing a Sphere contact\'s name" value="'+esc(cur?refLabel(cur):"")+'" autocomplete="off"><datalist id="refopts">'+sphereList(L).map(function(x){return '<option value="'+esc(refLabel(x))+'">';}).join("")+'</datalist>';}
 function readRef(L){var v=(document.getElementById("f_ref")||{value:""}).value.trim();if(!v)return "";var m=sphereList(L).filter(function(x){return refLabel(x)===v||nm(x)===v;})[0];return m?m.id:null;}
 function intChips(L){var t=(L.interests||[]).slice(),all=MYINT.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});
-  return '<div class="chips" id="intbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-int="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div>'
-    +'<div style="display:flex;gap:8px"><input id="f_intnew" placeholder="Add for this person, separated by commas" style="flex:1"><button type="button" class="btn sm ghost" id="f_intadd">Add</button></div>';}
+  if(!all.length)return '<p class="goal">Choose your interests and connections in <a href="#" class="opensrc">My Lead Sources</a> to tag people with them.</p>';
+  return '<div class="chips" id="intbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-int="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div><a href="#" class="opensrc" style="font-size:.82rem">Edit my choices</a>';}
 function readInts(){var o=[];modal.querySelectorAll("#intbox .chip.on").forEach(function(b){o.push(b.dataset.int);});return o;}
 function readTags(){var o=[];modal.querySelectorAll("#tagbox .chip.on").forEach(function(b){o.push(b.dataset.tag);});return o;}
 var MV_ACT=false;
@@ -330,7 +330,7 @@ function openLead(L,preset){
   if(!isNew&&L.roles&&L.roles.sphere){var refd=LEADS.filter(function(x){return x.ref===L.id;});
     var rb=document.createElement("div");rb.className="touch";rb.innerHTML='<div class="hd"><span>Referrals from '+esc(nm(L))+'</span><span class="due later">'+refd.length+'</span></div>'+(refd.length?refd.map(function(x){return '<div><a href="#" data-open="'+esc(x.id)+'">'+esc(nm(x))+'</a> <span class="goal">'+esc(x.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub);}).join(", "))+'</span></div>';}).join(""):'<p class="goal">No referrals yet. When a lead names this person in Referred by, it shows here.</p>');
     modal.insertBefore(rb,document.getElementById("mvbox"));rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
-  var os=modal.querySelector(".opensrc");if(os)os.onclick=function(e){e.preventDefault();openSources();};
+  modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
   var sphereMove=false;
