@@ -103,8 +103,13 @@ function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
 function digits(p){return String(p||"").replace(/[^0-9+]/g,"");}
-var ICON={new:"\u2728",ready:"\uD83D\uDD25",soon:"\u2600\uFE0F",later:"\uD83C\uDF24\uFE0F",unid:"\uD83C\uDF2B\uFE0F",dnc:"\u2744\uFE0F",a:"\uD83D\uDD25",b:"\u2600\uFE0F",c:"\uD83C\uDF24\uFE0F",d:"\uD83C\uDF27\uFE0F",client:"\uD83E\uDD1D"};
-function ico(sub){return ICON[sub]?ICON[sub]+" ":"";}
+var ICON={new:"\u2728",ready:"\uD83D\uDD25",unid:"\u2754",dnc:"\u2744\uFE0F",a:"\uD83D\uDD25",client:"\uD83E\uDD1D"};
+var THERMO={soon:0.75,b:0.75,later:0.25,c:0.25,d:0.08};
+// A small thermometer filled to show how close the lead is to hot.
+function thermo(f){var top=2,bot=16,h=Math.round((bot-top)*f),y=bot-h;
+  return '<svg width="14" height="22" viewBox="0 0 14 22" aria-hidden="true" style="vertical-align:-5px;margin-right:3px"><rect x="4" y="1" width="6" height="16" rx="3" fill="#fff" stroke="#7a2a24" stroke-width="1.2"/>'
+    +(h>0?'<rect x="5.5" y="'+y+'" width="3" height="'+(h+2)+'" fill="#d32f2f"/>':'')+'<circle cx="7" cy="18" r="3.4" fill="#d32f2f" stroke="#7a2a24" stroke-width="1.2"/></svg>';}
+function ico(sub){if(THERMO[sub]!=null)return thermo(THERMO[sub])+" ";return ICON[sub]?ICON[sub]+" ":"";}
 function subLabel(role,sub){if(role==="new")return "NEW";if(sub==="client")return "In My Transactions";return (CATS[role]&&CATS[role].subs[sub])||sub;}
 function heatClass(sub){return "h"+({new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5,client:6}[sub]);}
 function inRole(L,role){return role==="new"?!L.view.some(function(v){return v.role!=="new";}):!!(L.roles&&L.roles[role]);}
@@ -172,7 +177,7 @@ function renderCat(){
   var side=role==="new"?"":'<button class="sb h0" id="addHere">\u2795 NEW <span class="n">add</span></button>';
   if(role==="new"){side+='<button class="sb h1 on">'+ico("new")+'All NEW <span class="n">'+counts().new+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
-    side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'">'+ico(k)+esc(subs[k])+' <span class="n">'+n+'</span></button>';});
+    side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
   if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
     side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">'+ico("client")+'In My Transactions <span class="n">'+nc+'</span></button>';}
   var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub);});
