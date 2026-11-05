@@ -7,13 +7,13 @@ header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }
 $me = strtolower($_SESSION['email'] ?? '');
 list($agent, $phone) = ld_me();
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') { out(['ok' => true, 'leads' => ld_view($me, $agent, $phone)]); }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { out(['ok' => true, 'warn' => $warn, 'leads' => ld_view($me, $agent, $phone)]); }
 $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload.']);
 $act = (string)($j['action'] ?? ''); $today = ld_today();
 if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.
-$pre = [];
+$pre = []; $warn = '';
 $findL = function ($id) use ($me) { foreach (ld_load($me)['leads'] as $x) { if (($x['id'] ?? '') === $id) return $x; } return null; };
 if ($act === 'startseller') {
     $L0 = $findL((string)($j['id'] ?? '')); if (!$L0) out(['ok' => false, 'msg' => 'That lead was not found.']);
@@ -39,7 +39,7 @@ if ($act === 'txmove' || $act === 'closeclient') {
         $fid = (string)($L0['roles'][$mv[0]]['folder'] ?? '');
         $r = $fid !== '' ? sg_script_post(['op' => 'movetx', 'email' => $me, 'folderId' => $fid, 'side' => $mv[0], 'stage' => $mv[1]]) : null;
         $okm = is_array($r) && !empty($r['ok']);
-        if ($act === 'txmove' && !$okm) out(['ok' => false, 'msg' => (is_array($r) && isset($r['active'])) ? 'The office script needs the latest update (v25) before records can move between stages.' : 'Could not move the record' . (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '') . '.']);
+        if ($act === 'txmove' && !$okm) { $warn = 'Stage updated here. The record folder could not be moved in My Transactions yet' . ((is_array($r) && isset($r['active'])) ? ' (the office script needs the v25 update)' : (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '')) . ', so move it by hand for now.'; }
         $pre[$mv[0]] = ['ok' => $okm, 'stage' => $mv[1]];
     }
 }
@@ -75,7 +75,8 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
     }
     if ($act === 'txmove') {
         $L = &$db['leads'][$i]; $rl = (string)$j['role']; $L['roles'][$rl]['stage'] = (int)$j['stage'];
-        $L['log'][] = ['d' => $today, 'role' => $rl, 'mid' => '', 'note' => 'Record moved to ' . ld_stage_name($rl, (int)$j['stage'])];
+        $L['roles'][$rl]['touches'] = 0; $L['roles'][$rl]['last'] = ''; $L['roles'][$rl]['since'] = $today; // a new stage starts its own check-ins
+        $L['log'][] = ['d' => $today, 'role' => $rl, 'mid' => '', 'note' => 'Stage: ' . ld_stage_name($rl, (int)$j['stage']) . (empty($pre[$rl]['ok']) ? ' (folder not moved yet)' : ' (record moved)')];
         return null;
     }
     if ($act === 'closeclient') {
@@ -111,4 +112,4 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
     return 'Unknown action.';
 });
 if ($err) out(['ok' => false, 'msg' => $err]);
-out(['ok' => true, 'leads' => ld_view($me, $agent, $phone)]);
+out(['ok' => true, 'warn' => $warn, 'leads' => ld_view($me, $agent, $phone)]);

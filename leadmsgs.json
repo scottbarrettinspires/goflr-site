@@ -73,5 +73,20 @@
 ["P10-S-8", "P10", 8, "Text", "", "Hi {First}, {Agent} here. Are you still thinking about selling? If your plans have changed, just let me know.", "Loop starts here (monthly). Any reply: move them to Ready, Soon or Later.", 30],
 ["P10-S-9", "P10", 9, "Email", "What homes near you are selling for", "Hi {First}, want an update on what homes near you have sold for lately? Reply 'yes' and I'll send it. – {Agent}", "Loop. Send a real update when they reply.", 30],
 ["P10-S-10", "P10", 10, "Call", "", "Call script: Hi {First}, quick check-in. Are you still thinking about selling? Can I help with anything?", "Loop.", 30],
-["P10-S-11", "P10", 11, "Email", "Still thinking about selling?", "Hi {First}, are you still thinking about selling? Reply and I'll pick up right where we left off. – {Agent}", "Loop. Then returns to step 8.", 30]
+["P10-S-11", "P10", 11, "Email", "Still thinking about selling?", "Hi {First}, are you still thinking about selling? Reply and I'll pick up right where we left off. – {Agent}", "Loop. Then returns to step 8.", 30],
+["P6-B-10", "P6", 10, "Text", "", "Hi {First}, {Agent} checking in. Is your timeline for buying still the same, or has anything changed?", "Monthly check-in. If the timeline shortened, move them to Soon or Ready.", 30],
+["P6-B-11", "P6", 11, "Email", "Market update for your area", "Hi {First}, here's a quick update on what's happening with homes in the areas you've been watching. Reply with questions anytime. – {Agent}", "Add one real market fact before sending.", 30],
+["P6-B-12", "P6", 12, "Call", "", "Call script: Hi {First}, quick check-in. What has changed since we last talked? Is it time for a buyer consultation?", "Monthly.", 30],
+["P6-B-13", "P6", 13, "Email", "Still thinking about buying?", "Hi {First}, are you still thinking about buying? Tell me when you'd like to start looking and I'll be ready. – {Agent}", "Monthly. Then the monthly cycle repeats.", 30],
+["P6-S-10", "P6", 10, "Text", "", "Hi {First}, {Agent} checking in. Is your timeline for selling still the same, or has anything changed?", "Monthly check-in. If the timeline shortened, move them to Soon or Ready.", 30],
+["P6-S-11", "P6", 11, "Email", "What homes near you are selling for", "Hi {First}, want an update on what homes near you have sold for lately? Reply 'yes' and I'll send it. – {Agent}", "Send a real update when they reply.", 30],
+["P6-S-12", "P6", 12, "Call", "", "Call script: Hi {First}, quick check-in. Has anything changed with your plans to sell? Can we set a time to look at your home?", "Monthly.", 30],
+["P6-S-13", "P6", 13, "Email", "Still thinking about selling?", "Hi {First}, are you still thinking about selling? Tell me when you're ready and I'll prepare your home's value and my plan. – {Agent}", "Monthly. Then the monthly cycle repeats.", 30],
+["P8-1", "P8", 1, "Email", "Thinking of you", "Hi {First}, I hope you're enjoying your home. If you ever want an updated value, a vendor recommendation or have a question, I'm here. – {Agent}", "Past client. Also send cards for their home anniversary and birthday.", 90],
+["P8-2", "P8", 2, "Text", "", "Hi {First}, {Agent} checking in. How's the home treating you? Anything you need?", "Personal check-in.", 90],
+["P8-3", "P8", 3, "Email", "What homes near you are selling for", "Hi {First}, want a quick look at what homes near you are selling for? Reply 'yes' and I'll send it. No obligation. – {Agent}", "Reply 'yes' = send a real value update.", 90],
+["P8-4", "P8", 4, "Text", "", "{First}, thank you again for trusting me with your move. If you know someone who needs a Realtor, I'd love to help them too.", "Referral ask.", 90],
+["P9-1", "P9", 1, "Text", "", "{First}, quick update: I'm tracking all your deadlines. Let me know if you hear anything from the lender or title company.", "Under contract. Real deadlines come from the contract and transaction file, never from this message.", 0],
+["P9-2", "P9", 2, "Call", "", "Call script: Check on lender progress, inspection and appraisal items, and closing readiness. Confirm the next dates with your transaction coordinator.", "Verify dates against the contract before telling the client.", 5],
+["P9-3", "P9", 3, "Text", "", "{First}, we're getting close! Let's confirm the final walkthrough and closing details.", "Final stretch. Repeats every 5 days until closing.", 5]
 ]

@@ -214,7 +214,7 @@ function openLead(L,preset){
       h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+esc(head)+'</span>'+dueBadge(v)+'</div>';
       if(v.sub==="client"){
         var isB=v.role==="buyer",open=v.folder?(isB?'buyer.php?tx='+encodeURIComponent(v.folder):'https://drive.google.com/drive/folders/'+encodeURIComponent(v.folder)):"";
-        h+='<p class="goal">'+(isB?'Buyer':'Listing')+' record: <strong>'+esc(v.record||"")+'</strong> · Stage: <strong>'+esc(v.stagename)+'</strong>. Follow-up messages stop while the transaction is open.</p><div class="btns">';
+        h+='<p class="goal">'+(isB?'Buyer':'Listing')+' record: <strong>'+esc(v.record||"")+'</strong> · Stage: <strong>'+esc(v.stagename)+'</strong>. '+(v.stage===3?'Closing check-ins run every 5 days until closing.':'Nurture messages pause while you work with this client directly.')+'</p><div class="btns">';
         if(open)h+='<a class="btn sm" href="'+esc(open)+'"'+(isB?'':' target="_blank" rel="noopener"')+'>Open '+(isB?'buyer':'listing')+' record</a>';
         if(isB&&v.folder&&v.stage===1)h+='<a class="btn sm ghost" href="wizard.php?tx='+encodeURIComponent(v.folder)+'">Make a contract offer</a><button class="btn sm ghost t_mv" data-role="buyer" data-st="3">Contract executed: move to Pending</button>';
         if(!isB&&v.stage===1)h+='<button class="btn sm ghost t_mv" data-role="seller" data-st="2">Listing signed: move to Active Listings</button>';
@@ -222,6 +222,7 @@ function openLead(L,preset){
         if(v.stage===3)h+='<button class="btn sm ghost t_close" data-role="'+v.role+'">Closed sale: archive and move to Sphere</button>';
         h+='</div><div class="t_sph" hidden><p class="goal">Which Sphere category?</p><div class="btns">'
           +Object.keys(CATS.sphere.subs).filter(function(k){return k!=="dnc";}).map(function(k,i){return '<button class="mvb h'+(i+1)+' t_sp" style="opacity:1" data-sp="'+k+'">'+esc(CATS.sphere.subs[k])+'</button>';}).join("")+'</div></div>';}
+      if(v.sub==="client"&&!v.text){}
       else if(v.sub==="dnc"){h+='<p class="goal">This person asked not to be contacted. No messages are scheduled.</p>';}
       else if(v.done){h+='<p class="goal">This plan is finished. Sort the lead into Buyers, Sellers or Sphere so it keeps getting follow-up.</p>';}
       else if(v.text){
@@ -271,7 +272,7 @@ function openLead(L,preset){
     var s=t.querySelector(".t_sms");if(s)s.onclick=function(e){e.preventDefault();location.href="sms:"+digits(L.phone)+"?&body="+encodeURIComponent(tx.value);};
     var m=t.querySelector(".t_mail");if(m)m.onclick=function(e){e.preventDefault();location.href="mailto:"+encodeURIComponent(L.email)+"?subject="+encodeURIComponent(sj?sj.value:"")+"&body="+encodeURIComponent(tx.value);};
     var c=t.querySelector(".t_copy");if(c)c.onclick=function(){var v=(sj&&sj.value?sj.value+"\n\n":"")+tx.value;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){c.textContent="Copied";},function(){tx.select();document.execCommand("copy");c.textContent="Copied";});};
-    t.querySelectorAll(".t_mv").forEach(function(b){b.onclick=async function(){b.disabled=true;var o=b.textContent;b.innerHTML='<span class="bspin"></span>Moving...';try{await api({action:"txmove",id:L.id,role:b.dataset.role,stage:+b.dataset.st});reopen(L.id);render();}catch(e){say(e.message,true);b.disabled=false;b.textContent=o;}};});
+    t.querySelectorAll(".t_mv").forEach(function(b){b.onclick=async function(){b.disabled=true;var o=b.textContent;b.innerHTML='<span class="bspin"></span>Moving...';try{var jr=await api({action:"txmove",id:L.id,role:b.dataset.role,stage:+b.dataset.st});reopen(L.id);render();if(jr.warn){var mm=document.getElementById("m_msg");mm.textContent=jr.warn;mm.className="note";mm.hidden=false;var tc=document.querySelector(".touch");if(tc)tc.appendChild(mm);}}catch(e){say(e.message,true);b.disabled=false;b.textContent=o;}};});
     var cl=t.querySelector(".t_close");if(cl)cl.onclick=function(){t.querySelector(".t_sph").hidden=false;cl.disabled=true;};
     t.querySelectorAll(".t_sp").forEach(function(b){b.onclick=async function(){b.disabled=true;try{await api({action:"closeclient",id:L.id,role:(t.querySelector(".t_close")||{dataset:{}}).dataset.role||"",sphere:b.dataset.sp});reopen(L.id);render();}catch(e){say(e.message,true);b.disabled=false;}};});
     var d=t.querySelector(".t_done");if(d)d.onclick=async function(){d.disabled=true;try{await api({action:"touch",id:L.id,role:d.dataset.role,mid:d.dataset.mid});reopen(L.id);render();}catch(e){say(e.message,true);d.disabled=false;}};

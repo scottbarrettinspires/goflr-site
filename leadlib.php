@@ -12,8 +12,8 @@ const LD_CATS = [
 // Plan for each role + sub-category: message prefix, loop-from step (null = no loop), fixed spacing in days (null = use each message's own spacing).
 const LD_PLANS = [
     'new'    => ['P1+P2', null, null],
-    'buyer'  => ['ready' => ['P3-B', 9, null], 'soon' => ['P4-B', 1, null], 'later' => ['P5-B', 1, null], 'unid' => ['P10-B', 8, null]],
-    'seller' => ['ready' => ['P3-S', 9, null], 'soon' => ['P4-S', 1, null], 'later' => ['P5-S', 1, null], 'unid' => ['P10-S', 8, null]],
+    'buyer'  => ['ready' => ['P3-B', 9, null], 'soon' => ['P4-B', 1, null], 'later' => ['P5-B+P6-B@10', 5, null], 'unid' => ['P10-B', 8, null]],
+    'seller' => ['ready' => ['P3-S', 9, null], 'soon' => ['P4-S', 1, null], 'later' => ['P5-S+P6-S@10', 5, null], 'unid' => ['P10-S', 8, null]],
     'sphere' => ['a' => ['P7', 1, 30], 'b' => ['P7', 1, 45], 'c' => ['P7', 1, 60], 'd' => ['P7', 1, 90]],
 ];
 const LD_HEAT = ['new' => 0, 'ready' => 1, 'a' => 1, 'soon' => 2, 'b' => 2, 'later' => 3, 'c' => 3, 'unid' => 4, 'd' => 4, 'dnc' => 9];
@@ -67,7 +67,9 @@ function ld_plan_msgs($code) {
     $out = [];
     foreach (explode('+', $code) as $part) {
         foreach (ld_msgs() as $m) {
-            $ok = strpos($part, '-') !== false ? strpos($m['id'], $part . '-') === 0 : ($m['plan'] === $part);
+            $from = 0; $pp = $part;
+            if (strpos($pp, '@') !== false) { list($pp, $from) = explode('@', $pp, 2); $from = (int)$from; }
+            $ok = (strpos($pp, '-') !== false ? strpos($m['id'], $pp . '-') === 0 : ($m['plan'] === $pp)) && (int)$m['step'] >= $from;
             if ($ok) $out[] = $m;
         }
     }
@@ -75,10 +77,19 @@ function ld_plan_msgs($code) {
 }
 
 // Next touch for one role of a lead. Returns null when nothing is scheduled (Do Not Contact, or a plan that has ended).
-function ld_next($role, $r) {
+// Which plan applies: the sub-category, plus where the person is in the process (under contract, past client).
+function ld_plan_for($role, $r, $lead) {
+    $sub = $r['sub'] ?? 'new';
+    if ($role === 'new') return LD_PLANS['new'];
+    if ($sub === 'client') return ((int)($r['stage'] ?? 1) === 3) ? ['P9', 1, null] : null; // under contract: closing check-ins
+    $p = LD_PLANS[$role][$sub] ?? null;
+    if ($p && $role === 'sphere' && !empty($lead['closed'])) { $p = ['P8+P7', 1, $p[2], 30]; } // past client: home check-ins and referral asks, first one a month after closing
+    return $p;
+}
+function ld_next($role, $r, $lead = []) {
     $sub = $r['sub'] ?? 'new';
     if ($sub === 'dnc') return null;
-    $p = $role === 'new' ? LD_PLANS['new'] : (LD_PLANS[$role][$sub] ?? null);
+    $p = ld_plan_for($role, $r, $lead);
     if (!$p) return null;
     $msgs = ld_plan_msgs($p[0]); $n = (int)($r['touches'] ?? 0); $len = count($msgs);
     if (!$len) return null;
@@ -87,8 +98,9 @@ function ld_next($role, $r) {
     else { return ['done' => true, 'plan' => $p[0], 'due' => $r['last'] ?? $r['since'] ?? ld_today(), 'step' => $n]; }
     $m = $msgs[$i];
     // First touch: counted from the day the lead entered this plan (Sphere starts right away). Later touches: from the last touch.
-    if ($n === 0) { $due = ld_add($r['since'] ?? ld_today(), $p[2] !== null ? 0 : (int)$m['days']); }
-    else { $due = ld_add(($r['last'] ?? '') ?: ($r['since'] ?? ld_today()), $p[2] !== null ? $p[2] : (int)$m['days']); }
+    if ($n === 0) { $due = ld_add($r['since'] ?? ld_today(), isset($p[3]) ? $p[3] : ($p[2] !== null ? 0 : (int)$m['days'])); }
+    else { $gd = (int)$m['days']; if ($gd === 0) { $gd = max(array_map(function ($x) { return (int)$x['days']; }, $msgs)); } // a repeat of a "same day" message waits the plan's usual gap
+           $due = ld_add(($r['last'] ?? '') ?: ($r['since'] ?? ld_today()), $p[2] !== null ? $p[2] : $gd); }
     return ['plan' => $p[0], 'msg' => $m, 'step' => $n + 1, 'of' => $len, 'due' => $due];
 }
 
@@ -106,7 +118,7 @@ function ld_view($email, $agent, $phone) {
         foreach ($list as $k) {
             $r = $k === 'new' ? ($L['roles']['new'] ?? ['since' => $L['added'] ?? $today, 'touches' => 0]) : $L['roles'][$k];
             if ($k === 'new') $r['sub'] = 'new';
-            $nx = ld_next($k, $r); $v = ['role' => $k, 'sub' => $r['sub'], 'touches' => (int)($r['touches'] ?? 0), 'last' => $r['last'] ?? '', 'since' => $r['since'] ?? '', 'folder' => $r['folder'] ?? '', 'record' => $r['record'] ?? '', 'stage' => (int)($r['stage'] ?? 1), 'stagename' => ld_stage_name($k, $r['stage'] ?? 1)];
+            $nx = ld_next($k, $r, $L); $v = ['role' => $k, 'sub' => $r['sub'], 'touches' => (int)($r['touches'] ?? 0), 'last' => $r['last'] ?? '', 'since' => $r['since'] ?? '', 'folder' => $r['folder'] ?? '', 'record' => $r['record'] ?? '', 'stage' => (int)($r['stage'] ?? 1), 'stagename' => ld_stage_name($k, $r['stage'] ?? 1)];
             if ($nx && empty($nx['done'])) {
                 $v += ['due' => $nx['due'], 'over' => ld_days($nx['due'], $today), 'step' => $nx['step'], 'of' => $nx['of'], 'plan' => $nx['plan'], 'mid' => $nx['msg']['id'], 'ch' => $nx['msg']['ch'],
                        'subj' => ld_fill($nx['msg']['subj'], $L, $agent, $phone), 'text' => ld_fill($nx['msg']['text'], $L, $agent, $phone), 'goal' => $nx['msg']['goal']];
