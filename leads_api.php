@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { out(['ok' => true, 'leads' => ld_vi
 $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload.']);
 $act = (string)($j['action'] ?? ''); $today = ld_today();
+if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.
 $pre = [];
 $findL = function ($id) use ($me) { foreach (ld_load($me)['leads'] as $x) { if (($x['id'] ?? '') === $id) return $x; } return null; };

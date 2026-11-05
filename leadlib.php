@@ -2,6 +2,7 @@
 // Lead manager: storage (one private file per agent) and the nurture-plan engine.
 // Model: NEW (not sorted yet) -> Buyers / Sellers / Sphere, each with sub-categories that pick the plan.
 require_once __DIR__ . '/lib.php';
+date_default_timezone_set('America/New_York');
 
 const LD_CATS = [
     'buyer'  => ['label' => 'Buyers',  'subs' => ['ready' => 'Ready', 'soon' => 'Soon', 'later' => 'Later', 'unid' => 'Undetermined', 'dnc' => 'Do Not Contact']],
@@ -39,8 +40,9 @@ function ld_load($email) {
     return is_array($j) ? $j : ['leads' => []];
 }
 // Read-modify-write under a lock so two tabs cannot overwrite each other.
-function ld_update($email, callable $fn) {
-    $f = ld_file($email); $h = fopen($f, 'c+');
+function ld_update($email, callable $fn) { return ld_update_file(ld_file($email), $fn); }
+function ld_update_file($f, callable $fn) {
+    $h = fopen($f, 'c+');
     if (!$h) return null;
     flock($h, LOCK_EX);
     $raw = stream_get_contents($h); $db = json_decode((string)$raw, true); if (!is_array($db)) $db = ['leads' => []];
@@ -130,4 +132,51 @@ function ld_me() {
         if (($email !== '' && strtolower($p['email'] ?? '') === $email) || ($name !== '' && strcasecmp($p['name'] ?? '', $name) === 0)) { if (!empty($p['phone'])) { $phone = $p['phone']; break; } }
     } }
     return [$name ?: 'your agent', $phone];
+}
+
+// ---- Lead intake: each agent has a private link that drops leads into their NEW tab ----
+// Key = first 12 characters of the agent's file name + a random secret, so the endpoint can find the file without an index.
+function ld_intake($email, $name, $phone) {
+    return ld_update($email, function (&$db) use ($email, $name, $phone) {
+        if (empty($db['intake']['key'])) { $db['intake'] = ['key' => substr(sha1(strtolower(trim($email))), 0, 12) . bin2hex(random_bytes(10)), 'created' => date('c')]; }
+        $db['intake']['name'] = $name; $db['intake']['phone'] = $phone;
+        return $db['intake'];
+    });
+}
+function ld_intake_reset($email) {
+    return ld_update($email, function (&$db) use ($email) {
+        $db['intake']['key'] = substr(sha1(strtolower(trim($email))), 0, 12) . bin2hex(random_bytes(10)); $db['intake']['created'] = date('c');
+        return $db['intake'];
+    });
+}
+function ld_intake_find($key) {
+    if (!preg_match('/^[a-f0-9]{32}$/', (string)$key)) return null;
+    foreach (glob(ld_dir() . '/' . substr($key, 0, 12) . '*.json') ?: [] as $f) {
+        $db = json_decode((string)@file_get_contents($f), true);
+        if (is_array($db) && !empty($db['intake']['key']) && hash_equals($db['intake']['key'], $key)) return ['file' => $f, 'agent' => $db['intake']];
+    }
+    return null;
+}
+// Adds an incoming lead to NEW, or adds the inquiry to an existing lead with the same email or phone.
+function ld_intake_add($file, $in) {
+    $today = ld_today();
+    return ld_update_file($file, function (&$db) use ($in, $today) {
+        $digits = function ($p) { $d = preg_replace('/\D/', '', (string)$p); return strlen($d) === 11 && $d[0] === '1' ? substr($d, 1) : $d; };
+        $note = trim(($in['interest'] ? 'Interested in: ' . $in['interest'] . '. ' : '') . ($in['message'] ? 'Message: ' . $in['message'] : ''));
+        foreach ($db['leads'] as &$L) {
+            $same = ($in['email'] !== '' && strcasecmp($L['email'] ?? '', $in['email']) === 0) || ($in['phone'] !== '' && strlen($digits($in['phone'])) >= 7 && $digits($L['phone'] ?? '') === $digits($in['phone']));
+            if (!$same) continue;
+            $L['notes'] = trim(($L['notes'] ?? '') . "\n" . date('M j') . ' new inquiry via ' . $in['source'] . ($note ? ': ' . $note : '.'));
+            $L['log'][] = ['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'New inquiry via ' . $in['source']];
+            if (!empty($in['consent'])) $L['consent'] = $in['consent'];
+            $L['inquiry'] = date('c');
+            return ['dup' => true, 'id' => $L['id']];
+        }
+        unset($L);
+        $id = bin2hex(random_bytes(6));
+        array_unshift($db['leads'], ['id' => $id, 'first' => $in['first'], 'last' => $in['last'], 'phone' => $in['phone'], 'email' => $in['email'], 'source' => $in['source'],
+            'added' => $today, 'created' => date('c'), 'notes' => $note, 'consent' => $in['consent'], 'inbound' => true,
+            'roles' => ['new' => ['since' => $today, 'touches' => 0]], 'log' => [['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'Lead came in via ' . $in['source']]]]);
+        return ['dup' => false, 'id' => $id];
+    });
 }
