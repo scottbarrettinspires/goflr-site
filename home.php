@@ -17,6 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
     header('Location: home.php'); exit;
 }
 $anns = flr_announcements($me);
+require_once __DIR__ . "/leadlib.php";
+$hotN = 0; $newN = 0; $hotNames = [];
+foreach (ld_view($me, '', '') as $L) {
+    $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
+    if ($isNew) $newN++;
+    foreach ($L['view'] as $v) { if (isset($v['over']) && $v['over'] >= 0 && $v['sub'] !== 'dnc') { $hotN++; if (count($hotNames) < 4) $hotNames[] = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')); break; } }
+}
 // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
 $signedNotes = []; $checked = 0; $needFile = false;
 $myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
@@ -58,6 +65,7 @@ foreach ($FLR_EVENTS as $ev) {
   <nav>
     <a href="home.php" aria-current="page">Home</a>
     <a href="my-transactions.php">My Transactions</a>
+    <a href="leads.php">Leads</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
@@ -129,11 +137,15 @@ foreach ($FLR_EVENTS as $ev) {
   </div>
 <?php endforeach; ?>
   <div class="grid">
-    <div class="card soon">
+    <a class="card" href="leads.php" style="border-left:5px solid #e53935">
       <h2>Hot Leads</h2>
-      <p>New and waiting leads assigned to you will show here.</p>
-      <span class="tag">Coming soon</span>
-    </div>
+<?php if ($hotN): ?>
+      <p><strong><?= $hotN ?> lead<?= $hotN === 1 ? '' : 's' ?> to contact now</strong><?= $newN ? ' &middot; ' . $newN . ' NEW to sort' : '' ?></p>
+      <p style="margin:0"><?= htmlspecialchars(implode(', ', $hotNames)) ?><?= $hotN > count($hotNames) ? ' and more' : '' ?></p>
+<?php else: ?>
+      <p>Nothing due right now.<?= $newN ? ' ' . $newN . ' NEW lead' . ($newN === 1 ? '' : 's') . ' to sort.' : ' Add leads to start your follow-up plan.' ?></p>
+<?php endif; ?>
+    </a>
     <div class="card soon">
       <h2>Upcoming Contract Deadlines</h2>
       <p>Inspection, financing, appraisal and closing dates on your open contracts.</p>

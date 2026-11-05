@@ -21,6 +21,7 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
   <nav>
     <a href="home.php">Home</a>
     <a href="my-transactions.php">My Transactions</a>
+    <a href="leads.php">Leads</a>
     <a href="forms.php" aria-current="page">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>

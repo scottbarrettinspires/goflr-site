@@ -15,6 +15,7 @@
   <nav>
     <a href="home.php">Home</a>
     <a href="my-transactions.php" aria-current="page">My Transactions</a>
+    <a href="leads.php">Leads</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
