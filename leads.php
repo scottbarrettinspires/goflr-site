@@ -8,7 +8,7 @@ ld_autosort($me);
 $leads = ld_view($me, $agent, $phone);
 $intake = ld_intake($me, $agent, $phone);
 $intakeUrl = 'https://goflr.com/lead_in.php?k=' . ($intake['key'] ?? '');
-$mySources = (array)(ld_load($me)['sources'] ?? []);
+$ldb = ld_load($me); $mySources = (array)($ldb['sources'] ?? []); $myInterests = (array)($ldb['interests'] ?? []);
 $cats = [];
 foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs'], 'stage' => LD_STAGE[$k]]; }
 ?>
@@ -94,7 +94,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 <footer>Florida Luxury Realty, Inc. &middot; Your leads are private to your account.</footer>
 <script>
 (function(){
-var CSRF=<?= json_encode($_SESSION['csrf']) ?>, ALLSRC=<?= json_encode(LD_SOURCES) ?>, MYSRC=<?= json_encode(array_values($mySources)) ?>, CATS=<?= json_encode($cats) ?>, LEADS=<?= json_encode($leads) ?>, TODAY=<?= json_encode(ld_today()) ?>, INTAKE=<?= json_encode($intakeUrl) ?>;
+var CSRF=<?= json_encode($_SESSION['csrf']) ?>, ALLSRC=<?= json_encode(LD_SOURCES) ?>, MYSRC=<?= json_encode(array_values($mySources)) ?>, ALLINT=<?= json_encode(LD_INTERESTS) ?>, MYINT=<?= json_encode(array_values($myInterests)) ?>, CATS=<?= json_encode($cats) ?>, LEADS=<?= json_encode($leads) ?>, TODAY=<?= json_encode(ld_today()) ?>, INTAKE=<?= json_encode($intakeUrl) ?>;
 var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=ALLSRC;
 var view={tab:"overview",sub:null,q:""};
@@ -191,11 +191,15 @@ function tagCounts(){var c={};LEADS.forEach(function(L){(L.tags||[]).forEach(fun
 function renderTags(){
   var c=tagCounts(),keys=Object.keys(c).sort(function(a,b){return c[b]-c[a]||a.localeCompare(b);}),untagged=LEADS.filter(function(L){return !(L.tags||[]).length;}).length;
   if(view.tag==null)view.tag=keys[0]||"";
-  var h='<div class="lpanel"><h2>Leads by source</h2><p style="color:#5a6a6c;margin:-4px 0 10px">Pick a source to see, email or call everyone who came from it.</p><div class="chips">'
+  var h='<div class="lpanel"><h2>Leads by source</h2><p style="color:#5a6a6c;margin:-4px 0 10px">Pick a source, interest or referrer to see, email or call everyone in it.</p><div class="chips">'
     +keys.map(function(k){return '<button class="chip'+(view.tag===k?" on":"")+'" data-tag="'+esc(k)+'">'+esc(k)+'<span class="n">'+c[k]+'</span></button>';}).join("")
     +(untagged?'<button class="chip'+(view.tag==="__none"?" on":"")+'" data-tag="__none">No source yet<span class="n">'+untagged+'</span></button>':'')+'</div>';
+  var ic={};LEADS.forEach(function(L){(L.interests||[]).forEach(function(t){ic[t]=(ic[t]||0)+1;});});var ik=Object.keys(ic).sort(function(a,b){return ic[b]-ic[a]||a.localeCompare(b);});
+  if(ik.length)h+='<h3 style="margin:12px 0 4px;font-size:1rem">Interests and connections</h3><div class="chips">'+ik.map(function(k){return '<button class="chip'+(view.tag==="i:"+k?" on":"")+'" data-tag="i:'+esc(k)+'">'+esc(k)+'<span class="n">'+ic[k]+'</span></button>';}).join("")+'</div>';
+  var rc={};LEADS.forEach(function(L){if(L.ref)rc[L.ref]=(rc[L.ref]||0)+1;});var rk=Object.keys(rc).sort(function(a,b){return rc[b]-rc[a];});
+  if(rk.length)h+='<h3 style="margin:12px 0 4px;font-size:1rem">Top referrers</h3><div class="chips">'+rk.slice(0,12).map(function(id){var p=LEADS.filter(function(x){return x.id===id;})[0];return p?'<button class="chip'+(view.tag==="r:"+id?" on":"")+'" data-tag="r:'+esc(id)+'">'+esc(nm(p))+'<span class="n">'+rc[id]+'</span></button>':"";}).join("")+'</div>';
   if(!keys.length&&!untagged){h+='<p class="empty">No leads yet.</p></div>';body.innerHTML=h;return;}
-  var list=LEADS.filter(function(L){return view.tag==="__none"?!(L.tags||[]).length:(L.tags||[]).indexOf(view.tag)>-1;});
+  var list=LEADS.filter(function(L){if(view.tag.indexOf("i:")===0)return (L.interests||[]).indexOf(view.tag.slice(2))>-1;if(view.tag.indexOf("r:")===0)return L.ref===view.tag.slice(2);return view.tag==="__none"?!(L.tags||[]).length:(L.tags||[]).indexOf(view.tag)>-1;});
   var ok=list.filter(function(L){return !isDnc(L);}),dn=list.length-ok.length,em=ok.map(function(L){return L.email;}).filter(Boolean),ph=ok.map(function(L){return L.phone;}).filter(Boolean);
   h+='<div class="bulk"><strong>'+list.length+' lead'+(list.length===1?"":"s")+'</strong>'+(dn?'<span style="font-size:.85rem;color:#1f5fa8">('+dn+' Do Not Contact left out)</span>':'')
     +(em.length?'<button class="btn sm" id="b_mail">Email all ('+em.length+')</button><button class="btn sm ghost" id="b_cem">Copy emails</button>':'')
@@ -208,23 +212,29 @@ function renderTags(){
   var ce=document.getElementById("b_cem");if(ce)ce.onclick=function(){cp(em.join(", "),ce);};
   var cph=document.getElementById("b_cph");if(cph)cph.onclick=function(){cp(ph.join("\n"),cph);};
   document.getElementById("b_csv").onclick=function(){var q=function(x){return '"'+String(x==null?"":x).replace(/"/g,'""')+'"';};
-    var rows=[["First","Last","Phone","Email","Source","Tags","Categories","Added","Do Not Contact"]].concat(list.map(function(L){return [L.first,L.last,L.phone,L.email,L.source,(L.tags||[]).join("; "),L.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" "+subLabel(v.role,v.sub);}).join("; "),L.added,isDnc(L)?"Yes":""];}));
-    var blob=new Blob([rows.map(function(r){return r.map(q).join(",");}).join("\r\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leads-"+(view.tag==="__none"?"no-source":view.tag).replace(/[^A-Za-z0-9]+/g,"-")+".csv";document.body.appendChild(a);a.click();a.remove();};
+    var rows=[["First","Last","Phone","Email","Source","Tags","Interests","Referred by","Categories","Added","Do Not Contact"]].concat(list.map(function(L){return [L.first,L.last,L.phone,L.email,L.source,(L.tags||[]).join("; "),(L.interests||[]).join("; "),(function(){var p=L.ref?LEADS.filter(function(x){return x.id===L.ref;})[0]:null;return p?nm(p):"";})(),L.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" "+subLabel(v.role,v.sub);}).join("; "),L.added,isDnc(L)?"Yes":""];}));
+    var blob=new Blob([rows.map(function(r){return r.map(q).join(",");}).join("\r\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leads-"+(view.tag==="__none"?"no-source":view.tag.replace(/^[ir]:/,"")).replace(/[^A-Za-z0-9]+/g,"-")+".csv";document.body.appendChild(a);a.click();a.remove();};
 }
 function openSources(){
   var all=ALLSRC.slice();MYSRC.forEach(function(t){if(all.indexOf(t)<0)all.push(t);});
-  var sel=MYSRC.slice();
-  function draw(){modal.innerHTML='<h2>My Lead Sources</h2><p style="color:#5a6a6c">Tap every way you get leads. These become tags you can tap on each lead, and the <strong>By Source</strong> tab shows, emails or calls everyone from one source.</p><div class="chips">'
-    +all.map(function(t){return '<button type="button" class="chip'+(sel.indexOf(t)>-1?" on":"")+'" data-s="'+esc(t)+'">'+esc(t)+'</button>';}).join("")+'</div>'
-    +'<div style="display:flex;gap:8px;margin:10px 0"><input id="src_new" placeholder="Add your own (e.g. Builder partner)" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit"><button class="btn sm ghost" id="src_add" type="button">Add</button></div>'
+  var alli=ALLINT.slice();MYINT.forEach(function(t){if(alli.indexOf(t)<0)alli.push(t);});
+  var sel=MYSRC.slice(),seli=MYINT.slice();
+  function chips(list,on,grp){return '<div class="chips">'+list.map(function(t){return '<button type="button" class="chip'+(on.indexOf(t)>-1?" on":"")+'" data-g="'+grp+'" data-s="'+esc(t)+'">'+esc(t)+'</button>';}).join("")+'</div>';}
+  function addRow(id,ph){return '<div style="display:flex;gap:8px;margin:8px 0 16px"><input id="'+id+'" placeholder="'+ph+'" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit"><button class="btn sm ghost" data-add="'+id+'" type="button">Add</button></div>';}
+  function draw(){modal.innerHTML='<h2>My Lead Sources</h2><p style="color:#5a6a6c">Tap every way you get leads. These become tags on each lead, and the <strong>By Source</strong> tab shows, emails or calls everyone from one source.</p>'
+    +chips(all,sel,"s")+addRow("src_new","Add your own, separated by commas (e.g. Builder partner)")
+    +'<h3 style="margin:6px 0 4px">Interests and connections</h3><p style="color:#5a6a6c;margin:0 0 6px">Mostly for your Sphere: how you know people and what you share. Tag contacts with them to remember the connection and to reach everyone who golfs, plays pickleball and so on.</p>'
+    +chips(alli,seli,"i")+addRow("int_new","Add your own, separated by commas (e.g. Rotary Club, Kayaking)")
     +'<div class="btns"><button class="btn" id="src_save">Save</button><button class="btn ghost" id="m_close">Close</button></div><p class="note" id="m_msg" hidden></p>';
-    modal.querySelectorAll(".chip").forEach(function(b){b.onclick=function(){var t=b.dataset.s,i=sel.indexOf(t);if(i>-1)sel.splice(i,1);else sel.push(t);b.classList.toggle("on");};});
-    document.getElementById("src_add").onclick=function(){var t=document.getElementById("src_new").value.trim().slice(0,40);if(!t)return;if(all.indexOf(t)<0)all.push(t);if(sel.indexOf(t)<0)sel.push(t);draw();};
+    modal.querySelectorAll(".chip[data-g]").forEach(function(b){b.onclick=function(){var arr=b.dataset.g==="s"?sel:seli,t=b.dataset.s,i=arr.indexOf(t);if(i>-1)arr.splice(i,1);else arr.push(t);b.classList.toggle("on");};});
+    modal.querySelectorAll("[data-add]").forEach(function(b){b.onclick=function(){var isS=b.dataset.add==="src_new",inp=document.getElementById(b.dataset.add);
+      inp.value.split(",").map(function(x){return x.trim().slice(0,40);}).filter(Boolean).forEach(function(t){var L1=isS?all:alli,S1=isS?sel:seli;if(L1.indexOf(t)<0)L1.push(t);if(S1.indexOf(t)<0)S1.push(t);});draw();};});
     document.getElementById("m_close").onclick=close;
-    document.getElementById("src_save").onclick=async function(){var b=this;b.disabled=true;try{var j=await api({action:"sources",sources:sel});MYSRC=j.sources;close();render();}catch(e){var m=document.getElementById("m_msg");m.textContent=e.message;m.hidden=false;b.disabled=false;}};
+    document.getElementById("src_save").onclick=async function(){var b=this;b.disabled=true;try{var j=await api({action:"sources",sources:sel,interests:seli});MYSRC=j.sources;MYINT=j.interests;close();render();}catch(e){var m=document.getElementById("m_msg");m.textContent=e.message;m.hidden=false;b.disabled=false;}};
   }
   draw();mback.classList.add("show");
 }
+
 body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
 function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b>'+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Start the buyer record in My Transactions and get the buyer broker agreement signed">Execute Agreement</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Start the Pre Listing record in My Transactions and prepare for the listing appointment">Prelisting</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
@@ -233,6 +243,15 @@ function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data
 function tagChips(L,isNew){var t=(L.tags||[]).slice(),all=MYSRC.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});
   if(!all.length)return '<p class="goal">Set up <a href="#" class="opensrc">My Lead Sources</a> to tag leads by how you got them.</p>';
   return '<div class="chips" id="tagbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-tag="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div>';}
+function sphereList(L){return LEADS.filter(function(x){return x.id!==L.id&&x.roles&&x.roles.sphere;}).sort(function(a,b){return nm(a).localeCompare(nm(b));});}
+function refLabel(x){return nm(x)+(x.phone?" · "+x.phone:"");}
+function refPicker(L){var cur=L.ref?LEADS.filter(function(x){return x.id===L.ref;})[0]:null;
+  return '<input id="f_ref" list="refopts" placeholder="Start typing a Sphere contact\'s name" value="'+esc(cur?refLabel(cur):"")+'" autocomplete="off"><datalist id="refopts">'+sphereList(L).map(function(x){return '<option value="'+esc(refLabel(x))+'">';}).join("")+'</datalist>';}
+function readRef(L){var v=(document.getElementById("f_ref")||{value:""}).value.trim();if(!v)return "";var m=sphereList(L).filter(function(x){return refLabel(x)===v||nm(x)===v;})[0];return m?m.id:null;}
+function intChips(L){var t=(L.interests||[]).slice(),all=MYINT.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});
+  return '<div class="chips" id="intbox">'+all.map(function(x){return '<button type="button" class="chip'+(t.indexOf(x)>-1?" on":"")+'" data-int="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div>'
+    +'<div style="display:flex;gap:8px"><input id="f_intnew" placeholder="Add for this person, separated by commas" style="flex:1"><button type="button" class="btn sm ghost" id="f_intadd">Add</button></div>';}
+function readInts(){var o=[];modal.querySelectorAll("#intbox .chip.on").forEach(function(b){o.push(b.dataset.int);});return o;}
 function readTags(){var o=[];modal.querySelectorAll("#tagbox .chip.on").forEach(function(b){o.push(b.dataset.tag);});return o;}
 var MV_ACT=false;
 function mvBox(L,isNew,rs){MV_ACT=!isNew;
@@ -259,6 +278,8 @@ function openLead(L,preset){
    +'<div><label>Added</label><input value="'+esc(L.added?fmtD(L.added):"Today")+'" disabled></div>'
    +'<div class="full mvbox" id="mvbox">'+mvBox(L,isNew,rs)+'</div>'
    +'<div class="full"><label>How you got this lead</label>'+tagChips(L,isNew)+'</div>'
+   +'<div class="full"><label>Referred by</label>'+refPicker(L)+'</div>'
+   +'<div class="full"><label>Interests and connections</label>'+intChips(L)+'</div>'
    +'<div class="full"><label>Notes</label><textarea id="f_notes" rows="3">'+esc(L.notes)+'</textarea></div></div>'
    +'<div class="btns"><button class="btn" id="m_save">'+(isNew?"Add lead":"Save changes")+'</button><button class="btn ghost" id="m_close">Close</button>'+(isNew?"":'<button class="btn ghost" id="m_del" style="margin-left:auto;color:#b71c1c;border-color:#e3b4b4">Delete</button>')+'</div><p class="note" id="m_msg" hidden></p>';
   if(!isNew){
@@ -298,6 +319,17 @@ function openLead(L,preset){
   var pg=document.getElementById("pre_go");if(pg)pg.onclick=async function(){pg.disabled=true;pg.innerHTML='<span class="bspin"></span>Creating...';
     try{await api({action:"startseller",id:L.id,address:document.getElementById("pre_addr").value.trim()});reopen(L.id);render();}catch(e){alertIn(e.message);pg.disabled=false;pg.textContent="Create Pre Listing record";}};
   function alertIn(t){var pp=modal.querySelector(".mvpre");var n=pp.querySelector(".sigerr");if(!n){n=document.createElement("p");n.className="sigerr";pp.appendChild(n);}n.textContent=t;}
+  function quickSave(){return api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:modal.querySelector("#tagbox")?readTags():undefined,interests:readInts()});}
+  modal.querySelectorAll("#intbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;try{await quickSave();render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
+  var ia=document.getElementById("f_intadd");if(ia)ia.onclick=async function(){var inp=document.getElementById("f_intnew"),box=document.getElementById("intbox");
+    inp.value.split(",").map(function(x){return x.trim().slice(0,40);}).filter(Boolean).forEach(function(t){var ex=[].filter.call(box.querySelectorAll(".chip"),function(c){return c.dataset.int===t;})[0];
+      if(ex){ex.classList.add("on");}else{var c=document.createElement("button");c.type="button";c.className="chip on";c.dataset.int=t;c.textContent=t;c.onclick=function(){c.classList.toggle("on");if(!isNew)quickSave().then(render);};box.appendChild(c);}});
+    inp.value="";if(!isNew){try{await quickSave();render();}catch(e){say(e.message,true);}}};
+  var fr=document.getElementById("f_ref");if(fr&&!isNew)fr.onchange=async function(){var r=readRef(L);if(r===null){say("Pick a name from the list (Sphere contacts only).",true);return;}
+    try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),ref:r});reopen(L.id);render();}catch(e){say(e.message,true);}};
+  if(!isNew&&L.roles&&L.roles.sphere){var refd=LEADS.filter(function(x){return x.ref===L.id;});
+    var rb=document.createElement("div");rb.className="touch";rb.innerHTML='<div class="hd"><span>Referrals from '+esc(nm(L))+'</span><span class="due later">'+refd.length+'</span></div>'+(refd.length?refd.map(function(x){return '<div><a href="#" data-open="'+esc(x.id)+'">'+esc(nm(x))+'</a> <span class="goal">'+esc(x.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub);}).join(", "))+'</span></div>';}).join(""):'<p class="goal">No referrals yet. When a lead names this person in Referred by, it shows here.</p>');
+    modal.insertBefore(rb,document.getElementById("mvbox"));rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
   var os=modal.querySelector(".opensrc");if(os)os.onclick=function(e){e.preventDefault();openSources();};
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
@@ -321,7 +353,7 @@ function openLead(L,preset){
     var roles=readRoles(),any=Object.keys(roles).some(function(k){return roles[k];});
     if(isNew&&!any){say("Choose Buyer, Seller or Sphere for this lead.",true);b.disabled=false;return;}
     var tg=modal.querySelector("#tagbox")?readTags():undefined;if(isNew&&tg&&!tg.length&&val("f_source"))tg=undefined;
-    try{await api({action:"save",id:isNew?"":L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:roles,tags:tg});close();render();}
+    try{await api({action:"save",id:isNew?"":L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:roles,tags:tg,interests:readInts(),ref:(function(){var r=readRef(L);return r===null?(L.ref||""):r;})()});close();render();}
     catch(e){say(e.message,true);b.disabled=false;}};
   if(!isNew){document.getElementById("m_del").onclick=async function(){if(!confirmDel(this))return;try{await api({action:"delete",id:L.id});close();render();}catch(e){say(e.message,true);}};}
   modal.querySelectorAll(".touch").forEach(function(t){

@@ -135,6 +135,10 @@ function ld_view($email, $agent, $phone) {
 const LD_SOURCES = ['Social media', 'Facebook', 'Instagram', 'Website', 'Landing page', 'Agent App', 'Open houses', 'FSBO', 'Expireds', 'Networking', 'Community events', 'Hosting seminars',
     'Sphere / friends and family', 'Past clients', 'Referrals', 'Agent referrals', 'Zillow', 'Realtor.com', 'Sign calls', 'Door knocking', 'Cold calling', 'Direct mail', 'Email campaigns',
     'Pre-foreclosure', 'Probate', 'Investors', 'Relocation', 'New construction', 'Renters'];
+// Interests and connections, mostly for Sphere: shared activities and circles to remember and to reach people by.
+const LD_INTERESTS = ['Friend of a friend', 'Family', 'Neighbor', 'Coworker', 'Church', 'School parents', 'Business owner', 'Veteran',
+    'Pickleball', 'Golf', 'Tennis', 'Bowling', 'Fishing', 'Boating', 'Softball', 'Running', 'Cycling',
+    'Gym', 'Yoga', 'Gardening', 'Painting', 'Collecting', 'Cooking', 'Wine', 'Travel', 'Dogs', 'Volunteering', 'Book club'];
 // Tags an incoming lead gets from where it came in.
 function ld_auto_tags($source) {
     $s = trim((string)$source); if ($s === '') return [];

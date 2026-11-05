@@ -14,9 +14,9 @@ $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload.']);
 $act = (string)($j['action'] ?? ''); $today = ld_today();
 if ($act === 'sources') {
-    $src = ld_clean_tags($j['sources'] ?? []);
-    ld_update($me, function (&$db) use ($src) { $db['sources'] = $src; });
-    out(['ok' => true, 'sources' => $src, 'leads' => ld_view($me, $agent, $phone)]);
+    $src = ld_clean_tags($j['sources'] ?? []); $int = ld_clean_tags($j['interests'] ?? []);
+    ld_update($me, function (&$db) use ($src, $int) { $db['sources'] = $src; $db['interests'] = $int; });
+    out(['ok' => true, 'sources' => $src, 'interests' => $int, 'leads' => ld_view($me, $agent, $phone)]);
 }
 if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.
@@ -62,6 +62,14 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
         else { $L = $db['leads'][$i]; }
         $L = array_merge($L, $f);
         if (isset($j['tags'])) { $L['tags'] = ld_clean_tags($j['tags']); }
+        if (!isset($L['tags'])) { $L['tags'] = ld_auto_tags($L['source'] ?? ''); } // keep the source tag once the lead is saved
+        if (isset($j['interests'])) { $L['interests'] = ld_clean_tags($j['interests']); }
+        if (array_key_exists('ref', $j)) {
+            $ref = (string)$j['ref']; $okRef = '';
+            if ($ref !== '' && $ref !== ($L['id'] ?? '')) { foreach ($db['leads'] as $x) { if (($x['id'] ?? '') === $ref) { $okRef = $ref; break; } } }
+            if (($L['ref'] ?? '') !== $okRef) { $L['ref'] = $okRef;
+                if ($okRef !== '') { $L['tags'] = ld_clean_tags(array_merge(isset($L['tags']) ? (array)$L['tags'] : ld_auto_tags($L['source'] ?? ''), ['Referrals'])); $L['log'][] = ['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'Referred by a Sphere contact']; } }
+        }
         elseif ($i < 0) { $L['tags'] = ld_auto_tags($f['source']); }
         $want = (array)($j['roles'] ?? []);
         foreach (LD_CATS as $k => $c) {
