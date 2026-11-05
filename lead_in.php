@@ -1,7 +1,7 @@
 <?php
 // Public lead intake. GET ?k=KEY shows the agent's contact form; POST ?k=KEY (form fields or JSON) adds the lead to that agent's NEW tab.
 // Website builders, landing pages and Zapier can POST the same fields: first_name, last_name, name, phone, email, message, interest, source.
-require_once __DIR__ . '/leadlib.php';
+require_once __DIR__ . '/pushlib.php';
 header('X-Robots-Tag: noindex, nofollow');
 $key = (string)($_GET['k'] ?? '');
 $hit = ld_intake_find($key);
@@ -47,6 +47,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         'source' => $src !== '' ? $src : (mb_substr(trim(preg_replace('/[^\w .&\'-]/u', '', $g('source', 40))), 0, 40) ?: ($isApi ? 'Website' : 'Lead form')),
         'consent' => $consentGiven ? ['date' => date('c'), 'how' => $isApi ? 'Submitted through a connected website or landing page' : 'Checked the contact consent box on the FLR lead form'] : null];
     $r = ld_intake_add($hit['file'], $lead);
+    $who = trim($first . ' ' . $last) ?: ($phone ?: $email);
+    $bits = array_filter([$lead['source'], $interest]);
+    @px_notify($hit['file'], (!empty($r['dup']) ? 'Lead reached out again: ' : 'New lead: ') . $who, implode(' · ', $bits) . ($phone !== '' ? ' · Tap to open, then call' : ' · Tap to open'), '/leads.php?open=' . urlencode($r['id'] ?? ''));
     $t[] = $now; @file_put_contents($rl, json_encode(array_values($t)), LOCK_EX);
     if ($isApi) { echo json_encode(['ok' => true, 'duplicate' => !empty($r['dup'])]); exit; }
     li_page('<h1>Thank you, ' . htmlspecialchars($first ?: 'friend') . '!</h1><p>' . htmlspecialchars($agent['name'] ?? 'Your agent') . ' will be in touch shortly.' . (!empty($agent['phone']) ? ' Need help right away? Call or text <a href="tel:' . htmlspecialchars(preg_replace('/[^0-9+]/', '', $agent['phone'])) . '">' . htmlspecialchars($agent['phone']) . '</a>.' : '') . '</p>', $agent);

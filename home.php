@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 }
 $anns = flr_announcements($me);
 require_once __DIR__ . "/leadlib.php";
+require_once __DIR__ . "/push_keys.php";
 ld_autosort($me);
 $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 foreach (ld_view($me, '', '') as $L) {
@@ -109,6 +110,11 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+  <div class="panel sigbox" id="pushcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+    <div style="flex:1;min-width:220px" id="pushtext"><strong>&#128276; Get an alert on this phone for every new lead.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Works best in the FLR Office app on your home screen.</span></div>
+    <button class="btn" id="pushon" type="button">Turn on alerts</button>
+  </div>
+  <p id="pushok" hidden style="font-size:.85rem;color:#4b5b5d;margin:0 0 12px">&#128276; New-lead alerts are on for this phone. <a href="#" id="pushtest">Send a test</a> &middot; <a href="#" id="pushoff">Turn off</a></p>
 <?php if ($newLeads):
     usort($newLeads, function ($a, $b) { return strcmp(($b['created'] ?? $b['added'] ?? ''), ($a['created'] ?? $a['added'] ?? '')); });
     $today = ld_today(); ?>
@@ -207,5 +213,25 @@ foreach ($FLR_EVENTS as $ev) {
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only. Having trouble signing in? Contact the office.</footer>
+<script>
+(function(){
+var KEY=<?= json_encode(PUSH_PUBLIC) ?>,CSRF=<?= json_encode($_SESSION['csrf']) ?>,card=document.getElementById("pushcard"),ok=document.getElementById("pushok");
+if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return;
+function k(s){var p="=".repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/")),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
+function post(o){o.csrf=CSRF;return fetch("push_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}).then(function(r){return r.json();});}
+navigator.serviceWorker.ready.then(function(reg){
+  reg.pushManager.getSubscription().then(function(sub){
+    if(sub&&Notification.permission==="granted"){ok.hidden=false;post({endpoint:sub.endpoint});}else if(Notification.permission!=="denied"){card.hidden=false;card.style.display="flex";}
+  });
+  document.getElementById("pushon").onclick=function(){var b=this;b.disabled=true;b.textContent="Turning on...";
+    Notification.requestPermission().then(function(p){if(p!=="granted")throw new Error("Notifications were not allowed. You can allow them in your phone's settings for this app.");
+      return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:k(KEY)});})
+    .then(function(sub){return post({endpoint:sub.endpoint});}).then(function(j){if(!j.ok)throw new Error(j.msg||"Could not turn on alerts.");card.hidden=true;card.style.display="none";ok.hidden=false;return post({action:"test"});})
+    .catch(function(e){document.getElementById("pushtext").innerHTML="<strong>"+String(e.message).replace(/</g,"&lt;")+"</strong>";b.disabled=false;b.textContent="Try again";});};
+  document.getElementById("pushtest").onclick=function(e){e.preventDefault();post({action:"test"});this.textContent="Sent";};
+  document.getElementById("pushoff").onclick=function(e){e.preventDefault();reg.pushManager.getSubscription().then(function(sub){if(!sub)return;return post({action:"off",endpoint:sub.endpoint}).then(function(){return sub.unsubscribe();});}).then(function(){ok.hidden=true;card.hidden=false;card.style.display="flex";});};
+});
+})();
+</script>
 </body>
 </html>
