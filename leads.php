@@ -6,7 +6,7 @@ $me = strtolower($_SESSION['email'] ?? '');
 list($agent, $phone) = ld_me();
 $leads = ld_view($me, $agent, $phone);
 $cats = [];
-foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs']]; }
+foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs'], 'stage' => LD_STAGE[$k]]; }
 ?>
 <!doctype html>
 <html lang="en">
@@ -155,7 +155,7 @@ function renderCat(){
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
   var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+subs[view.sub];
-  var main='<div class="lpanel"><h2>'+esc(title)+'</h2><input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
+  var main='<div class="lpanel"><h2>'+esc(title)+'</h2>'+(role!=="new"&&CATS[role].stage[view.sub]?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">'+esc(CATS[role].stage[view.sub])+'</p>':(role==="new"?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">Leads from your website, landing pages and social media. Reach them, learn what they need, then move them to Buyers, Sellers or Sphere.</p>':''))+'<input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
     +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet.</p>')+'</div>';
   body.innerHTML='<div class="lwrap"><div class="lside">'+side+'</div><div>'+main+'</div></div>';
   body.querySelectorAll(".sb[data-s]").forEach(function(b){b.onclick=function(){view.sub=b.dataset.s;render();};});
@@ -166,7 +166,7 @@ function render(){renderTabs();if(view.tab==="overview")renderOverview();else re
 body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
 function mv(role,cur){var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b><button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>';
-  Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
+  Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
 function openLead(L,preset){
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
   var rs={};["buyer","seller","sphere"].forEach(function(k){rs[k]=(L.roles&&L.roles[k]&&L.roles[k].sub)||(preset&&preset[k])||"";});
@@ -186,7 +186,7 @@ function openLead(L,preset){
       if(v.sub==="dnc"){h+='<p class="goal">This person asked not to be contacted. No messages are scheduled.</p>';}
       else if(v.done){h+='<p class="goal">This plan is finished. Sort the lead into Buyers, Sellers or Sphere so it keeps getting follow-up.</p>';}
       else if(v.text){
-        h+='<div class="goal">'+(v.step>v.of?'Touch '+v.step+' (ongoing)':'Step '+v.step+' of '+v.of)+' · '+esc(v.ch)+' · Lofty stage: '+esc(v.lofty)+'</div>';
+        h+='<div class="goal">'+(v.step>v.of?'Touch '+v.step+' (ongoing)':'Step '+v.step+' of '+v.of)+' · '+esc(v.ch)+'</div>';
         if(/Email/.test(v.ch))h+='<input class="t_subj" value="'+esc(v.subj)+'" placeholder="Subject">';
         h+='<textarea class="t_text" rows="4" style="margin-top:6px">'+esc(v.text)+'</textarea><div class="goal">'+esc(v.goal)+'</div><div class="btns">';
         if(L.phone&&/Call/.test(v.ch))h+='<a class="btn sm" href="tel:'+esc(digits(L.phone))+'">Call</a>';

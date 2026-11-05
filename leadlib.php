@@ -16,7 +16,12 @@ const LD_PLANS = [
     'sphere' => ['a' => ['P7', 1, 30], 'b' => ['P7', 1, 45], 'c' => ['P7', 1, 60], 'd' => ['P7', 1, 90]],
 ];
 const LD_HEAT = ['new' => 0, 'ready' => 1, 'a' => 1, 'soon' => 2, 'b' => 2, 'later' => 3, 'c' => 3, 'unid' => 4, 'd' => 4, 'dnc' => 9];
-const LD_LOFTY = ['ready' => 'Hot', 'soon' => 'Warm', 'later' => 'Nurturing/Cold', 'unid' => 'Nurturing/Cold', 'a' => 'Sphere Of Influence', 'b' => 'Sphere Of Influence', 'c' => 'Sphere Of Influence', 'd' => 'Sphere Of Influence', 'dnc' => 'Do not contact'];
+// What each sub-category means: how close the person is to signing a buyer broker or listing agreement (Sphere: how likely to refer).
+const LD_STAGE = [
+    'buyer'  => ['ready' => 'Ready to sign a buyer broker agreement and buy within about 3 months.', 'soon' => 'Likely to sign a buyer broker agreement in 3 to 6 months.', 'later' => 'Planning to buy 6 or more months out.', 'unid' => 'Intent or timing not determined yet. Keep reaching out.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
+    'seller' => ['ready' => 'Ready to sign a listing agreement and sell within about 3 months.', 'soon' => 'Likely to sign a listing agreement in 3 to 6 months.', 'later' => 'Planning to sell 6 or more months out.', 'unid' => 'Intent or timing not determined yet. Keep reaching out.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
+    'sphere' => ['a' => 'Yes: a strong source of referrals and future business.', 'b' => 'Likely to refer or use you.', 'c' => 'Maybe. Stay in touch.', 'd' => 'Maybe not. Light touch only.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
+];
 
 function ld_today() { return (new DateTime('now', new DateTimeZone('America/New_York')))->format('Y-m-d'); }
 function ld_days($a, $b) { return (int)round((strtotime($b . ' 12:00') - strtotime($a . ' 12:00')) / 86400); }
@@ -104,7 +109,6 @@ function ld_view($email, $agent, $phone) {
                 $v += ['due' => $nx['due'], 'over' => ld_days($nx['due'], $today), 'step' => $nx['step'], 'of' => $nx['of'], 'plan' => $nx['plan'], 'mid' => $nx['msg']['id'], 'ch' => $nx['msg']['ch'],
                        'subj' => ld_fill($nx['msg']['subj'], $L, $agent, $phone), 'text' => ld_fill($nx['msg']['text'], $L, $agent, $phone), 'goal' => $nx['msg']['goal']];
             } elseif ($nx) { $v += ['done' => true, 'plan' => $nx['plan']]; }
-            $v['lofty'] = $k === 'new' ? (($r['touches'] ?? 0) < 4 ? 'New Leads' : 'Attempting Contact') : (LD_LOFTY[$r['sub']] ?? '');
             $roles[] = $v;
         }
         $L['view'] = $roles; $out[] = $L;
