@@ -7,13 +7,15 @@ header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }
 $me = strtolower($_SESSION['email'] ?? '');
 list($agent, $phone) = ld_me();
+$warn = '';
+ld_autosort($me);
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { out(['ok' => true, 'warn' => $warn, 'leads' => ld_view($me, $agent, $phone)]); }
 $j = json_decode((string)file_get_contents('php://input'), true);
 if (!is_array($j) || !hash_equals($_SESSION['csrf'] ?? '', (string)($j['csrf'] ?? ''))) out(['ok' => false, 'msg' => 'This page expired. Please reload.']);
 $act = (string)($j['action'] ?? ''); $today = ld_today();
 if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.
-$pre = []; $warn = '';
+$pre = [];
 $findL = function ($id) use ($me) { foreach (ld_load($me)['leads'] as $x) { if (($x['id'] ?? '') === $id) return $x; } return null; };
 if ($act === 'startseller') {
     $L0 = $findL((string)($j['id'] ?? '')); if (!$L0) out(['ok' => false, 'msg' => 'That lead was not found.']);
@@ -112,4 +114,5 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
     return 'Unknown action.';
 });
 if ($err) out(['ok' => false, 'msg' => $err]);
+ld_autosort($me);
 out(['ok' => true, 'warn' => $warn, 'leads' => ld_view($me, $agent, $phone)]);

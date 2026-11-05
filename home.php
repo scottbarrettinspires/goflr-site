@@ -18,10 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 }
 $anns = flr_announcements($me);
 require_once __DIR__ . "/leadlib.php";
-$hotN = 0; $newN = 0; $hotNames = []; $newLeads = [];
+ld_autosort($me);
+$hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 foreach (ld_view($me, '', '') as $L) {
     $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
     if ($isNew) { $newN++; $newLeads[] = $L; }
+    foreach ($L['view'] as $v) { if ($v['sub'] === 'unid' && isset($v['over']) && $v['over'] >= 0) { $unreached[] = [$L, $v]; break; } }
     foreach ($L['view'] as $v) { if (isset($v['over']) && $v['over'] >= 0 && $v['sub'] !== 'dnc') { $hotN++; if (count($hotNames) < 4) $hotNames[] = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')); break; } }
 }
 // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
@@ -117,6 +119,23 @@ foreach ($FLR_EVENTS as $ev) {
     </div>
 <?php endforeach; ?>
 <?php if (count($newLeads) > 8): ?><p style="margin:8px 0 0"><a href="leads.php">See all <?= count($newLeads) ?> new leads</a></p><?php endif; ?>
+  </div>
+<?php endif; ?>
+<?php if ($unreached): usort($unreached, function ($a, $b) { return $b[1]['over'] - $a[1]['over']; }); ?>
+  <div class="panel sigbox" style="border-left:5px solid #e53935;margin-bottom:16px">
+    <p><span class="tag" style="background:#fde2e1;color:#b71c1c">Not reached yet</span></p>
+    <p><strong><?= count($unreached) ?> lead<?= count($unreached) === 1 ? '' : 's' ?> still waiting to hear from you.</strong> Try again today. Once you reach someone, move them to Ready, Soon or Later and work toward a buyer agreement or listing appointment.</p>
+<?php foreach (array_slice($unreached, 0, 6) as $u): $L = $u[0]; $v = $u[1];
+        $nm = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) ?: (($L['phone'] ?? '') ?: ($L['email'] ?? 'Lead'));
+        $tel = preg_replace('/[^0-9+]/', '', (string)($L['phone'] ?? '')); ?>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)">
+      <div style="flex:1;min-width:180px"><strong><?= htmlspecialchars($nm) ?></strong><br><span style="font-size:.85rem;color:#5a6a6c"><?= htmlspecialchars(($v['role'] === 'seller' ? 'Seller' : 'Buyer') . ' · attempt ' . $v['step'] . ' · ' . $v['ch'] . ($v['over'] > 0 ? ' · ' . $v['over'] . ' day' . ($v['over'] === 1 ? '' : 's') . ' overdue' : ' · due today')) ?></span></div>
+      <?php if ($tel !== ''): ?><a class="btn" href="tel:<?= htmlspecialchars($tel) ?>">Call</a> <a class="btn ghost" href="sms:<?= htmlspecialchars($tel) ?>">Text</a><?php endif; ?>
+      <?php if (!empty($L['email'])): ?><a class="btn ghost" href="mailto:<?= htmlspecialchars($L['email']) ?>">Email</a><?php endif; ?>
+      <a class="btn ghost" href="leads.php?open=<?= urlencode($L['id']) ?>">Open lead</a>
+    </div>
+<?php endforeach; ?>
+<?php if (count($unreached) > 6): ?><p style="margin:8px 0 0"><a href="leads.php">See all <?= count($unreached) ?></a></p><?php endif; ?>
   </div>
 <?php endif; ?>
 <?php foreach ($anns as $a): ?>

@@ -4,6 +4,7 @@ require __DIR__ . "/leadlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');
 list($agent, $phone) = ld_me();
+ld_autosort($me);
 $leads = ld_view($me, $agent, $phone);
 $intake = ld_intake($me, $agent, $phone);
 $intakeUrl = 'https://goflr.com/lead_in.php?k=' . ($intake['key'] ?? '');
@@ -89,7 +90,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 <script>
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>, CATS=<?= json_encode($cats) ?>, LEADS=<?= json_encode($leads) ?>, TODAY=<?= json_encode(ld_today()) ?>, INTAKE=<?= json_encode($intakeUrl) ?>;
-var HEAT={new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5,client:6};
+var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=["Website","Landing page","Facebook","Instagram","Google","Zillow","Realtor.com","Open house","Sign call","Referral","Sphere","Other"];
 var view={tab:"overview",sub:null,q:""};
 var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal");
@@ -98,7 +99,7 @@ function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email|
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
 function digits(p){return String(p||"").replace(/[^0-9+]/g,"");}
 function subLabel(role,sub){if(role==="new")return "NEW";if(sub==="client")return "In My Transactions";return (CATS[role]&&CATS[role].subs[sub])||sub;}
-function heatClass(sub){return "h"+(sub==="new"?0:HEAT[sub]);}
+function heatClass(sub){return "h"+({new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5,client:6}[sub]);}
 function inRole(L,role){return role==="new"?!L.view.some(function(v){return v.role!=="new";}):!!(L.roles&&L.roles[role]);}
 function vfor(L,role){for(var i=0;i<L.view.length;i++){if(L.view[i].role===role)return L.view[i];}return null;}
 function dueBadge(v){
@@ -129,21 +130,22 @@ function hotList(){
 }
 function soonList(){var items=[];LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.over<0&&v.over>=-7&&v.sub!=="dnc")items.push([L,v]);});});items.sort(function(a,b){return b[1].over-a[1].over;});return items;}
 function renderOverview(){
-  var c=counts(),hot=hotList(),soon=soonList(),wk=0,newWk=0,readyB=0,readyS=0,sa=0,cold=0;
+  var c=counts(),hot=hotList(),soon=soonList(),wk=0,newWk=0,readyB=0,readyS=0,sa=0,cold=0,unr=0;
   var wkAgo=new Date(TODAY+"T12:00:00");wkAgo.setDate(wkAgo.getDate()-7);var wkS=wkAgo.toISOString().slice(0,10);
   LEADS.forEach(function(L){(L.log||[]).forEach(function(g){if(g.d>=wkS)wk++;});if((L.added||"")>=wkS)newWk++;
     if(L.roles&&L.roles.buyer&&L.roles.buyer.sub==="ready")readyB++;if(L.roles&&L.roles.seller&&L.roles.seller.sub==="ready")readyS++;if(L.roles&&L.roles.sphere&&L.roles.sphere.sub==="a")sa++;
-    L.view.forEach(function(v){if(v.sub==="unid"||v.sub==="dnc"||v.sub==="d")cold++;});});
+    L.view.forEach(function(v){if(v.sub==="unid")unr++;if(v.sub==="dnc"||v.sub==="d")cold++;});});
   var h='<div class="stats">'
    +'<div class="stat hot"><b>'+hot.length+'</b><span>Touches due now</span></div>'
    +'<div class="stat hot"><b>'+c.new+'</b><span>NEW leads to sort</span></div>'
+   +'<div class="stat hot"><b>'+unr+'</b><span>Not reached yet (Undetermined)</span></div>'
    +'<div class="stat hot"><b>'+readyB+'</b><span>Ready buyers</span></div>'
    +'<div class="stat hot"><b>'+readyS+'</b><span>Ready sellers</span></div>'
    +'<div class="stat"><b>'+sa+'</b><span>Sphere A Yes</span></div>'
    +'<div class="stat" style="border-left:5px solid #036f72"><b>'+LEADS.filter(function(L){return L.roles&&((L.roles.buyer&&L.roles.buyer.sub==="client")||(L.roles.seller&&L.roles.seller.sub==="client"));}).length+'</b><span>Clients in My Transactions</span></div>'
    +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
    +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
-   +'<div class="stat cold"><b>'+cold+'</b><span>Cold (Undetermined, D, Do Not Contact)</span></div></div>';
+   +'<div class="stat cold"><b>'+cold+'</b><span>Cold (D Maybe Not, Do Not Contact)</span></div></div>';
   h+='<div class="lpanel"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
   h+='<div class="lpanel" style="margin-top:14px"><h2>Coming up in the next 7 days</h2>'+(soon.length?soon.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing scheduled this week.</p>')+'</div>';
   h+='<div class="lpanel" style="margin-top:14px"><h2>Your lead link</h2><p style="color:#5a6a6c;margin:-4px 0 10px">Share this link anywhere people find you. Every person who fills it in lands in your NEW tab and on your home page.</p>'

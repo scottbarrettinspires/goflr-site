@@ -12,15 +12,15 @@ const LD_CATS = [
 // Plan for each role + sub-category: message prefix, loop-from step (null = no loop), fixed spacing in days (null = use each message's own spacing).
 const LD_PLANS = [
     'new'    => ['P1+P2', null, null],
-    'buyer'  => ['ready' => ['P3-B', 9, null], 'soon' => ['P4-B', 1, null], 'later' => ['P5-B+P6-B@10', 5, null], 'unid' => ['P10-B', 8, null]],
-    'seller' => ['ready' => ['P3-S', 9, null], 'soon' => ['P4-S', 1, null], 'later' => ['P5-S+P6-S@10', 5, null], 'unid' => ['P10-S', 8, null]],
+    'buyer'  => ['ready' => ['P3-B', 9, null], 'soon' => ['P4-B', 1, null], 'later' => ['P5-B+P6-B@10', 5, null], 'unid' => ['U+P10-B@8', 7, null]],
+    'seller' => ['ready' => ['P3-S', 9, null], 'soon' => ['P4-S', 1, null], 'later' => ['P5-S+P6-S@10', 5, null], 'unid' => ['U+P10-S@8', 7, null]],
     'sphere' => ['a' => ['P7', 1, 30], 'b' => ['P7', 1, 45], 'c' => ['P7', 1, 60], 'd' => ['P7', 1, 90]],
 ];
-const LD_HEAT = ['new' => 0, 'ready' => 1, 'a' => 1, 'soon' => 2, 'b' => 2, 'later' => 3, 'c' => 3, 'unid' => 4, 'd' => 4, 'dnc' => 9];
+const LD_HEAT = ['new' => 0, 'ready' => 1, 'a' => 1, 'unid' => 1, 'soon' => 2, 'b' => 2, 'later' => 3, 'c' => 3, 'd' => 4, 'dnc' => 9];
 // What each sub-category means: how close the person is to signing a buyer broker or listing agreement (Sphere: how likely to refer).
 const LD_STAGE = [
-    'buyer'  => ['ready' => 'Ready to sign a buyer broker agreement and buy within about 3 months.', 'soon' => 'Likely to sign a buyer broker agreement in 3 to 6 months.', 'later' => 'Planning to buy 6 or more months out.', 'unid' => 'Intent or timing not determined yet. Keep reaching out.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
-    'seller' => ['ready' => 'Ready to sign a listing agreement and sell within about 3 months.', 'soon' => 'Likely to sign a listing agreement in 3 to 6 months.', 'later' => 'Planning to sell 6 or more months out.', 'unid' => 'Intent or timing not determined yet. Keep reaching out.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
+    'buyer'  => ['ready' => 'Ready to sign a buyer broker agreement and buy within about 3 months.', 'soon' => 'Likely to sign a buyer broker agreement in 3 to 6 months.', 'later' => 'Planning to buy 6 or more months out.', 'unid' => 'Not reached yet. Keep trying every few days until you make contact, then move them to Ready, Soon or Later.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
+    'seller' => ['ready' => 'Ready to sign a listing agreement and sell within about 3 months.', 'soon' => 'Likely to sign a listing agreement in 3 to 6 months.', 'later' => 'Planning to sell 6 or more months out.', 'unid' => 'Not reached yet. Keep trying every few days until you make contact, then move them to Ready, Soon or Later.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
     'sphere' => ['a' => 'Yes: a strong source of referrals and future business.', 'b' => 'Likely to refer or use you.', 'c' => 'Maybe. Stay in touch.', 'd' => 'Maybe not. Light touch only.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
 ];
 
@@ -191,4 +191,33 @@ function ld_intake_add($file, $in) {
             'roles' => ['new' => ['since' => $today, 'touches' => 0]], 'log' => [['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'Lead came in via ' . $in['source']]]]);
         return ['dup' => false, 'id' => $id];
     });
+}
+
+// A NEW lead that has had every first-contact attempt (or has waited 14 days) moves to Undetermined, on the side it asked about.
+const LD_NEW_DAYS = 14;
+function ld_autosort($email) {
+    $db = ld_load($email); $today = ld_today(); $need = false;
+    foreach ($db['leads'] as $L) { if (ld_should_sort($L, $today)) { $need = true; break; } }
+    if (!$need) return;
+    ld_update($email, function (&$db) use ($today) {
+        foreach ($db['leads'] as &$L) {
+            if (!ld_should_sort($L, $today)) continue;
+            $sides = ld_sides_for($L);
+            foreach ($sides as $k) { $L['roles'][$k] = ['sub' => 'unid', 'since' => $today, 'touches' => 0, 'last' => '']; }
+            $L['log'][] = ['d' => $today, 'role' => 'new', 'mid' => '', 'note' => 'Not reached yet: moved to ' . implode(' and ', array_map(function ($k) { return LD_CATS[$k]['label']; }, $sides)) . ' > Undetermined'];
+        }
+    });
+}
+function ld_should_sort($L, $today) {
+    foreach (['buyer', 'seller', 'sphere'] as $k) { if (!empty($L['roles'][$k])) return false; }
+    $n = $L['roles']['new'] ?? ['since' => $L['added'] ?? $today, 'touches' => 0];
+    if (!empty($L['keepnew'])) return false;
+    return (int)($n['touches'] ?? 0) >= count(ld_plan_msgs(LD_PLANS['new'][0])) || ld_days($n['since'] ?? ($L['added'] ?? $today), $today) >= LD_NEW_DAYS;
+}
+// Which side an unreached lead belongs to: what they told us on the form (or in the notes), otherwise Buyers.
+function ld_sides_for($L) {
+    $t = strtolower(($L['notes'] ?? '') . ' ' . ($L['interest'] ?? ''));
+    if (strpos($t, 'buying and selling') !== false) return ['buyer', 'seller'];
+    if (preg_match('/interested in: selling/', $t)) return ['seller'];
+    return ['buyer'];
 }
