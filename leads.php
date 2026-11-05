@@ -170,8 +170,19 @@ function renderCat(){
 function render(){renderTabs();if(view.tab==="overview")renderOverview();else renderCat();}
 body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
-function mv(role,cur){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b><button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>';
+function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client"><b>'+esc(CATS[role].label)+'</b><span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'"><b>'+esc(CATS[role].label)+'</b>'+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
   Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
+// Move lead: only the sub-categories of the main category (or categories) the lead is in. Other main categories sit behind a link.
+function mvBox(L,isNew,rs){
+  var cur=["buyer","seller","sphere"].filter(function(k){return rs[k];});
+  if(!cur.length){return '<h3>Category</h3>'+mv("buyer","",true)+mv("seller","",true)+mv("sphere","",true)+'<div style="font-size:.82rem;color:#5a6a6c">'+(isNew?'Choose at least one. A lead can be both a buyer and a seller.':'Choose where this lead belongs. It leaves NEW right away.')+'</div>';}
+  var h='<h3>'+(isNew?'Category':'Move lead')+'</h3>'+cur.map(function(k){return mv(k,rs[k],false);}).join("");
+  var other=["buyer","seller","sphere"].filter(function(k){return !rs[k];});
+  h+='<div style="font-size:.82rem;color:#5a6a6c">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan. ')+'<a href="#" class="mvmore">Other categories</a></div>';
+  h+='<div class="mvx" hidden style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">'+other.map(function(k){return mv(k,"",true);}).join("")
+    +(isNew?'':cur.filter(function(k){return rs[k]!=="client";}).map(function(k){return '<button type="button" class="btn sm ghost mvrm" data-role="'+k+'" style="margin:4px 6px 0 0">Remove from '+esc(CATS[k].label)+'</button>';}).join(""))+'</div>';
+  return h;
+}
 function openLead(L,preset){
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
   var rs={};["buyer","seller","sphere"].forEach(function(k){rs[k]=(L.roles&&L.roles[k]&&L.roles[k].sub)||(preset&&preset[k])||"";});
@@ -180,8 +191,7 @@ function openLead(L,preset){
    +'<div><label>Phone</label><input id="f_phone" type="tel" value="'+esc(L.phone)+'"></div><div><label>Email</label><input id="f_email" type="email" value="'+esc(L.email)+'"></div>'
    +'<div><label>Source</label><input id="f_source" list="srcs" value="'+esc(L.source)+'"><datalist id="srcs">'+SOURCES.map(function(s){return '<option value="'+esc(s)+'">';}).join("")+'</datalist></div>'
    +'<div><label>Added</label><input value="'+esc(L.added?fmtD(L.added):"Today")+'" disabled></div>'
-   +'<div class="full mvbox" id="mvbox"><h3>'+(isNew?'Category':'Move lead')+'</h3>'+mv("buyer",rs.buyer)+mv("seller",rs.seller)+mv("sphere",rs.sphere)
-   +'<div style="font-size:.82rem;color:#5a6a6c">'+(isNew?'Choose at least one: Buyer, Seller or Sphere. A lead can be both a buyer and a seller.':'Tap a button to move the lead right away. Choosing None in all three sends it back to NEW. Moving restarts that plan.')+'</div></div>'
+   +'<div class="full mvbox" id="mvbox">'+mvBox(L,isNew,rs)+'</div>'
    +'<div class="full"><label>Notes</label><textarea id="f_notes" rows="3">'+esc(L.notes)+'</textarea></div></div>'
    +'<div class="btns"><button class="btn" id="m_save">'+(isNew?"Add lead":"Save changes")+'</button><button class="btn ghost" id="m_close">Close</button>'+(isNew?"":'<button class="btn ghost" id="m_del" style="margin-left:auto;color:#b71c1c;border-color:#e3b4b4">Delete</button>')+'</div><p class="note" id="m_msg" hidden></p>';
   if(!isNew){
@@ -212,6 +222,9 @@ function openLead(L,preset){
   modal.innerHTML=h;mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
   if(!isNew){modal.insertBefore(document.getElementById("mvbox"),fg);}
+  var mm=modal.querySelector(".mvmore");if(mm)mm.onclick=function(e){e.preventDefault();modal.querySelector(".mvx").hidden=false;mm.remove();};
+  modal.querySelectorAll(".mvrm").forEach(function(b){b.onclick=async function(){var row=modal.querySelector('.mvrow[data-role="'+b.dataset.role+'"]');if(!row)return;row.dataset.val="";b.disabled=true;
+    try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles()});reopen(L.id);render();}catch(err){say(err.message,true);b.disabled=false;}};});
   modal.querySelectorAll(".mvrow").forEach(function(r){r.addEventListener("click",async function(e){var b=e.target.closest(".mvb");if(!b||b.classList.contains("on"))return;
     var prev=r.dataset.val;r.dataset.val=b.dataset.v;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x===b);});
     if(isNew)return;
