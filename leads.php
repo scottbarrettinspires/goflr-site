@@ -220,6 +220,7 @@ function close(){mback.classList.remove("show");modal.innerHTML="";}
 mback.addEventListener("click",function(e){if(e.target===mback)close();});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
 render();
+var op=new URLSearchParams(location.search).get("open");if(op){view.tab="new";render();reopen(op);}
 })();
 </script>
 </body>

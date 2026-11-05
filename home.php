@@ -18,10 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 }
 $anns = flr_announcements($me);
 require_once __DIR__ . "/leadlib.php";
-$hotN = 0; $newN = 0; $hotNames = [];
+$hotN = 0; $newN = 0; $hotNames = []; $newLeads = [];
 foreach (ld_view($me, '', '') as $L) {
     $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
-    if ($isNew) $newN++;
+    if ($isNew) { $newN++; $newLeads[] = $L; }
     foreach ($L['view'] as $v) { if (isset($v['over']) && $v['over'] >= 0 && $v['sub'] !== 'dnc') { $hotN++; if (count($hotNames) < 4) $hotNames[] = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')); break; } }
 }
 // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
@@ -99,6 +99,26 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+<?php if ($newLeads):
+    usort($newLeads, function ($a, $b) { return strcmp(($b['created'] ?? $b['added'] ?? ''), ($a['created'] ?? $a['added'] ?? '')); });
+    $today = ld_today(); ?>
+  <div class="panel sigbox" style="border-left:5px solid #b71c1c;margin-bottom:16px">
+    <p><span class="tag" style="background:#fde2e1;color:#b71c1c">New leads</span></p>
+    <p><strong><?= count($newLeads) ?> new lead<?= count($newLeads) === 1 ? '' : 's' ?> waiting.</strong> Call within 5 minutes when you can, then sort each one into Buyers, Sellers or Sphere.</p>
+<?php foreach (array_slice($newLeads, 0, 8) as $L):
+        $nm = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) ?: (($L['phone'] ?? '') ?: ($L['email'] ?? 'New lead'));
+        $d = $L['added'] ?? $today; $when = $d === $today ? 'Today' : ($d === ld_add($today, -1) ? 'Yesterday' : date('M j', strtotime($d)));
+        $tel = preg_replace('/[^0-9+]/', '', (string)($L['phone'] ?? '')); ?>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)">
+      <div style="flex:1;min-width:180px"><strong><?= htmlspecialchars($nm) ?></strong><br><span style="font-size:.85rem;color:#5a6a6c"><?= htmlspecialchars($when . (!empty($L['source']) ? ' · ' . $L['source'] : '')) ?></span></div>
+      <?php if ($tel !== ''): ?><a class="btn" href="tel:<?= htmlspecialchars($tel) ?>">Call</a> <a class="btn ghost" href="sms:<?= htmlspecialchars($tel) ?>">Text</a><?php endif; ?>
+      <?php if (!empty($L['email'])): ?><a class="btn ghost" href="mailto:<?= htmlspecialchars($L['email']) ?>">Email</a><?php endif; ?>
+      <a class="btn ghost" href="leads.php?open=<?= urlencode($L['id']) ?>">Open lead</a>
+    </div>
+<?php endforeach; ?>
+<?php if (count($newLeads) > 8): ?><p style="margin:8px 0 0"><a href="leads.php">See all <?= count($newLeads) ?> new leads</a></p><?php endif; ?>
+  </div>
+<?php endif; ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
     <p><span class="tag"><?= !empty($a['personal']) ? 'Message for you' : 'Announcement' ?></span></p>

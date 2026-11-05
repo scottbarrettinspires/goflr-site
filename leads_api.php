@@ -18,7 +18,7 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today) {
         $f = ['first' => ld_clean($in['first'] ?? '', 60), 'last' => ld_clean($in['last'] ?? '', 60), 'phone' => ld_clean($in['phone'] ?? '', 30), 'email' => ld_clean($in['email'] ?? '', 120), 'source' => ld_clean($in['source'] ?? '', 60), 'notes' => ld_clean($in['notes'] ?? '', 4000)];
         if ($f['first'] === '' && $f['last'] === '' && $f['phone'] === '' && $f['email'] === '') return 'Add at least a name, phone or email.';
         $i = $id !== '' ? $find($id) : -1;
-        if ($i < 0) { $L = ['id' => bin2hex(random_bytes(6)), 'added' => $today, 'roles' => ['new' => ['since' => $today, 'touches' => 0]], 'log' => []]; }
+        if ($i < 0) { $L = ['id' => bin2hex(random_bytes(6)), 'added' => $today, 'created' => date('c'), 'roles' => ['new' => ['since' => $today, 'touches' => 0]], 'log' => []]; }
         else { $L = $db['leads'][$i]; }
         $L = array_merge($L, $f);
         $want = (array)($j['roles'] ?? []);
