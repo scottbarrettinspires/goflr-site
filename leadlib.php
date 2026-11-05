@@ -4,8 +4,8 @@
 require_once __DIR__ . '/lib.php';
 
 const LD_CATS = [
-    'buyer'  => ['label' => 'Buyers',  'subs' => ['ready' => 'Ready', 'soon' => 'Soon', 'later' => 'Later', 'unid' => 'Unidentified', 'dnc' => 'Do Not Contact']],
-    'seller' => ['label' => 'Sellers', 'subs' => ['ready' => 'Ready', 'soon' => 'Soon', 'later' => 'Later', 'unid' => 'Unidentified', 'dnc' => 'Do Not Contact']],
+    'buyer'  => ['label' => 'Buyers',  'subs' => ['ready' => 'Ready', 'soon' => 'Soon', 'later' => 'Later', 'unid' => 'Undetermined', 'dnc' => 'Do Not Contact']],
+    'seller' => ['label' => 'Sellers', 'subs' => ['ready' => 'Ready', 'soon' => 'Soon', 'later' => 'Later', 'unid' => 'Undetermined', 'dnc' => 'Do Not Contact']],
     'sphere' => ['label' => 'Sphere',  'subs' => ['a' => 'A Yes', 'b' => 'B Likely', 'c' => 'C Maybe', 'd' => 'D Maybe Not', 'dnc' => 'Do Not Contact']],
 ];
 // Plan for each role + sub-category: message prefix, loop-from step (null = no loop), fixed spacing in days (null = use each message's own spacing).

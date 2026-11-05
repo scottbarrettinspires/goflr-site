@@ -135,16 +135,15 @@ function renderOverview(){
    +'<div class="stat"><b>'+sa+'</b><span>Sphere A Yes</span></div>'
    +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
    +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
-   +'<div class="stat cold"><b>'+cold+'</b><span>Cold (Unidentified, D, Do Not Contact)</span></div></div>';
-  h+='<div class="lpanel"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work. Add a lead or check your Sphere.</p>')+'</div>';
+   +'<div class="stat cold"><b>'+cold+'</b><span>Cold (Undetermined, D, Do Not Contact)</span></div></div>';
+  h+='<div class="lpanel"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
   h+='<div class="lpanel" style="margin-top:14px"><h2>Coming up in the next 7 days</h2>'+(soon.length?soon.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing scheduled this week.</p>')+'</div>';
-  h+='<p style="margin-top:14px"><button class="btn" id="addAny">+ Add a lead</button></p>';
-  body.innerHTML=h;document.getElementById("addAny").onclick=function(){openLead(null,{});};
+  body.innerHTML=h;
 }
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
   if(view.sub===null)view.sub=role==="new"?"all":keys[0];
-  var side='<button class="sb h0" id="addHere">+ NEW <span class="n">add</span></button>';
+  var side=role==="new"?"":'<button class="sb h0" id="addHere">+ NEW <span class="n">add</span></button>';
   if(role==="new"){side+='<button class="sb h1 on">All NEW <span class="n">'+counts().new+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'">'+esc(subs[k])+' <span class="n">'+n+'</span></button>';});
@@ -156,7 +155,7 @@ function renderCat(){
     +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet.</p>')+'</div>';
   body.innerHTML='<div class="lwrap"><div class="lside">'+side+'</div><div>'+main+'</div></div>';
   body.querySelectorAll(".sb[data-s]").forEach(function(b){b.onclick=function(){view.sub=b.dataset.s;render();};});
-  document.getElementById("addHere").onclick=function(){var r={};if(role!=="new")r[role]=view.sub;openLead(null,r);};
+  var ah=document.getElementById("addHere");if(ah)ah.onclick=function(){var r={};r[role]=view.sub;openLead(null,r);};
   var lq=document.getElementById("lq");lq.oninput=function(){view.q=lq.value;var p=lq.selectionStart;renderCat();var n=document.getElementById("lq");n.focus();n.setSelectionRange(p,p);};
 }
 function render(){renderTabs();if(view.tab==="overview")renderOverview();else renderCat();}
@@ -172,7 +171,7 @@ function openLead(L,preset){
    +'<div><label>Source</label><input id="f_source" list="srcs" value="'+esc(L.source)+'"><datalist id="srcs">'+SOURCES.map(function(s){return '<option value="'+esc(s)+'">';}).join("")+'</datalist></div>'
    +'<div><label>Added</label><input value="'+esc(L.added?fmtD(L.added):"Today")+'" disabled></div>'
    +'<div><label>Buyer</label>'+sel("buyer",rs.buyer)+'</div><div><label>Seller</label>'+sel("seller",rs.seller)+'</div>'
-   +'<div><label>Sphere</label>'+sel("sphere",rs.sphere)+'</div><div style="font-size:.82rem;color:#5a6a6c;align-self:end">Leave all three blank to keep the lead in NEW. Changing a category restarts that plan.</div>'
+   +'<div><label>Sphere</label>'+sel("sphere",rs.sphere)+'</div><div style="font-size:.82rem;color:#5a6a6c;align-self:end">'+(isNew?'Choose at least one: Buyer, Seller or Sphere.':'Clearing all three moves the lead back to NEW. Changing a category restarts that plan.')+'</div>'
    +'<div class="full"><label>Notes</label><textarea id="f_notes" rows="3">'+esc(L.notes)+'</textarea></div></div>'
    +'<div class="btns"><button class="btn" id="m_save">'+(isNew?"Add lead":"Save changes")+'</button><button class="btn ghost" id="m_close">Close</button>'+(isNew?"":'<button class="btn ghost" id="m_del" style="margin-left:auto;color:#b71c1c;border-color:#e3b4b4">Delete</button>')+'</div><p class="note" id="m_msg" hidden></p>';
   if(!isNew){
@@ -200,7 +199,8 @@ function openLead(L,preset){
   var msg=document.getElementById("m_msg");function say(t,bad){msg.textContent=t;msg.className=bad?"note sigerr":"note";msg.hidden=false;}
   document.getElementById("m_close").onclick=close;
   document.getElementById("m_save").onclick=async function(){var b=this;b.disabled=true;
-    var roles={};modal.querySelectorAll("select[data-role]").forEach(function(s){roles[s.dataset.role]=s.value;});
+    var roles={},any=false;modal.querySelectorAll("select[data-role]").forEach(function(s){roles[s.dataset.role]=s.value;if(s.value)any=true;});
+    if(isNew&&!any){say("Choose Buyer, Seller or Sphere for this lead.",true);b.disabled=false;return;}
     try{await api({action:"save",id:isNew?"":L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:roles});close();render();}
     catch(e){say(e.message,true);b.disabled=false;}};
   if(!isNew){document.getElementById("m_del").onclick=async function(){if(!confirmDel(this))return;try{await api({action:"delete",id:L.id});close();render();}catch(e){say(e.message,true);}};}
