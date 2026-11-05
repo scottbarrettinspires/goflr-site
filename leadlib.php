@@ -104,7 +104,7 @@ function ld_view($email, $agent, $phone) {
         foreach ($list as $k) {
             $r = $k === 'new' ? ($L['roles']['new'] ?? ['since' => $L['added'] ?? $today, 'touches' => 0]) : $L['roles'][$k];
             if ($k === 'new') $r['sub'] = 'new';
-            $nx = ld_next($k, $r); $v = ['role' => $k, 'sub' => $r['sub'], 'touches' => (int)($r['touches'] ?? 0), 'last' => $r['last'] ?? '', 'since' => $r['since'] ?? '', 'folder' => $r['folder'] ?? '', 'record' => $r['record'] ?? ''];
+            $nx = ld_next($k, $r); $v = ['role' => $k, 'sub' => $r['sub'], 'touches' => (int)($r['touches'] ?? 0), 'last' => $r['last'] ?? '', 'since' => $r['since'] ?? '', 'folder' => $r['folder'] ?? '', 'record' => $r['record'] ?? '', 'stage' => (int)($r['stage'] ?? 1), 'stagename' => ld_stage_name($k, $r['stage'] ?? 1)];
             if ($nx && empty($nx['done'])) {
                 $v += ['due' => $nx['due'], 'over' => ld_days($nx['due'], $today), 'step' => $nx['step'], 'of' => $nx['of'], 'plan' => $nx['plan'], 'mid' => $nx['msg']['id'], 'ch' => $nx['msg']['ch'],
                        'subj' => ld_fill($nx['msg']['subj'], $L, $agent, $phone), 'text' => ld_fill($nx['msg']['text'], $L, $agent, $phone), 'goal' => $nx['msg']['goal']];
@@ -116,6 +116,10 @@ function ld_view($email, $agent, $phone) {
     return $out;
 }
 
+function ld_stage_name($role, $n) {
+    $m = $role === 'seller' ? [1 => 'Pre Listing', 2 => 'Active Listing', 3 => 'Pending Listing', 4 => 'Archived'] : [1 => 'Buyer Agreement', 3 => 'Pending Contract', 4 => 'Archived'];
+    return $m[(int)$n] ?? 'My Transactions';
+}
 function ld_clean($s, $max = 200) { return mb_substr(trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', (string)$s)), 0, $max); }
 
 // The signed-in agent's name and phone for {Agent} and {Phone}.
