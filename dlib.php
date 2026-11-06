@@ -83,7 +83,7 @@ function dl_upcoming($email, $days = 14, $includeOverdue = true) {
 }
 function dl_when($left) { return $left < 0 ? 'Overdue by ' . -$left . ' day' . ($left === -1 ? '' : 's') : ($left === 0 ? 'Due today' : ($left === 1 ? 'Due tomorrow' : 'In ' . $left . ' days')); }
 // Who may see every agent's data: office staff, or a broker account listed here.
-const FLR_BROKER_EMAILS = ['scott@myflroffice.com', 'owner@myflroffice.com', 'broker@myflroffice.com', 'admin@myflroffice.com', 'operations@myflroffice.com'];
+const FLR_BROKER_EMAILS = ['owner@myflroffice.com', 'broker@myflroffice.com', 'admin@myflroffice.com', 'operations@myflroffice.com'];
 function flr_is_broker() { return !empty($_SESSION['staff']) || in_array(strtolower($_SESSION['email'] ?? ''), FLR_BROKER_EMAILS, true); }
 
 // POST op=savedates on a buyer/seller record page: saves the effective date, each period's day-count or date, and done
