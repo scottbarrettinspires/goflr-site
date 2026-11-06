@@ -91,6 +91,9 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .modal .btns .btn.sm,.modal .btns a.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
 .touch textarea,.touch input,.fgrid input,.fgrid textarea{font-size:.92rem;padding:8px 10px}
 .ltabs button.newtab{background:#d32f2f;border-color:#d32f2f;color:#fff}.ltabs button.newtab .n{background:rgba(255,255,255,.28);color:#fff}.ltabs button.newtab.on{background:#b71c1c;border-color:#b71c1c;box-shadow:0 0 0 3px rgba(183,28,28,.25)}
+.mtabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 12px}.mtabs button{font:inherit;font-size:.86rem;font-weight:700;padding:8px 14px;border:0;border-bottom:3px solid transparent;background:none;color:#5a6a6c;cursor:pointer}
+.mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
+.hist.pane{max-height:none;border-top:0;margin-top:0;padding-top:0;font-size:.9rem;line-height:1.7}
 </style>
 </head>
 <body>
@@ -306,7 +309,7 @@ function openLead(L,preset){
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
   var rs={};["buyer","seller","sphere"].forEach(function(k){rs[k]=(L.roles&&L.roles[k]&&L.roles[k].sub)||(preset&&preset[k])||"";});
   var h='<h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 0"><span>'+(isNew?"Add a lead":esc(nm(L))+(L.phone?'<a href="tel:'+esc(digits(L.phone))+'" style="margin-left:1.2em;color:var(--teal);text-decoration:none;white-space:nowrap">'+esc(L.phone)+'</a>':''))+'</span>'
-   +(isNew?'':'<span style="margin-left:auto;display:flex;gap:6px"><button type="button" class="btn sm ghost" id="goNote">Add Note</button><button type="button" class="btn sm ghost" id="goHist">History</button></span>')+'</h2><div class="fgrid">'
++'</h2><div class="fgrid">'
    +'<div><label>First name</label><input id="f_first" value="'+esc(L.first)+'"></div><div><label>Last name</label><input id="f_last" value="'+esc(L.last)+'"></div>'
    +'<div><label>Phone</label><input id="f_phone" type="tel" value="'+esc(L.phone)+'"></div><div><label>Email</label><input id="f_email" type="email" value="'+esc(L.email)+'"></div>'
    +'<div><label>Source</label><input id="f_source" list="srcs" value="'+esc(L.source)+'"><datalist id="srcs">'+SOURCES.map(function(s){return '<option value="'+esc(s)+'">';}).join("")+'</datalist></div>'
@@ -351,6 +354,30 @@ function openLead(L,preset){
   modal.innerHTML=h;mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
   if(!isNew){modal.insertBefore(document.getElementById("mvbox"),fg);}
+  if(!isNew){ // Lead / Notes / History tabs inside the lead window
+    var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
+    var bar=document.createElement("div");bar.className="mtabs";bar.innerHTML='<button type="button" data-p="lead" class="on">Lead</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
+    h2.parentNode.insertBefore(bar,h2.nextSibling);
+    var pLead=document.createElement("div"),pNotes=document.createElement("div"),pHist=document.createElement("div");
+    while(bar.nextSibling){pLead.appendChild(bar.nextSibling);}
+    modal.appendChild(pLead);modal.appendChild(pNotes);modal.appendChild(pHist);pNotes.hidden=true;pHist.hidden=true;
+    var ta=document.getElementById("f_notes"),nwrap=ta.closest(".full");
+    pNotes.innerHTML='<p class="goal" style="margin:0 0 6px">Dated notes about this person. Tap <strong>Add Note</strong> to start a new line with today\'s date.</p>';
+    pNotes.appendChild(nwrap);ta.rows=12;var lb=nwrap.querySelector("label");if(lb)lb.remove();
+    ta.style.cssText="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:.92rem;line-height:1.5";
+    var nb=document.createElement("div");nb.className="btns";nb.innerHTML='<button type="button" class="btn" id="noteAdd">Add Note</button><button type="button" class="btn ghost" id="noteSave">Save notes</button><button type="button" class="btn ghost mclose">Close</button><span class="goal" id="noteMsg"></span>';pNotes.appendChild(nb);
+    var hb=document.getElementById("histbox");if(hb){hb.classList.add("pane");pHist.appendChild(hb);}
+    var hc=document.createElement("div");hc.className="btns";hc.innerHTML='<button type="button" class="btn ghost mclose">Close</button>';pHist.appendChild(hc);
+    modal.querySelectorAll(".mclose").forEach(function(b){b.onclick=close;});
+    function showPane(p){[["lead",pLead],["notes",pNotes],["hist",pHist]].forEach(function(x){x[1].hidden=x[0]!==p;});bar.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.p===p);});}
+    bar.querySelectorAll("button").forEach(function(b){b.onclick=function(){showPane(b.dataset.p);};});
+    document.getElementById("noteAdd").onclick=function(){var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+      ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+d+": ";ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);ta.scrollTop=ta.scrollHeight;};
+    document.getElementById("noteSave").onclick=async function(){var b=this,m=document.getElementById("noteMsg");b.disabled=true;
+      try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:ta.value.trim()},roles:readRoles()});
+        L.notes=ta.value.trim();m.textContent="Saved";bar.querySelector('[data-p="notes"] .n').textContent=L.notes?L.notes.split(/\n/).length:0;render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+    if(preset&&preset.pane)showPane(preset.pane);
+  }
   var pg=document.getElementById("pre_go");if(pg)pg.onclick=async function(){pg.disabled=true;pg.innerHTML='<span class="bspin"></span>Creating...';
     try{await api({action:"startseller",id:L.id,address:document.getElementById("pre_addr").value.trim()});reopen(L.id);render();}catch(e){alertIn(e.message);pg.disabled=false;pg.textContent="Set up listing appointment";}};
   function alertIn(t){var pp=modal.querySelector(".mvpre");var n=pp.querySelector(".sigerr");if(!n){n=document.createElement("p");n.className="sigerr";pp.appendChild(n);}n.textContent=t;}
@@ -364,7 +391,7 @@ function openLead(L,preset){
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),ref:r});reopen(L.id);render();}catch(e){say(e.message,true);}};
   if(!isNew&&L.roles&&L.roles.sphere){var refd=LEADS.filter(function(x){return x.ref===L.id;});
     var rb=document.createElement("div");rb.className="touch";rb.innerHTML='<div class="hd"><span>Referrals from '+esc(nm(L))+'</span><span class="due later">'+refd.length+'</span></div>'+(refd.length?refd.map(function(x){return '<div><a href="#" data-open="'+esc(x.id)+'">'+esc(nm(x))+'</a> <span class="goal">'+esc(x.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub);}).join(", "))+'</span></div>';}).join(""):'<p class="goal">No referrals yet. When a lead names this person in Referred by, it shows here.</p>');
-    modal.insertBefore(rb,document.getElementById("mvbox"));rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
+    var mvb=document.getElementById("mvbox");mvb.parentNode.insertBefore(rb,mvb);rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
   function refreshPills(box){var sum=modal.querySelector('.picksum[data-for="'+box+'"]'),sel=[];modal.querySelectorAll("#"+box+" .chip.on").forEach(function(c){sel.push(c.dataset.tag||c.dataset.int);});
     if(sum)sum.innerHTML=pills(sel);var pb=modal.querySelector('.pickbtn[data-box="'+box+'"]');if(pb)pb.textContent=sel.length?"Change":(box==="tagbox"?"+ Choose lead source":"+ Choose interests");}
   modal.querySelectorAll(".pickbtn").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.pickwrap[data-box="'+b.dataset.box+'"]');w.hidden=!w.hidden;};});
@@ -373,10 +400,6 @@ function openLead(L,preset){
   modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
-  var gn=document.getElementById("goNote");if(gn)gn.onclick=function(){var ta=document.getElementById("f_notes");var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
-    ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+d+": ";ta.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);},300);
-    var sv=document.getElementById("m_save");if(sv)sv.textContent="Save note";};
-  var gh=document.getElementById("goHist");if(gh)gh.onclick=function(){var hb=document.getElementById("histbox");if(hb)hb.scrollIntoView({behavior:"smooth",block:"start"});};
   var sphereMove=false;
   modal.querySelectorAll(".mvx").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.mvh[data-role="'+b.dataset.role+'"]');if(w)w.hidden=false;
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
