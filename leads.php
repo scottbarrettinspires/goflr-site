@@ -294,7 +294,11 @@ var MV_ACT=false,MV_LBL=true;
 function mvBox(L,isNew,rs){MV_ACT=!isNew;
   var cur=["buyer","seller","sphere"].filter(function(k){return rs[k];});
   MV_LBL=!cur.length; // category names only while the lead has no category yet (NEW)
-  if(!cur.length){return '<h3>Category</h3>'+mv("buyer","",true)+mv("seller","",true)+mv("sphere","",true)+'<div style="font-size:.82rem;color:#5a6a6c">'+(isNew?'Choose at least one. A lead can be both a buyer and a seller.':'Choose where this lead belongs. It leaves NEW right away.')+'</div>';}
+  if(!cur.length){ // NEW (online) leads: buyer, seller or both, then the stage. Sphere does not apply to these.
+    return '<h3>'+(isNew?'Category':'Sort this lead')+'</h3><div class="mvrow" id="mvside">'
+      +[["buyer","Buyer"],["seller","Seller"],["both","Buyer and Seller"]].map(function(x){return '<button type="button" class="mvb mvside" style="opacity:1;background:#fff" data-side="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>'
+      +'<div class="mvh" data-role="buyer" hidden>'+mv("buyer","",false)+'</div><div class="mvh" data-role="seller" hidden>'+mv("seller","",false)+'</div>'
+      +'<div class="mvtip" style="font-size:.82rem;color:#5a6a6c">Is this person buying, selling or both? Then tap how soon.</div>';}
   var h='<h3>'+(isNew?'Category':'Move lead')+'</h3>'+cur.map(function(k){return mv(k,rs[k],false);}).join("");
   var extra=[],has=function(k){return cur.indexOf(k)>-1;};
   if(!has("seller")&&(has("buyer")||has("sphere")))extra.push(["seller","add",has("buyer")?"Add As Seller Also":"Add As Seller"]);
@@ -407,15 +411,22 @@ function openLead(L,preset){
   modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
+  var sideMode="";
+  modal.querySelectorAll(".mvside").forEach(function(b){b.onclick=function(){var sd=b.dataset.side;sideMode=sd;
+    modal.querySelectorAll(".mvside").forEach(function(x){x.classList.toggle("on",x===b);x.style.background=x===b?"#036f72":"#fff";x.style.color=x===b?"#fff":"";});
+    modal.querySelectorAll(".mvh").forEach(function(w){var show=sd==="both"||w.dataset.role===sd;w.hidden=!show;if(!show){var r=w.querySelector(".mvrow");if(r){r.dataset.val="";r.querySelectorAll(".mvb").forEach(function(x){x.classList.remove("on");});}}});
+    var tip=modal.querySelector(".mvtip");if(tip)tip.textContent=sd==="both"?"Tap how soon for buying and for selling. Each saves right away.":"Tap how soon. The lead leaves NEW right away.";};});
   var sphereMove=false;
   modal.querySelectorAll(".mvx").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.mvh[data-role="'+b.dataset.role+'"]');if(w)w.hidden=false;
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
     else{modal.querySelector(".mvtip").textContent="Pick the "+(b.dataset.role==="seller"?"seller":"buyer")+" stage. Both plans then run side by side.";}
     b.remove();};});
-  modal.querySelectorAll(".mvrow").forEach(function(r){r.addEventListener("click",async function(e){var b=e.target.closest(".mvb");if(!b||b.classList.contains("on"))return;
+  modal.querySelectorAll(".mvrow").forEach(function(r){r.addEventListener("click",async function(e){var b=e.target.closest(".mvb");if(!b||b.classList.contains("on")||b.classList.contains("mvside"))return;
     if(b.dataset.act==="execute"){location.href="buyer.php?new=1&lead="+encodeURIComponent(L.id);return;}
     if(b.dataset.act==="prelist"){var pp=modal.querySelector(".mvpre");if(pp){pp.hidden=false;var ia=document.getElementById("pre_addr");ia.focus();}return;}
     var prev=r.dataset.val;r.dataset.val=b.dataset.v;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x===b);});
+    if(sideMode==="both"){var oth=r.dataset.role==="buyer"?"seller":"buyer",orow=modal.querySelector('.mvh[data-role="'+oth+'"] .mvrow');
+      if(orow&&!orow.dataset.val){var tp=modal.querySelector(".mvtip");if(tp)tp.textContent="Now tap how soon for "+(oth==="seller"?"selling":"buying")+".";return;}}
     if(sphereMove&&r.dataset.role==="sphere"){modal.querySelectorAll('.mvrow[data-role="buyer"],.mvrow[data-role="seller"]').forEach(function(o){if(o.dataset.val!=="client")o.dataset.val="";});}
     if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles()});var lbl=CATS[r.dataset.role].label+" · "+(b.dataset.v?CATS[r.dataset.role].subs[b.dataset.v]:"none");reopen(L.id);render();var hh=document.querySelector("#mvbox h3");if(hh)hh.innerHTML="Move lead <span style=\"font-weight:500;color:#2e8b57\">· Saved: "+esc(lbl)+"</span>";}
