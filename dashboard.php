@@ -52,7 +52,7 @@ $totalPending = 0; foreach ($txByAgent as $t) $totalPending += $t['pending'] ?? 
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
-    <a href="dashboard.php" aria-current="page">Dashboard</a>
+    <a href="dashboard.php" aria-current="page">Dashboard</a><?php if (flr_is_broker()): ?><a href="mls_data.php">MLS Data</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
