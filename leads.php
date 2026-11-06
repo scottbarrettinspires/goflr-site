@@ -334,6 +334,45 @@ function hwForm(w){w=w||{};var n=[1,2,3,4,5,6],b=["1","1.5","2","2.5","3","3.5",
    +'<div class="full"><label>Who else decides</label><input id="hw_who" value="'+esc(w.who||"")+'" placeholder="e.g. spouse, parents"></div></div>';}
 function hwRead(root){var o={};["areas","price_min","price_max","beds","baths","sqft","lot","year","stories","must","nice","no","lender","preamt","move_by","lease","why","who"].forEach(function(k){var el=root.querySelector("#hw_"+k);if(el)o[k]=el.value.trim();});
   root.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(b){return b.dataset.v;});});return o;}
+
+// ---- Seller "Property Details": the seller's home, for pricing and the listing appointment ----
+var SP={types:["Single family","Condo","Townhome","Villa","Manufactured","Multi-family","Land / lot"],garage:["No garage","1 car","2 car","3+ car","Carport"],
+  pool:["No pool","In-ground","Screened enclosure","Heated","Salt water","Spa / hot tub","Above ground","Community pool"],
+  water:["Not waterfront","Gulf access canal","Fresh water canal","Gulf / bay front","Lake","Pond","River","Preserve view","Golf course view"],
+  dock:["Dock","Boat lift","Seawall"],roof:["Shingle","Tile","Metal","Flat"],windows:["Impact windows","Hurricane shutters","Standard windows"],
+  plumb:["Copper","PEX","CPVC","Galvanized","Polybutylene","Not sure"],cond:["Move-in ready","Updated","Needs cosmetic work","Needs major repair","Investor / fixer"],
+  upd:["Kitchen","Bathrooms","Flooring","Interior paint","Exterior paint","Roof","AC / HVAC","Water heater","Windows / doors","Electrical panel","Plumbing","Pool resurfaced","Solar (owned)","Solar (leased)","Generator","Smart home"],
+  hoa:["No HOA","HOA","CDD","55+ community","Gated"],occ:["Owner lives there","Tenant","Vacant","Second home"],insp:["Wind mitigation","4-point inspection","Recent home inspection","Survey on hand","Elevation certificate"],
+  flood:["Flood zone X","Flood zone AE / VE","Not sure"],next:["Buying with me","Buying elsewhere","Renting next","Not sure"]};
+function spForm(w){w=w||{};var n=[1,2,3,4,5,6],b=["1","1.5","2","2.5","3","3.5","4+"];
+  var t=function(id,lab,ph,full,im){return '<div'+(full?' class="full"':'')+'><label>'+lab+'</label><input id="sp_'+id+'"'+(im?' inputmode="numeric"':'')+' value="'+esc(w[id]||"")+'" placeholder="'+esc(ph||"")+'"></div>';};
+  var c=function(grp,lab,opts,multi){return '<div class="full"><label>'+lab+'</label>'+hwChips(grp,opts,w[grp],multi)+'</div>';};
+  return '<div class="fgrid">'+t("addr","Property address","Street, city, ZIP",true)
+   +c("types","Property type",SP.types,false)
+   +'<div><label>Bedrooms</label>'+hwSel("sp_beds",n,w.beds,"Choose")+'</div><div><label>Bathrooms</label>'+hwSel("sp_baths",b,w.baths,"Choose")+'</div>'
+   +t("sqft","Living area, sq ft","",false,1)+t("lot","Lot size","e.g. 0.25 acre, 80 x 120")+t("year","Year built","",false,1)+'<div><label>Stories</label>'+hwSel("sp_stories",["1 story","2 story","3+"],w.stories,"Choose")+'</div>'
+   +c("garage","Garage",SP.garage,false)+c("pool","Pool",SP.pool,true)+c("water","Waterfront and view",SP.water,true)+c("dock","On the water",SP.dock,true)
+   +c("roof","Roof type",SP.roof,false)+t("roof_year","Roof installed (year)","",false,1)+t("ac_year","AC / HVAC installed (year)","",false,1)
+   +t("wh_year","Water heater installed (year)","",false,1)+t("panel","Electrical panel (brand / year)","")
+   +c("plumb","Plumbing",SP.plumb,false)+c("windows","Windows",SP.windows,true)
+   +c("cond","Condition",SP.cond,false)+c("upd","Updated or replaced",SP.upd,true)+t("upd_note","Update details","e.g. kitchen 2022, new floors 2023",true)
+   +c("hoa","HOA and community",SP.hoa,true)+t("hoa_fee","HOA fee (amount and how often)","e.g. $150 a month")+t("cdd_fee","CDD (amount per year)","")
+   +c("flood","Flood zone",SP.flood,false)+c("insp","Reports on hand",SP.insp,true)
+   +c("occ","Who lives there",SP.occ,false)+'<div><label>Lease ends (if tenant)</label><input id="sp_lease" type="date" value="'+esc(w.lease||"")+'"></div><div></div>'
+   +t("price_hope","Price they hope for","",false,1)+t("payoff","Mortgage payoff (estimate)","",false,1)
+   +'<div><label>Need to sell by</label><input id="sp_sell_by" type="date" value="'+esc(w.sell_by||"")+'"></div>'+t("why","Why they are selling","")
+   +c("next","After the sale",SP.next,false)+t("who","Who else decides","e.g. spouse, co-owner, estate",true)
+   +'<div class="full"><label>Known issues or repairs needed</label><textarea id="sp_issues" rows="2">'+esc(w.issues||"")+'</textarea></div>'
+   +'<div class="full"><label>Best features to market</label><textarea id="sp_best" rows="2">'+esc(w.best||"")+'</textarea></div></div>';}
+function spRead(root){var o={};["addr","beds","baths","sqft","lot","year","stories","roof_year","ac_year","wh_year","panel","upd_note","hoa_fee","cdd_fee","lease","price_hope","payoff","sell_by","why","who","issues","best"].forEach(function(k){var el=root.querySelector("#sp_"+k);if(el)o[k]=el.value.trim();});
+  root.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(b){return b.dataset.v;});});return o;}
+function spSummary(w){if(!w)return "";var p=[],cy=new Date(TODAY+"T12:00:00").getFullYear(),age=function(y){y=parseInt(y,10);return y>1900?(cy-y)+" yrs":"";};
+  if(w.addr)p.push(w.addr);if((w.types||[]).length)p.push(w.types[0]);if(w.beds||w.baths)p.push((w.beds||"?")+" bd / "+(w.baths||"?")+" ba");if(w.sqft)p.push(w.sqft+" sq ft");if(w.lot)p.push("lot "+w.lot);
+  if(w.year)p.push("built "+w.year);if((w.garage||[]).length)p.push(w.garage[0]);if((w.pool||[]).length&&w.pool[0]!=="No pool")p.push("pool: "+w.pool.join(", "));
+  if((w.water||[]).length&&w.water[0]!=="Not waterfront")p.push(w.water.join(", "));if((w.dock||[]).length)p.push(w.dock.join(", "));
+  if(w.roof_year)p.push((((w.roof||[])[0]||"")+" roof "+age(w.roof_year)).trim().replace(/^roof/,"Roof"));if(w.ac_year)p.push("AC "+age(w.ac_year));if(w.wh_year)p.push("water heater "+age(w.wh_year));
+  if((w.cond||[]).length)p.push(w.cond[0]);if((w.upd||[]).length)p.push("updated: "+w.upd.join(", "));if((w.hoa||[]).length)p.push(w.hoa.join(", ")+(w.hoa_fee?" ("+w.hoa_fee+")":""));
+  if((w.flood||[]).length)p.push(w.flood[0]);if((w.occ||[]).length)p.push(w.occ[0]);if(w.sell_by)p.push("sell by "+w.sell_by);return p.join(" · ");}
 var MV_ACT=false,MV_LBL=true;
 function mvBox(L,isNew,rs){MV_ACT=!isNew;
   var cur=["buyer","seller","sphere"].filter(function(k){return rs[k];});
@@ -445,6 +484,19 @@ function openLead(L,preset){
       document.getElementById("hw_copy").onclick=function(){var t=hwSummary(hwRead(pw2));var b=this;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy:",t);});};
       document.getElementById("hw_save").onclick=async function(){var b=this,m=document.getElementById("hw_msg");b.disabled=true;var w=hwRead(pw2);
         try{await api({action:"wants",id:L.id,wants:w});L.wants=w;document.getElementById("hw_sum").textContent=hwSummary(w)||"Nothing recorded yet.";m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+    }
+    if(L.roles&&L.roles.seller){ // Property Details tab for sellers
+      var ps=document.createElement("div");ps.dataset.pane="home";ps.hidden=true;var ssum=spSummary(L.home);
+      ps.innerHTML='<div class="touch" style="margin-top:0"><div class="hd"><span>Seller\'s home</span>'+(L.home&&L.home.updated?'<span class="due later">Updated '+esc(fmtD(L.home.updated))+'</span>':'')+'</div><p class="goal" id="sp_sum">'+(ssum?esc(ssum):'Nothing recorded yet. Fill this in before or during your listing appointment.')+'</p>'
+        +'<div class="btns"><button type="button" class="btn sm ghost" id="sp_copy">Copy summary for your CMA</button></div></div>'+spForm(L.home)
+        +'<div class="btns"><button type="button" class="btn" id="sp_save">Save property details</button><button type="button" class="btn ghost mclose3">Close</button><span class="goal" id="sp_msg"></span></div>';
+      modal.appendChild(ps);var sbt=document.createElement("button");sbt.type="button";sbt.dataset.p="home";sbt.textContent=(L.roles.buyer?"Seller Property":"Property Details");bar.insertBefore(sbt,bar.children[L.roles.buyer?2:1]);
+      if(L.roles.buyer){var wbx=bar.querySelector('[data-p="wants"]');if(wbx)wbx.textContent="Buyer Property";}
+      ps.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(g.dataset.multi!=="1"&&!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
+      ps.querySelector(".mclose3").onclick=close;
+      document.getElementById("sp_copy").onclick=function(){var t=spSummary(spRead(ps));var b=this;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy:",t);});};
+      document.getElementById("sp_save").onclick=async function(){var b=this,m=document.getElementById("sp_msg");b.disabled=true;var w=spRead(ps);
+        try{await api({action:"wants",field:"home",id:L.id,wants:w});L.home=w;document.getElementById("sp_sum").textContent=spSummary(w)||"Nothing recorded yet.";m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
     if(preset&&preset.pane)showPane(preset.pane);
   }
