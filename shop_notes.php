@@ -32,10 +32,21 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 $q = shop_db()->prepare('SELECT * FROM shop_notes WHERE folder = ? ORDER BY id DESC'); $q->execute([$tx]); $rows = $q->fetchAll();
 $kindLabel = ['scheduled' => 'Showing scheduled', 'shown' => 'Shown', 'note' => 'Note'];
+$bagType = bag_agreement_type($tx);
 sp_head('Shop Homes', $tx);
 ?>
+<?php if ($bagType === 'showing'): ?>
+<div class="panel sigbox" style="background:#fff4e5;border-left:3px solid #b26a00">
+  <p class="note" style="margin:0">Only a Showing Agreement is on file for this buyer &mdash; it covers just the home(s) named on that signed form. Before scheduling or showing an address it doesn't name, get a new Showing Agreement signed that names it (the address still has to be written onto the form by hand or by the buyer when signing), or move up to an Exclusive Buyer Brokerage Agreement so this isn't needed again.</p>
+  <p style="margin:8px 0 0"><a class="btn" href="sign.php?f=<?= BAG_SHOWING_FORM_ID ?>&s=b&tx=<?= urlencode($tx) ?>" target="_top">Send a new Showing Agreement</a> <a class="btn ghost" href="sign.php?f=<?= BAG_EXCLUSIVE_FORM_ID ?>&s=b&tx=<?= urlencode($tx) ?>" target="_top">Move up to Exclusive</a></p>
+</div>
+<?php elseif ($bagType === null): ?>
+<div class="panel sigbox" style="background:#fff4e5;border-left:3px solid #b26a00">
+  <p class="note" style="margin:0">No buyer agreement is on file for this buyer yet. Get the Exclusive Buyer Brokerage Agreement or a Showing Agreement signed from <a href="buyer_agreement.php?tx=<?= urlencode($tx) ?>" target="_top">Buyer Agreement</a> before showing homes.</p>
+</div>
+<?php endif; ?>
 <div class="panel sigbox">
-<?php if (!empty($_GET['saved'])): ?><p class="note">Saved.</p><?php endif; ?>
+<?php if (!empty($_GET['saved'])): ?><p class="note">Saved.<?= $bagType === 'showing' ? ' If this address isn\'t already named on the Showing Agreement on file, send a new one for it above.' : '' ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
   <h2 style="margin-top:0">Log a showing or a note</h2>
   <form method="post">

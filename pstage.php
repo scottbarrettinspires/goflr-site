@@ -51,6 +51,39 @@ function ps_offer_contract_state($tx) {
 }
 // The rungs shown in the buyer ladder: "offer" stands in for both "offer" and "contract" (see ps_offer_contract_state).
 function ps_buyer_rungs() { return ['agreement', 'shopping', 'offer', 'contingencies', 'closingready', 'closed']; }
+// Which buyer-agreement type (if any) is filed to this transaction: 'exclusive' (Exclusive Buyer Brokerage Agreement --
+// covers every home shown from here on, no further agreement needed) or 'showing' (Showing Agreement -- covers only the
+// home(s) named on that signed form; a new one, or moving up to Exclusive, is needed for anything else). If more than
+// one is on file, the most recently signed one wins.
+const BAG_EXCLUSIVE_FORM_ID = '1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U';
+const BAG_SHOWING_FORM_ID = '17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8';
+function bag_agreement_type($tx) {
+    $me = strtolower((string)($_SESSION['email'] ?? ''));
+    if ($me === '') return null;
+    foreach (sg_for_agent($me) as $r) {
+        if ((string)($r['folder']['id'] ?? '') !== $tx || empty($r['completed'])) continue;
+        $t = strtolower((string)($r['form'] ?? ''));
+        if (strpos($t, 'exclusive buyer brokerage') !== false) return 'exclusive';
+        if (strpos($t, 'showing agreement') !== false && strpos($t, 'amendment') === false) return 'showing';
+    }
+    return null;
+}
+// The two agreement-choice cards (send for signature / download), shared by buyer_consult.php (before the buyer record
+// exists, $tx is '') and buyer_agreement.php (once it does, so the signature request is tied to the transaction).
+function bag_choice_cards($tx) {
+    $h = function ($s) { return htmlspecialchars((string)$s); };
+    $q = $tx !== '' ? '&tx=' . urlencode($tx) : '';
+    $target = $tx !== '' ? ' target="_top"' : '';
+    $o = '<div style="display:flex;flex-wrap:wrap;gap:16px">';
+    $o .= '<div class="panel sigbox" style="flex:1;min-width:260px"><h3 style="margin-top:0">Exclusive Buyer Brokerage Agreement</h3>';
+    $o .= '<p class="note">Covers every home shown to this buyer from here on &mdash; no further agreement needed.</p>';
+    $o .= '<p><a class="btn" href="sign.php?f=' . BAG_EXCLUSIVE_FORM_ID . '&s=b' . $h($q) . '"' . $target . '>Send for signature</a> <a class="btn ghost" href="https://drive.google.com/uc?export=download&amp;id=' . BAG_EXCLUSIVE_FORM_ID . '" target="_blank" rel="noopener">Download</a></p></div>';
+    $o .= '<div class="panel sigbox" style="flex:1;min-width:260px"><h3 style="margin-top:0">Showing Agreement</h3>';
+    $o .= '<p class="note">Covers only the home(s) named on this signed form. A home it doesn\'t name needs a new Showing Agreement, or an upgrade to Exclusive.</p>';
+    $o .= '<p><a class="btn" href="sign.php?f=' . BAG_SHOWING_FORM_ID . '&s=b' . $h($q) . '"' . $target . '>Send for signature</a> <a class="btn ghost" href="https://drive.google.com/uc?export=download&amp;id=' . BAG_SHOWING_FORM_ID . '" target="_blank" rel="noopener">Download</a></p></div>';
+    $o .= '</div>';
+    return $o;
+}
 
 function ps_ensure_column() {
     static $done = false; if ($done) return; $done = true;
