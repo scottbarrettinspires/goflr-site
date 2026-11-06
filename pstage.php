@@ -4,6 +4,7 @@
 // Pending / Archived, etc.) the record's files happen to sit in right now.
 require_once __DIR__ . '/flrdb.php';
 require_once __DIR__ . '/dlib.php';
+require_once __DIR__ . '/sigtools.php';
 
 const PS_STAGES = [
     'buyer'  => ['agreement' => 'Buyer Agreement', 'shopping' => 'Shop Homes', 'offer' => 'Make An Offer', 'contract' => 'Executed Contract', 'contingencies' => 'Contingencies', 'closingready' => 'Closing Prep', 'closed' => 'Close Transaction'],
@@ -29,6 +30,27 @@ function ps_dest($side, $key, $tx) {
 // Every buyer stage's screen shows in the panel beside the ladder except Make An Offer, which opens the full Buyer Form
 // Wizard as its own page (it's too large and too important a tool to shrink into a side panel).
 function ps_embeddable($key) { return $key !== 'offer'; }
+// Whether an executed contract/offer/addendum has been signed and filed to this transaction (same match used by
+// signed_filed.php's "Executed Contract" screen). Used to merge the "Make An Offer" and "Executed Contract" rungs: one
+// rung shows "Make An Offer" until a contract is filed, then switches to "Executed Contract" on its own.
+function ps_contract_filed($tx) {
+    $me = strtolower((string)($_SESSION['email'] ?? ''));
+    if ($me === '') return false;
+    foreach (sg_for_agent($me) as $r) {
+        if ((string)($r['folder']['id'] ?? '') !== $tx || empty($r['completed'])) continue;
+        $t = strtolower((string)($r['form'] ?? ''));
+        if (strpos($t, 'contract') !== false || strpos($t, 'offer') !== false || strpos($t, 'addendum') !== false) return true;
+    }
+    return false;
+}
+// The merged "Make An Offer" / "Executed Contract" rung's current label, destination, whether it opens in the panel,
+// and which underlying pstage key it represents.
+function ps_offer_contract_state($tx) {
+    if (ps_contract_filed($tx)) return ['label' => 'Executed Contract', 'dest' => 'signed_filed.php?tx=' . urlencode($tx) . '&kind=contract', 'embeddable' => true, 'key' => 'contract'];
+    return ['label' => 'Make An Offer', 'dest' => 'wizard.php?tx=' . urlencode($tx), 'embeddable' => false, 'key' => 'offer'];
+}
+// The rungs shown in the buyer ladder: "offer" stands in for both "offer" and "contract" (see ps_offer_contract_state).
+function ps_buyer_rungs() { return ['agreement', 'shopping', 'offer', 'contingencies', 'closingready', 'closed']; }
 
 function ps_ensure_column() {
     static $done = false; if ($done) return; $done = true;
@@ -129,30 +151,43 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = []) {
     $o .= '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">';
     // Left: the stage ladder, acting as a menu.
     $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;width:260px">';
+    // Buyer records show 6 rungs: "offer" stands in for both Make An Offer and Executed Contract (ps_offer_contract_state
+    // switches its label/destination on its own once a contract is filed). Sellers are unchanged.
+    $rungKeys = $side === 'buyer' ? ps_buyer_rungs() : array_keys(PS_STAGES[$side]);
+    $curDisp = ($side === 'buyer' && $cur === 'contract') ? 'offer' : $cur;
+    $curPos = array_search($curDisp, $rungKeys, true); $curPos = $curPos === false ? 1 : $curPos + 1;
     $i = 0;
-    foreach (PS_STAGES[$side] as $k => $stageLabel) {
-        $i++; $on = $k === $cur; $bg = ps_color($side, $k); $fg = ps_fg($side, $k); $label = ps_label($side, $k, $tx); $dest = ps_dest($side, $k, $tx);
-        $pillStyle = 'display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);text-align:left' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ';opacity:.72');
-        $circle = '<span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;flex:none">' . $i . '</span>';
+    foreach ($rungKeys as $k) {
+        $i++;
+        $merged = ($side === 'buyer' && $k === 'offer') ? ps_offer_contract_state($tx) : null;
+        $storeKey = $merged ? $merged['key'] : $k;
+        $on = $i === $curPos; $done = $i < $curPos;
+        $bg = ps_color($side, $k); $fg = ps_fg($side, $k);
+        $label = $merged ? $merged['label'] : ps_label($side, $k, $tx);
+        $dest = $merged ? $merged['dest'] : ps_dest($side, $k, $tx);
+        $pillStyle = 'display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);text-align:left' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ($done ? '' : ';opacity:.6'));
+        $circle = '<span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;flex:none" title="' . ($done ? 'Completed' : 'Set as current stage') . '">' . ($done ? '&#10003;' : $i) . '</span>';
         if ($dest !== null) {
             // Split control: the numbered circle sets this as the current stage; the label opens that stage's screen in
             // the panel to the right (except Make An Offer, which still opens the full Wizard page).
-            $embeddable = ps_embeddable($k);
+            $embeddable = $merged ? $merged['embeddable'] : ps_embeddable($k);
             $href = $embeddable ? ($dest . '&embed=1') : $dest;
             $target = $embeddable ? ' target="pscontent"' : '';
             $o .= '<div style="' . $pillStyle . ';padding:2px">';
-            $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" title="Set as current stage" style="background:transparent;border:none;color:inherit;cursor:pointer;padding:7px 0 7px 10px">' . $circle . '</button>';
+            $o .= '<button type="submit" name="pstage" value="' . $h($storeKey) . '" title="Set as current stage" style="background:transparent;border:none;color:inherit;cursor:pointer;padding:7px 0 7px 10px">' . $circle . '</button>';
             $o .= '<a href="' . $h($href) . '"' . $target . ' style="flex:1;color:inherit;text-decoration:none;padding:7px 10px 7px 6px">' . $h($label) . '</a>';
             $o .= '</div>';
         } else {
-            $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" style="' . $pillStyle . ';padding:9px 14px;cursor:pointer">' . $circle . $h($label) . '</button>';
+            $o .= '<button type="submit" name="pstage" value="' . $h($storeKey) . '" style="' . $pillStyle . ';padding:9px 14px;cursor:pointer">' . $circle . $h($label) . '</button>';
         }
     }
     $o .= '</div></form></div>';
     // Right: the content panel for buyer records (nothing to show yet for sellers, whose stages have no screens).
     if ($side === 'buyer') {
-        $defDest = ps_dest($side, $cur, $tx);
-        $src = ($defDest !== null && ps_embeddable($cur)) ? ($defDest . '&embed=1') : '';
+        $curMerged = $curDisp === 'offer' ? ps_offer_contract_state($tx) : null;
+        $defDest = $curMerged ? $curMerged['dest'] : ps_dest($side, $cur, $tx);
+        $defEmbeddable = $curMerged ? $curMerged['embeddable'] : ps_embeddable($cur);
+        $src = ($defDest !== null && $defEmbeddable) ? ($defDest . '&embed=1') : '';
         $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="flex:1;min-width:280px;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
         if ($src === '') { $o .= ' srcdoc="<body style=\'font-family:sans-serif;color:#6a777a;padding:20px;margin:0\'>Click a stage on the left to view it here.</body>"'; }
         $o .= '></iframe>';
