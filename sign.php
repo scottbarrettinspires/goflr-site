@@ -57,7 +57,7 @@ if ($title !== null) {
     if (!empty($_SESSION['txf']) && ($_SESSION['txf_t'] ?? 0) > time() - 600) { $folders = $_SESSION['txf']; }
     else { $f = sg_folders($_SESSION['email']); $fok = is_array($f); if (is_array($f)) { $folders = $f; $_SESSION['txf'] = $f; $_SESSION['txf_t'] = time(); } }
 }
-$txsel = '';
+$txsel = (string)($_GET['tx'] ?? '');
 $side = (($_GET['s'] ?? ($_POST['s'] ?? 'b')) === 's') ? 's' : 'b';
 $first = $side === 's' ? 'seller1' : 'buyer1';
 $rows = [['', $first]];

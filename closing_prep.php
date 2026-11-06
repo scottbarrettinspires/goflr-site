@@ -49,12 +49,13 @@ sp_head('Closing Prep', $tx);
   </form>
 </div>
 <div class="panel sigbox">
-  <h2 style="margin-top:0">Buyer Preclosing Walk Through Form</h2>
-  <p class="note">Have the buyer complete and sign the Walk Through form, then upload the signed copy here — it's saved straight into this transaction's folder. If a blank Walk Through template still needs to be added to Forms, let Scott know and it can be wired in.</p>
-  <form method="post" enctype="multipart/form-data">
+  <h2 style="margin-top:0">Buyer Pre-Closing Final Inspection (Walk Through)</h2>
+  <p class="note">Send the form to the buyer for e-signature, or, if it was already signed outside this system, upload the signed copy below. Either way it's saved straight into this transaction's folder.</p>
+  <p><a class="btn" href="sign.php?f=138uML5GUJgxwVQ_Wu3XWTt9NbYwkqsJ6&s=b&tx=<?= urlencode($tx) ?>">Send the Walk Through form for signature</a></p>
+  <form method="post" enctype="multipart/form-data" style="margin-top:14px">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><input type="hidden" name="op" value="uploadwalkthrough">
-    <p><input type="file" name="walkfile" accept=".pdf,.jpg,.jpeg,.png"></p>
-    <p><button type="submit" class="btn">Upload signed Walk Through form</button></p>
+    <p><label>Or upload an already-signed copy<input type="file" name="walkfile" accept=".pdf,.jpg,.jpeg,.png"></label></p>
+    <p><button type="submit" class="btn ghost">Upload signed Walk Through form</button></p>
   </form>
   <p><a class="btn ghost" href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a></p>
 </div>
