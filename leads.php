@@ -309,7 +309,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
   if(!has("buyer")&&(has("seller")||has("sphere")))extra.push(["buyer","add",has("seller")?"Add As Buyer Also":"Add As Buyer"]);
   if(!has("sphere")&&(has("buyer")||has("seller")))extra.push(["sphere","move","Move To Sphere"]);
   h+=["buyer","seller","sphere"].filter(function(k){return !has(k);}).map(function(k){return '<div class="mvh" data-role="'+k+'" hidden>'+mv(k,"",false)+'</div>';}).join("");
-  if(extra.length){h+='<div class="btns" style="margin-top:4px">'+extra.map(function(x){return '<button type="button" class="btn sm ghost mvx" data-role="'+x[0]+'" data-mode="'+x[1]+'">'+esc(x[2])+'</button>';}).join("")+'</div>';}
+  if(extra.length){h+='<div style="margin:6px 0 2px;font-size:.84rem;display:flex;gap:16px;flex-wrap:wrap">'+extra.map(function(x){return '<a href="#" class="mvx" data-role="'+x[0]+'" data-mode="'+x[1]+'" style="color:var(--teal);font-weight:600">'+esc(x[2])+'</a>';}).join("")+'</div>';}
   h+='<div class="mvpre" hidden style="margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px"><label style="font-size:.82rem;font-weight:600">Property address for the listing appointment</label><input id="pre_addr" placeholder="e.g. 123 Palm Ave, Trinity FL" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box;margin:4px 0 8px"><button type="button" class="btn sm" id="pre_go">Set up listing appointment</button> <span class="goal">The record goes in My Transactions › SELLERS › Pre Listing with the seller\'s details. Prepare your listing documents there for the appointment.</span></div>';
   h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan.')+'</div>';
   return h;
@@ -362,7 +362,7 @@ function openLead(L,preset){
   }
   modal.innerHTML=h;mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
-  if(!isNew){modal.insertBefore(document.getElementById("mvbox"),fg);}
+  if(!isNew){var mvbx=document.getElementById("mvbox"),ft=modal.querySelector(".touch");modal.insertBefore(mvbx,ft||fg);} // stage buttons first, then the next touch
   if(!isNew){ // Lead / Notes / History tabs inside the lead window
     // Lead source tags sit at the top right, beside the name and phone; the chooser opens just below the header.
     var sb=document.getElementById("srcblock"),hd=modal.querySelector("h2");
@@ -427,7 +427,7 @@ function openLead(L,preset){
     modal.querySelectorAll(".mvh").forEach(function(w){var show=sd==="both"||w.dataset.role===sd;w.hidden=!show;if(!show){var r=w.querySelector(".mvrow");if(r){r.dataset.val="";r.querySelectorAll(".mvb").forEach(function(x){x.classList.remove("on");});}}});
     var tip=modal.querySelector(".mvtip");if(tip)tip.textContent=sd==="both"?"Tap how soon for buying and for selling. Each saves right away.":"Tap how soon. The lead leaves NEW right away.";};});
   var sphereMove=false;
-  modal.querySelectorAll(".mvx").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.mvh[data-role="'+b.dataset.role+'"]');if(w)w.hidden=false;
+  modal.querySelectorAll(".mvx").forEach(function(b){b.onclick=function(ev){if(ev)ev.preventDefault();var w=modal.querySelector('.mvh[data-role="'+b.dataset.role+'"]');if(w)w.hidden=false;
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
     else{modal.querySelector(".mvtip").textContent="Pick the "+(b.dataset.role==="seller"?"seller":"buyer")+" stage. Both plans then run side by side.";}
     b.remove();};});
