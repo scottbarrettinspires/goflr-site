@@ -3,13 +3,29 @@
 // Leads sub-category buttons), stored on the transaction record itself and independent of which Drive folder (Buyers /
 // Pending / Archived, etc.) the record's files happen to sit in right now.
 require_once __DIR__ . '/flrdb.php';
+require_once __DIR__ . '/dlib.php';
 
 const PS_STAGES = [
-    'buyer'  => ['agreement' => 'Agreement Executed', 'shopping' => 'Shopping Homes', 'offer' => 'Offer Submitted', 'contract' => 'Contract Executed', 'contingencies' => 'Contingencies Satisfied', 'closingready' => 'Closing Ready', 'closed' => 'Closing Completed'],
-    'seller' => ['prelisting' => 'Prelisting Prep', 'active' => 'Active Listing', 'managing' => 'Managing', 'offerrecv' => 'Offer Received', 'contract' => 'Executed Contract', 'contingencies' => 'Contingencies Satisfied', 'closingready' => 'Closing Ready', 'closed' => 'Closing Completed'],
+    'buyer'  => ['agreement' => 'Buyer Agreement', 'shopping' => 'Shop Homes', 'offer' => 'Make An Offer', 'contract' => 'Executed Contract', 'contingencies' => 'Contingencies', 'closingready' => 'Closing Prep', 'closed' => 'Close Transaction'],
+    'seller' => ['prelisting' => 'Prelisting Prep', 'active' => 'Active Listing', 'managing' => 'Managing', 'offerrecv' => 'Offer Received', 'contract' => 'Executed Contract', 'contingencies' => 'Contingencies', 'closingready' => 'Closing Ready', 'closed' => 'Closing Completed'],
 ];
 // Light to dark, ending in green on the final (Closing Completed) stage of either side.
 const PS_PALETTE = ['#cfd8dc', '#b3d4e0', '#8ec9d9', '#6cb8c9', '#4aa6b8', '#2b8e94', '#036f72', '#1b5e20'];
+// The "Contingencies" stage's label is dynamic: "Contingencies" while any entered contingency is still open, and
+// "Contingencies Satisfied" once every contingency the agent has entered a period for is marked Done/waived.
+function ps_label($side, $key, $tx) {
+    if ($key === 'contingencies' && dl_contingencies_satisfied($tx)) return 'Contingencies Satisfied';
+    return PS_STAGES[$side][$key] ?? $key;
+}
+// Where each buyer pipeline stage's label takes the agent, beyond just marking it as the current stage. Seller stages
+// have no destination yet and stay a plain stage-select button.
+function ps_dest($side, $key, $tx) {
+    if ($side !== 'buyer') return null;
+    $q = '?tx=' . urlencode($tx);
+    $map = ['agreement' => 'buyer_agreement.php', 'shopping' => 'shop_notes.php', 'offer' => 'wizard.php', 'contract' => 'signed_filed.php' . $q . '&kind=contract', 'contingencies' => 'contingencies.php', 'closingready' => 'closing_prep.php', 'closed' => 'close_transaction.php'];
+    $dest = $map[$key] ?? null;
+    return $dest === null ? null : (strpos($dest, '?') !== false ? $dest : $dest . $q);
+}
 
 function ps_ensure_column() {
     static $done = false; if ($done) return; $done = true;
@@ -71,11 +87,21 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = []) {
     $cur = ps_get($tx, $side, $driveStage);
     $o = '<div class="panel sigbox" style="margin-bottom:14px"><div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">';
     // Left: the stage ladder.
-    $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;max-width:280px">';
+    $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;max-width:300px">';
     $i = 0;
-    foreach (PS_STAGES[$side] as $k => $label) {
-        $i++; $on = $k === $cur; $bg = ps_color($side, $k); $fg = ps_fg($side, $k);
-        $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" style="display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;padding:9px 14px;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);cursor:pointer;text-align:left' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ';opacity:.72') . '"><span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem">' . $i . '</span>' . $h($label) . '</button>';
+    foreach (PS_STAGES[$side] as $k => $stageLabel) {
+        $i++; $on = $k === $cur; $bg = ps_color($side, $k); $fg = ps_fg($side, $k); $label = ps_label($side, $k, $tx); $dest = ps_dest($side, $k, $tx);
+        $pillStyle = 'display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);text-align:left' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ';opacity:.72');
+        $circle = '<span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;flex:none">' . $i . '</span>';
+        if ($dest !== null) {
+            // Split control: the numbered circle sets this as the current stage; the label itself opens that stage's screen.
+            $o .= '<div style="' . $pillStyle . ';padding:2px">';
+            $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" title="Set as current stage" style="background:transparent;border:none;color:inherit;cursor:pointer;padding:7px 0 7px 10px">' . $circle . '</button>';
+            $o .= '<a href="' . $h($dest) . '" style="flex:1;color:inherit;text-decoration:none;padding:7px 10px 7px 6px">' . $h($label) . '</a>';
+            $o .= '</div>';
+        } else {
+            $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" style="' . $pillStyle . ';padding:9px 14px;cursor:pointer">' . $circle . $h($label) . '</button>';
+        }
     }
     $o .= '</div></form></div>';
     // Right: who this record is about.
@@ -101,14 +127,14 @@ function ps_group_box($side, array $records, callable $urlFn) {
     $byStage = []; foreach (ps_keys($side) as $k) $byStage[$k] = [];
     foreach ($records as $r) { $k = ps_get($r['folder'], $side, (int)($r['stage'] ?? 0)); $byStage[$k][] = $r; }
     $o = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px">';
-    foreach (PS_STAGES[$side] as $k => $label) {
+    foreach (PS_STAGES[$side] as $k => $stageLabel) {
         $bg = ps_color($side, $k); $fg = ps_fg($side, $k); $n = count($byStage[$k]);
-        $o .= '<span style="background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.82rem;padding:5px 10px;border-radius:99px">' . $h($label) . ' <span style="opacity:.85">' . $n . '</span></span>';
+        $o .= '<span style="background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.82rem;padding:5px 10px;border-radius:99px">' . $h($stageLabel) . ' <span style="opacity:.85">' . $n . '</span></span>';
     }
     $o .= '</div>';
-    foreach (PS_STAGES[$side] as $k => $label) {
+    foreach (PS_STAGES[$side] as $k => $stageLabel) {
         if (!$byStage[$k]) continue;
-        $o .= '<h3 style="margin:14px 0 6px">' . $h($label) . '</h3>';
+        $o .= '<h3 style="margin:14px 0 6px">' . $h($stageLabel) . '</h3>';
         foreach ($byStage[$k] as $r) { $o .= '<p style="margin:0 0 6px"><a href="' . $h($urlFn($r)) . '">' . $h($r['name']) . '</a>' . (!empty($r['lead_id']) ? ' <span style="color:#6a777a;font-size:.85rem">&middot; linked to a lead</span>' : '') . '</p>'; }
     }
     if (!$records) $o .= '<p class="note">No records found yet.</p>';

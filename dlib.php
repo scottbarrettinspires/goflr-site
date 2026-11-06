@@ -86,34 +86,46 @@ function dl_when($left) { return $left < 0 ? 'Overdue by ' . -$left . ' day' . (
 const FLR_BROKER_EMAILS = ['scott@myflroffice.com', 'owner@myflroffice.com', 'broker@myflroffice.com', 'admin@myflroffice.com', 'operations@myflroffice.com'];
 function flr_is_broker() { return !empty($_SESSION['staff']) || in_array(strtolower($_SESSION['email'] ?? ''), FLR_BROKER_EMAILS, true); }
 
-// POST op=savedates on a buyer/seller record page: saves the effective date, each period's day-count or date, and done checkboxes.
-function dl_handle_save($me, $side, $tx, $self) {
+// POST op=savedates on a buyer/seller record page: saves the effective date, each period's day-count or date, and done
+// checkboxes. $only restricts the save to those item keys (used by a slim sub-page like contingencies.php) and leaves
+// every other item, the effective date, and the custom dates exactly as they were — never a destructive full rebuild.
+function dl_handle_save($me, $side, $tx, $self, $only = null) {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || ($_POST['op'] ?? '') !== 'savedates') return;
     if (!hash_equals($_SESSION['csrf'] ?? '', (string)($_POST['csrf'] ?? ''))) { header('Location: ' . $self); exit; }
-    $eff = (string)($_POST['dl_effective'] ?? ''); $data = ['effective' => dl_valid_date($eff) ? $eff : '', 'items' => [], 'custom' => []];
+    $old = dl_get($tx); $data = $old ? $old['data'] : ['effective' => '', 'items' => [], 'custom' => []];
+    $data['items'] = (array)($data['items'] ?? []); $data['custom'] = (array)($data['custom'] ?? []);
+    if ($only === null) { $eff = (string)($_POST['dl_effective'] ?? ''); $data['effective'] = dl_valid_date($eff) ? $eff : ''; }
     foreach (DL_ITEMS as $k => $def) {
-        if ($def[1] === 'days') { $n = trim((string)($_POST['dl_' . $k] ?? '')); if ($n !== '' && ctype_digit($n)) $data['items'][$k]['days'] = $n; }
-        else { $d = (string)($_POST['dl_' . $k] ?? ''); if (dl_valid_date($d)) $data['items'][$k]['date'] = $d; }
-        if (!empty($_POST['dlx_' . $k])) $data['items'][$k]['done'] = true;
+        if ($only !== null && !in_array($k, $only, true)) continue; // not part of this form: leave untouched
+        if (!isset($data['items'][$k])) $data['items'][$k] = [];
+        if ($def[1] === 'days') { $n = trim((string)($_POST['dl_' . $k] ?? '')); if ($n !== '' && ctype_digit($n)) { $data['items'][$k]['days'] = $n; } else { unset($data['items'][$k]['days']); } }
+        else { $d = (string)($_POST['dl_' . $k] ?? ''); if (dl_valid_date($d)) { $data['items'][$k]['date'] = $d; } else { unset($data['items'][$k]['date']); } }
+        $data['items'][$k]['done'] = !empty($_POST['dlx_' . $k]);
     }
-    for ($i = 0; $i < 6; $i++) {
-        $lbl = trim((string)($_POST['dlc_label' . $i] ?? '')); $d = (string)($_POST['dlc_date' . $i] ?? '');
-        if ($lbl === '' || !dl_valid_date($d)) continue;
-        $data['custom'][] = ['label' => mb_substr($lbl, 0, 80), 'date' => $d, 'done' => !empty($_POST['dlcx' . $i])];
+    if ($only === null) {
+        $data['custom'] = [];
+        for ($i = 0; $i < 6; $i++) {
+            $lbl = trim((string)($_POST['dlc_label' . $i] ?? '')); $d = (string)($_POST['dlc_date' . $i] ?? '');
+            if ($lbl === '' || !dl_valid_date($d)) continue;
+            $data['custom'][] = ['label' => mb_substr($lbl, 0, 80), 'date' => $d, 'done' => !empty($_POST['dlcx' . $i])];
+        }
     }
     dl_save($me, $tx, $side, $data);
     header('Location: ' . $self . (strpos($self, '?') === false ? '?' : '&') . 'datessaved=1'); exit;
 }
 
-// The "Contract Deadlines" panel for a buyer or seller record: editable Effective Date + periods, with the computed dates shown live.
-function dl_box($me, $side, $tx, $self) {
+// The "Contract Deadlines" panel for a buyer or seller record: editable Effective Date + periods, with the computed dates
+// shown live. Pass $only (an array of DL_ITEMS keys) to render just those items with no Effective Date field and no
+// custom-dates section — used by contingencies.php for a focused, merge-safe view of only the contingency deadlines.
+function dl_box($me, $side, $tx, $self, $only = null, $title = null) {
     $h = function ($s) { return htmlspecialchars((string)$s); };
     $rec = dl_get($tx); $c = $rec ? $rec['data'] : ['effective' => '', 'items' => [], 'custom' => []];
-    $rows = dl_compute($c);
+    $rows = array_values(array_filter(dl_compute($c), function ($r) use ($only) { return $only === null || in_array($r['key'], $only, true); }));
+    $title = $title ?? ($only === null ? 'Contract Deadlines' : 'Contingencies');
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
-    $o .= '<h2 style="margin:0 0 6px;font-size:1.1rem">Contract Deadlines</h2>';
+    $o .= '<h2 style="margin:0 0 6px;font-size:1.1rem">' . $h($title) . '</h2>';
     if (!empty($_GET['datessaved'])) $o .= '<p class="note">Saved.</p>';
-    $o .= '<p style="margin:0 0 10px;color:#4b5b5d;font-size:.92rem">Enter the Effective Date and the number of days for each period straight from the executed contract (or a fixed date for closing). The site does the math — check it against the contract\'s own time provision. This is not legal advice.</p>';
+    if ($only === null) $o .= '<p style="margin:0 0 10px;color:#4b5b5d;font-size:.92rem">Enter the Effective Date and the number of days for each period straight from the executed contract (or a fixed date for closing). The site does the math — check it against the contract\'s own time provision. This is not legal advice.</p>';
     if ($rows) {
         $o .= '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:.92rem">';
         foreach ($rows as $r) {
@@ -122,24 +134,56 @@ function dl_box($me, $side, $tx, $self) {
             $o .= '<tr' . ($r['done'] ? ' style="opacity:.55"' : '') . '><td style="padding:3px 8px 3px 0;white-space:nowrap">' . date('M j, Y', strtotime($r['date'])) . $flag . '</td><td style="padding:3px 8px">' . $h($r['label']) . '</td><td style="padding:3px 0;color:' . $color . ';font-weight:600;white-space:nowrap">' . $h(dl_when($r['left'])) . '</td></tr>';
         }
         $o .= '</table>';
-    }
+    } elseif ($only !== null) { $o .= '<p class="note">No contingency periods entered yet — add them below.</p>'; }
     $o .= '<form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="savedates">';
-    $o .= '<p><label>Effective Date<input type="date" name="dl_effective" value="' . $h($c['effective'] ?? '') . '"></label></p>';
+    if ($only === null) $o .= '<p><label>Effective Date<input type="date" name="dl_effective" value="' . $h($c['effective'] ?? '') . '"></label></p>';
     $o .= '<div class="wq">';
     foreach (DL_ITEMS as $k => $def) {
+        if ($only !== null && !in_array($k, $only, true)) continue;
         $it = (array)($c['items'][$k] ?? []); $done = !empty($it['done']);
         if ($def[1] === 'days') $o .= '<label>' . $h($def[0]) . '<input type="number" min="0" max="365" name="dl_' . $k . '" value="' . $h($it['days'] ?? '') . '" placeholder="days" style="width:5em;display:inline-block;margin-right:6px"> days after Effective Date</label>';
         else $o .= '<label>' . $h($def[0]) . '<input type="date" name="dl_' . $k . '" value="' . $h($it['date'] ?? '') . '"></label>';
         $o .= '<label class="wr" style="margin-left:0 0 8px"><input type="checkbox" name="dlx_' . $k . '"' . ($done ? ' checked' : '') . '> Done / waived</label>';
     }
     $o .= '</div>';
-    $custom = (array)($c['custom'] ?? []);
-    $o .= '<p style="margin:10px 0 4px;font-weight:600">Other dates from this contract (optional)</p>';
-    for ($i = 0; $i < 6; $i++) {
-        $x = $custom[$i] ?? ['label' => '', 'date' => '', 'done' => false];
-        if ($i > 0 && $x['label'] === '' && !isset($custom[$i])) { if ($i > count($custom)) break; }
-        $o .= '<p style="margin:0 0 6px"><input type="text" name="dlc_label' . $i . '" value="' . $h($x['label']) . '" placeholder="e.g. Repair request due" style="width:46%;margin-right:6px"><input type="date" name="dlc_date' . $i . '" value="' . $h($x['date']) . '" style="margin-right:6px"><label class="wr"><input type="checkbox" name="dlcx' . $i . '"' . (!empty($x['done']) ? ' checked' : '') . '> Done</label></p>';
+    if ($only === null) {
+        $custom = (array)($c['custom'] ?? []);
+        $o .= '<p style="margin:10px 0 4px;font-weight:600">Other dates from this contract (optional)</p>';
+        for ($i = 0; $i < 6; $i++) {
+            $x = $custom[$i] ?? ['label' => '', 'date' => '', 'done' => false];
+            if ($i > 0 && $x['label'] === '' && !isset($custom[$i])) { if ($i > count($custom)) break; }
+            $o .= '<p style="margin:0 0 6px"><input type="text" name="dlc_label' . $i . '" value="' . $h($x['label']) . '" placeholder="e.g. Repair request due" style="width:46%;margin-right:6px"><input type="date" name="dlc_date' . $i . '" value="' . $h($x['date']) . '" style="margin-right:6px"><label class="wr"><input type="checkbox" name="dlcx' . $i . '"' . (!empty($x['done']) ? ' checked' : '') . '> Done</label></p>';
+        }
     }
-    $o .= '<p><button type="submit" class="btn">Save contract dates</button></p></form></div>';
+    $o .= '<p><button type="submit" class="btn">Save ' . ($only === null ? 'contract dates' : 'contingencies') . '</button></p></form></div>';
     return $o;
+}
+
+// Which DL_ITEMS keys count as contract contingencies (as opposed to deposits, loan app, or the closing date itself).
+const DL_CONTINGENCY_KEYS = ['inspect', 'appraisal', 'loan', 'title', 'hoa'];
+// True once every contingency the agent has actually entered a period for is marked Done/waived. False (and the default
+// label "Contingencies") if none are configured yet, or any configured one is still open.
+function dl_contingencies_satisfied($tx) {
+    $rec = dl_get($tx); if (!$rec) return false;
+    $items = (array)($rec['data']['items'] ?? []); $any = false;
+    foreach (DL_CONTINGENCY_KEYS as $k) {
+        $it = (array)($items[$k] ?? []);
+        $configured = ($it['days'] ?? '') !== '' || ($it['date'] ?? '') !== '';
+        if (!$configured) continue;
+        $any = true;
+        if (empty($it['done'])) return false;
+    }
+    return $any;
+}
+
+// Closing-day logistics, kept alongside the deadline data for the same transaction: a time (the date itself is the
+// 'closing' DL_ITEMS date) and whether the file is clear to close. Not a legal record — just what Closing Prep tracks.
+function dl_closing_meta($tx) {
+    $rec = dl_get($tx); $m = (array)($rec['data']['closing_meta'] ?? []);
+    return ['time' => (string)($m['time'] ?? ''), 'clear' => !empty($m['clear'])];
+}
+function dl_set_closing_meta($me, $side, $tx, $time, $clear) {
+    $old = dl_get($tx); $data = $old ? $old['data'] : ['effective' => '', 'items' => [], 'custom' => []];
+    $data['closing_meta'] = ['time' => mb_substr(trim((string)$time), 0, 20), 'clear' => (bool)$clear];
+    dl_save($me, $tx, $side, $data);
 }
