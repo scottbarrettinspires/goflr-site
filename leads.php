@@ -90,6 +90,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .bulk .btn{padding:5px 10px;font-size:.78rem}
 .modal .btns .btn.sm,.modal .btns a.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
 .touch textarea,.touch input,.fgrid input,.fgrid textarea{font-size:.92rem;padding:8px 10px}
+.ltabs button.newtab{background:#d32f2f;border-color:#d32f2f;color:#fff}.ltabs button.newtab .n{background:rgba(255,255,255,.28);color:#fff}.ltabs button.newtab.on{background:#b71c1c;border-color:#b71c1c;box-shadow:0 0 0 3px rgba(183,28,28,.25)}
 </style>
 </head>
 <body>
@@ -151,7 +152,7 @@ function row(L,v){
 function counts(){var c={new:0,buyer:0,seller:0,sphere:0};LEADS.forEach(function(L){["new","buyer","seller","sphere"].forEach(function(r){if(inRole(L,r))c[r]++;});});return c;}
 function renderTabs(){
   var c=counts(),h='<button class="ov'+(view.tab==="overview"?" on":"")+'" data-t="overview">Overview</button>';
-  h+='<button data-t="new" class="'+(view.tab==="new"?"on":"")+'">NEW <span class="n">'+c.new+'</span></button>';
+  h+='<button data-t="new" class="newtab'+(view.tab==="new"?" on":"")+'">NEW <span class="n">'+c.new+'</span></button>';
   ["buyer","seller","sphere"].forEach(function(k){h+='<button data-t="'+k+'" class="'+(view.tab===k?"on":"")+'">'+CATS[k].label+' <span class="n">'+c[k]+'</span></button>';});
   h+='<button data-t="tags" class="'+(view.tab==="tags"?"on":"")+'">By Source</button>';
   h+='<button class="srcbtn" id="mysrc" type="button">&#9881; My Lead Sources</button>';
