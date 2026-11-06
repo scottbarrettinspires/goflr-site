@@ -95,6 +95,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
 .hist.pane{max-height:none;border-top:0;margin-top:0;padding-top:0;font-size:.9rem;line-height:1.7}
 #mvbox.mvnew{border:2px solid #d32f2f;background:#fff6f5;box-shadow:0 2px 10px rgba(211,47,47,.12)}
+.stat.urgent{background:#d32f2f;border-color:#d32f2f;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(211,47,47,.25)}.stat.urgent span{color:#fff;font-weight:600}.stat.urgent b{font-size:2rem}.stat.urgent:hover{background:#b71c1c}
 </style>
 </head>
 <body>
@@ -175,8 +176,8 @@ function renderOverview(){
     if(L.roles&&L.roles.buyer&&L.roles.buyer.sub==="ready")readyB++;if(L.roles&&L.roles.seller&&L.roles.seller.sub==="ready")readyS++;if(L.roles&&L.roles.sphere&&L.roles.sphere.sub==="a")sa++;
     L.view.forEach(function(v){if(v.sub==="unid")unr++;if(v.sub==="dnc"||v.sub==="d")cold++;});});
   var h='<div class="stats">'
-   +'<div class="stat hot"><b>'+hot.length+'</b><span>Touches due now</span></div>'
-   +'<div class="stat hot"><b>'+c.new+'</b><span>NEW leads to sort</span></div>'
+   +'<div class="stat urgent" id="st_due" role="button" title="See them"><b>'+hot.length+'</b><span>Touches due now</span></div>'
+   +'<div class="stat urgent" id="st_new" role="button" title="Open NEW"><b>'+c.new+'</b><span>NEW leads to sort</span></div>'
    +'<div class="stat hot"><b>'+unr+'</b><span>Not reached yet (Undetermined)</span></div>'
    +'<div class="stat hot"><b>'+readyB+'</b><span>Ready buyers</span></div>'
    +'<div class="stat hot"><b>'+readyS+'</b><span>Ready sellers</span></div>'
@@ -193,6 +194,8 @@ function renderOverview(){
     +'<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">For website builders, landing pages and Zapier</summary><p style="font-size:.88rem;color:#4b5b5d;margin:8px 0">Send a POST (form fields or JSON) to the link above. Fields: <code>first_name</code>, <code>last_name</code> (or <code>name</code>), <code>phone</code>, <code>email</code>, <code>message</code>, <code>interest</code>, <code>source</code>. A phone or email is required. The form on that tool must collect the person\'s consent to be contacted.</p></details>'
     +'<p style="margin:10px 0 0"><button class="btn sm ghost" id="ikreset">Make a new link</button> <span class="goal" style="font-size:.82rem;color:#5a6a6c">Use this if your link is getting spam. The old link stops working.</span></p></div>';
   body.innerHTML=h;
+  var sd=document.getElementById("st_due");if(sd)sd.onclick=function(){var hp=body.querySelector(".lpanel");if(hp)hp.scrollIntoView({behavior:"smooth",block:"start"});};
+  var sn=document.getElementById("st_new");if(sn)sn.onclick=function(){view.tab="new";view.sub=null;render();};
   body.querySelectorAll(".cp").forEach(function(b){b.onclick=function(){var u=b.dataset.u;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy this link:",u);});};});
   var rk=document.getElementById("ikreset");rk.onclick=async function(){if(!rk.dataset.sure){rk.dataset.sure="1";rk.textContent="Tap again: the old link stops working";return;}rk.disabled=true;try{var j=await api({action:"intake_reset"});INTAKE=j.intake;render();}catch(e){rk.textContent=e.message;}};
 }
