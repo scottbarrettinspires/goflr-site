@@ -202,7 +202,7 @@ function renderOverview(){
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
   if(view.sub===null)view.sub=role==="new"?"all":"add"; // main categories open on the add-a-lead form
-  var side=role==="new"?"":'<button class="sb h0'+(view.sub==="add"?" on":"")+'" data-s="add">\u2795 NEW <span class="n">add</span></button>';
+  var side="";
   if(role==="new"){side+='<button class="sb h1 on">'+ico("new")+'All NEW <span class="n">'+counts().new+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
