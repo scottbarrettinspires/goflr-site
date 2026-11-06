@@ -26,6 +26,20 @@ if ($rec) {
     dl_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
     ps_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
 }
+// The pencil-edit on the Pipeline Stage contact bar: fixes one seller's name/phone/email in place.
+if ($rec && !$old && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'editcontact') {
+    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
+    else {
+        list($cp, $fields, $cerr) = ps_contact_edit_fields(['s1', 's2']);
+        if ($cerr) { $err = $cerr; }
+        else {
+            $new = $info; foreach ($fields as $ck => $cv) { $new[$ck] = $cv; } $new['updated'] = gmdate('c');
+            $r = sg_seller_info_save($me, $tx, $new);
+            if (!empty($r['ok'])) { $info = $new; $msg = 'Contact info saved.'; lb_fill_contact($me, $tx, 'seller', $new); }
+            else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
+        }
+    }
+}
 if ($rec && !$old && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'save') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {

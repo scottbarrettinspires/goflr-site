@@ -1,7 +1,36 @@
 <?php
 // Shared header/nav/footer for the small pages reached from a buyer record's Pipeline Stage ladder
 // (buyer_agreement.php, shop_notes.php, signed_filed.php, contingencies.php, closing_prep.php, close_transaction.php).
+// Each one also loads inside the ladder's own panel, via ?embed=1 appended automatically by ps_box() — in that mode the
+// page skips the site nav/footer and shows a small title bar with a link to open the same page on its own.
+function sp_embed() { return !empty($_GET['embed']); }
+function sp_full_url() {
+    $qs = $_GET; unset($qs['embed']);
+    $path = strtok((string)($_SERVER['REQUEST_URI'] ?? ''), '?');
+    return $path . ($qs ? ('?' . http_build_query($qs)) : '');
+}
 function sp_head($title, $backTx = '') {
+    if (sp_embed()) {
+        ?>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title><?= htmlspecialchars($title) ?> - FLR Agent Back Office</title>
+<link rel="stylesheet" href="style.css?v=16">
+<style>body{margin:0;background:#fff}.embedwrap{padding:14px}</style>
+</head>
+<body>
+<div class="embedwrap">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+  <h2 style="margin:0;font-size:1.1rem"><?= htmlspecialchars($title) ?></h2>
+  <a href="<?= htmlspecialchars(sp_full_url()) ?>" target="_top" style="font-size:.82rem;white-space:nowrap">Open full page &#8599;</a>
+</div>
+        <?php
+        return;
+    }
     ?>
 <!doctype html>
 <html lang="en">
@@ -41,6 +70,13 @@ function sp_head($title, $backTx = '') {
 <?php
 }
 function sp_foot() {
+    if (sp_embed()) { ?>
+</div>
+</body>
+</html>
+<?php
+        return;
+    }
     ?>
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>

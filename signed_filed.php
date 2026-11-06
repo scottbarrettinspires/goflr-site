@@ -25,7 +25,7 @@ sp_head($kind === 'contract' ? 'Executed Contract' : 'Signed Documents', $tx);
 <?php endforeach; ?>
 <?php else: ?>
   <h2 style="margin-top:0">No executed contract filed here yet</h2>
-  <p class="note">Once an offer is fully signed and filed to this transaction, it will show here. Build and send the offer from <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make An Offer</a>, or file an already-signed one from <a href="signed.php">Signed Documents</a>.</p>
+  <p class="note">Once an offer is fully signed and filed to this transaction, it will show here. Build and send the offer from <a href="wizard.php?tx=<?= urlencode($tx) ?>" target="_top">Make An Offer</a>, or file an already-signed one from <a href="signed.php" target="_top">Signed Documents</a>.</p>
 <?php endif; ?>
 <?php if ($others): ?>
   <h3 style="margin:16px 0 6px">Other signed documents filed here</h3>

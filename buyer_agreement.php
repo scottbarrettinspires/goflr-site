@@ -21,8 +21,8 @@ sp_head('Buyer Agreement', $tx);
 <?php endforeach; ?>
 <?php else: ?>
   <h2 style="margin-top:0">No signed Buyer Agreement filed here yet</h2>
-  <p class="note">Once a Buyer Brokerage Agreement is signed and filed to this transaction, it will show here. If the agreement was sent for signature before this record existed, open <a href="signed.php">Signed Documents</a> and file it to this transaction.</p>
-  <p><a class="btn" href="sign.php?f=1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U&s=b&tx=<?= urlencode($tx) ?>">Send the Exclusive Buyer Brokerage Agreement for signature</a></p>
+  <p class="note">Once a Buyer Brokerage Agreement is signed and filed to this transaction, it will show here. If the agreement was sent for signature before this record existed, open <a href="signed.php" target="_top">Signed Documents</a> and file it to this transaction.</p>
+  <p><a class="btn" href="sign.php?f=1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U&s=b&tx=<?= urlencode($tx) ?>" target="_top">Send the Exclusive Buyer Brokerage Agreement for signature</a></p>
 <?php endif; ?>
 <?php if ($others): ?>
   <h3 style="margin:16px 0 6px">Other signed documents filed here</h3>
