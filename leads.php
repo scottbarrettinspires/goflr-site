@@ -305,7 +305,8 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
 function openLead(L,preset){
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
   var rs={};["buyer","seller","sphere"].forEach(function(k){rs[k]=(L.roles&&L.roles[k]&&L.roles[k].sub)||(preset&&preset[k])||"";});
-  var h='<h2>'+(isNew?"Add a lead":esc(nm(L))+(L.phone?'<a href="tel:'+esc(digits(L.phone))+'" style="margin-left:1.2em;color:var(--teal);text-decoration:none;white-space:nowrap">'+esc(L.phone)+'</a>':''))+'</h2><div class="fgrid">'
+  var h='<h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 0"><span>'+(isNew?"Add a lead":esc(nm(L))+(L.phone?'<a href="tel:'+esc(digits(L.phone))+'" style="margin-left:1.2em;color:var(--teal);text-decoration:none;white-space:nowrap">'+esc(L.phone)+'</a>':''))+'</span>'
+   +(isNew?'':'<span style="margin-left:auto;display:flex;gap:6px"><button type="button" class="btn sm ghost" id="goNote">Add Note</button><button type="button" class="btn sm ghost" id="goHist">History</button></span>')+'</h2><div class="fgrid">'
    +'<div><label>First name</label><input id="f_first" value="'+esc(L.first)+'"></div><div><label>Last name</label><input id="f_last" value="'+esc(L.last)+'"></div>'
    +'<div><label>Phone</label><input id="f_phone" type="tel" value="'+esc(L.phone)+'"></div><div><label>Email</label><input id="f_email" type="email" value="'+esc(L.email)+'"></div>'
    +'<div><label>Source</label><input id="f_source" list="srcs" value="'+esc(L.source)+'"><datalist id="srcs">'+SOURCES.map(function(s){return '<option value="'+esc(s)+'">';}).join("")+'</datalist></div>'
@@ -345,7 +346,7 @@ function openLead(L,preset){
       h+='</div>';
     });
     var lg=(L.log||[]).slice().reverse();
-    h+='<div class="hist"><strong>History</strong><br>'+(lg.length?lg.map(function(g){return esc(fmtD(g.d))+" · "+esc(g.role==="new"?"NEW":CATS[g.role]?CATS[g.role].label:g.role)+(g.mid?" · "+esc(g.mid):"")+(g.note?" · "+esc(g.note):"");}).join("<br>"):"No touches logged yet.")+'</div>';
+    h+='<div class="hist" id="histbox"><strong>History</strong><br>'+(lg.length?lg.map(function(g){return esc(fmtD(g.d))+" · "+esc(g.role==="new"?"NEW":CATS[g.role]?CATS[g.role].label:g.role)+(g.mid?" · "+esc(g.mid):"")+(g.note?" · "+esc(g.note):"");}).join("<br>"):"No touches logged yet.")+'</div>';
   }
   modal.innerHTML=h;mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
@@ -372,6 +373,10 @@ function openLead(L,preset){
   modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
+  var gn=document.getElementById("goNote");if(gn)gn.onclick=function(){var ta=document.getElementById("f_notes");var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+    ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+d+": ";ta.scrollIntoView({behavior:"smooth",block:"center"});setTimeout(function(){ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);},300);
+    var sv=document.getElementById("m_save");if(sv)sv.textContent="Save note";};
+  var gh=document.getElementById("goHist");if(gh)gh.onclick=function(){var hb=document.getElementById("histbox");if(hb)hb.scrollIntoView({behavior:"smooth",block:"start"});};
   var sphereMove=false;
   modal.querySelectorAll(".mvx").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.mvh[data-role="'+b.dataset.role+'"]');if(w)w.hidden=false;
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
