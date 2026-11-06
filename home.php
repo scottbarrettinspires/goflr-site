@@ -2,8 +2,12 @@
 require __DIR__ . "/guard.php";
 require __DIR__ . "/events.php";
 require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/dlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');
+// Staff / broker accounts get a different home page below: their picture, then messages, then the Broker Dashboard
+// content -- a personalized home focused on running the brokerage rather than an individual agent's leads and deals.
+$isStaff = flr_is_broker();
 // Agent dismissed a "signed" notice.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && isset($_POST['seen'])) {
     $rec = sg_load((string)$_POST['seen']);
@@ -17,29 +21,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
     header('Location: home.php'); exit;
 }
 $anns = flr_announcements($me);
-require_once __DIR__ . "/leadlib.php";
-require_once __DIR__ . "/push_keys.php";
-require_once __DIR__ . "/dlib.php";
-ld_autosort($me);
-$dlUpcoming = dl_upcoming($me, 14);
-$hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
-foreach (ld_view($me, '', '') as $L) {
-    $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
-    if ($isNew) { $newN++; $newLeads[] = $L; }
-    foreach ($L['view'] as $v) { if ($v['sub'] === 'unid' && isset($v['over']) && $v['over'] >= 0) { $unreached[] = [$L, $v]; break; } }
-    foreach ($L['view'] as $v) { if (isset($v['over']) && $v['over'] >= 0 && $v['sub'] !== 'dnc') { $hotN++; if (count($hotNames) < 4) $hotNames[] = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')); break; } }
+$dlUpcoming = []; $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
+$signedNotes = []; $needFile = false; $unsent = [];
+if (!$isStaff) {
+    require_once __DIR__ . "/leadlib.php";
+    require_once __DIR__ . "/push_keys.php";
+    ld_autosort($me);
+    $dlUpcoming = dl_upcoming($me, 14);
+    foreach (ld_view($me, '', '') as $L) {
+        $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
+        if ($isNew) { $newN++; $newLeads[] = $L; }
+        foreach ($L['view'] as $v) { if ($v['sub'] === 'unid' && isset($v['over']) && $v['over'] >= 0) { $unreached[] = [$L, $v]; break; } }
+        foreach ($L['view'] as $v) { if (isset($v['over']) && $v['over'] >= 0 && $v['sub'] !== 'dnc') { $hotN++; if (count($hotNames) < 4) $hotNames[] = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')); break; } }
+    }
+    // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
+    $myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
+    sg_refresh_many($myrecs, 6);
+    foreach ($myrecs as $r) {
+        if (empty($r['completed'])) continue;
+        $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
+        if ($pend && sg_can_file($r)) { $needFile = true; } // filed in the background by file_pending.php
+        $signedNotes[] = $r;
+    }
+    $unsent = sg_draft_unsent($me);
 }
-// Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
-$signedNotes = []; $checked = 0; $needFile = false;
-$myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
-sg_refresh_many($myrecs, 6);
-foreach ($myrecs as $r) {
-    if (empty($r['completed'])) continue;
-    $pend = empty($r['filed']); foreach (($r['extra'] ?? []) as $x) { if (empty($x['filed'])) $pend = true; }
-    if ($pend && sg_can_file($r)) { $needFile = true; } // filed in the background by file_pending.php
-    $signedNotes[] = $r;
-}
-$unsent = sg_draft_unsent($me);
 $full = trim($_SESSION['name'] ?? '');
 $first = $full !== '' ? preg_split('/\s+/', $full)[0] : '';
 $pic = $_SESSION['pic'] ?? '';
@@ -113,6 +118,18 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+<?php if ($isStaff): ?>
+<?php foreach ($anns as $a): ?>
+  <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
+    <p><span class="tag"><?= !empty($a['personal']) ? 'Message for you' : 'Announcement' ?></span></p>
+    <?php if (!empty($a['title'])): ?><p><strong><?= htmlspecialchars($a['title']) ?></strong></p><?php endif; ?>
+    <p style="white-space:pre-line"><?= htmlspecialchars($a['message'] ?? '') ?></p>
+    <p class="note" style="background:none;border:0;padding:0;margin:0 0 10px"><?= htmlspecialchars(trim(($a['by'] ?? '') . (!empty($a['date']) ? ' · ' . date('M j, Y', strtotime($a['date'])) : ''), ' ·')) ?></p>
+    <form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="annseen" value="<?= htmlspecialchars($a['id']) ?>"><button class="btn ghost" type="submit">Dismiss</button></form>
+  </div>
+<?php endforeach; ?>
+<?php require __DIR__ . "/dashboard_body.php"; ?>
+<?php else: ?>
   <div class="panel sigbox" id="appcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <div style="flex:1;min-width:220px"><strong>&#128242; Put FLR Office on your phone.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Install it from the browser, no app store, and get an alert for every new lead.</span></div>
     <a class="btn" href="install.php">Install the app</a> <a href="#" id="appx" style="font-size:.85rem">Not now</a>
@@ -223,9 +240,11 @@ if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementBy
 (async function(){try{var r=await fetch("file_pending.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>})});var j=await r.json();if(j.ok&&j.filed>0&&!(j.errors||[]).length)location.reload();}catch(e){}})();
 </script>
 <?php endif; ?>
+<?php endif; ?>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only. Having trouble signing in? Contact the office.</footer>
+<?php if (!$isStaff): ?>
 <script>
 (function(){
 var KEY=<?= json_encode(PUSH_PUBLIC) ?>,CSRF=<?= json_encode($_SESSION['csrf']) ?>,card=document.getElementById("pushcard"),ok=document.getElementById("pushok");
@@ -246,6 +265,7 @@ navigator.serviceWorker.ready.then(function(reg){
 });
 })();
 </script>
+<?php endif; ?>
 <script>try{fetch("tx_sync.php",{credentials:"same-origin"}).catch(function(){});}catch(e){}</script>
 </body>
 </html>
