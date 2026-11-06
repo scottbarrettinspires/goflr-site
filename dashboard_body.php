@@ -1,8 +1,8 @@
 <?php
-// Shared Broker Dashboard content -- stats across every agent plus the by-agent breakdown. Used two ways: as the body
-// of the standalone dashboard.php page, and as the lower section of a staff account's personalized home page
-// (home.php), below their picture and messages. The caller must already have required guard.php and dlib.php, and
-// provides its own <main> wrapper; this file renders only the content inside it.
+// Broker Dashboard content -- stats across every agent plus the by-agent breakdown. Rendered on a staff/broker
+// account's Home page (home.php), below their picture and messages; there is no separate Dashboard page anymore
+// (dashboard.php just redirects here). The caller must already have required guard.php and dlib.php, and provides
+// its own <main> wrapper; this file renders only the content inside it.
 require_once __DIR__ . "/dlib.php";
 $pdo = flr_db();
 

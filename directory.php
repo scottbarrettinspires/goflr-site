@@ -59,7 +59,7 @@ function dir_card($p, $sub) {
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php" aria-current="page">Directory</a>
-    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><a href="mls_data.php">MLS Data</a><?php endif; ?>
+    <?php if (flr_is_broker()): ?><a href="mls_data.php">MLS Data</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>

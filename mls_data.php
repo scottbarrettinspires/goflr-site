@@ -40,7 +40,6 @@ $cached = mls_db()->query('SELECT data, updated FROM mls_listings ORDER BY updat
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="dashboard.php">Dashboard</a>
     <a href="mls_data.php" aria-current="page">MLS Data</a>
     <a href="logout.php">Sign out</a>
   </nav>
