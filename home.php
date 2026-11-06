@@ -110,6 +110,12 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+  <div class="panel sigbox" id="appcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+    <div style="flex:1;min-width:220px"><strong>&#128242; Put FLR Office on your phone.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Install it from the browser, no app store, and get an alert for every new lead.</span></div>
+    <a class="btn" href="install.php">Install the app</a> <a href="#" id="appx" style="font-size:.85rem">Not now</a>
+  </div>
+<script>(function(){var c=document.getElementById("appcard"),st=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true,dis=false;try{dis=localStorage.getItem("flrAppDismiss")==="1";}catch(e){}
+if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementById("appx").onclick=function(e){e.preventDefault();c.hidden=true;c.style.display="none";try{localStorage.setItem("flrAppDismiss","1");}catch(x){}};})();</script>
   <div class="panel sigbox" id="pushcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <div style="flex:1;min-width:220px" id="pushtext"><strong>&#128276; Get an alert on this phone for every new lead.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Works best in the FLR Office app on your home screen.</span></div>
     <button class="btn" id="pushon" type="button">Turn on alerts</button>

@@ -66,7 +66,7 @@ html,body{height:100%}
   <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_blue" data-text="signin_with" data-shape="pill" data-logo_alignment="left" data-width="300"></div>
   <p class="err" id="err" role="alert"<?php if (!$removed) echo ' hidden'; ?>><?php if ($removed) echo 'Your access has ended or changed. Please contact the office.'; ?></p>
   <p class="note">Sign in with the Google (Gmail) account the office has on file for you. Your transactions and files are shown only from folders shared with that account.</p>
-  <p class="help">Can't get in? Contact the office.</p>
+  <p class="help">Can't get in? Contact the office. &middot; <a href="install.php">Install the app</a></p>
 </main>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="scenes.js?v=6"></script>
