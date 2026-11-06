@@ -7,9 +7,19 @@ header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = $_SESSION['email'];
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
+require_once __DIR__ . "/flrdb.php";
+require_once __DIR__ . "/pstage.php";
 $all = sg_folders($me, $tx) ?: [];
-$buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
+$buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; } // stage-1 folders: where buyer info is entered
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
+// Every buyer-side record, any stage, from the server's transaction index — for the pipeline-stage list and for viewing
+// records that have moved past the Buyer Agreement stage (their info fields stay locked here; the pipeline stage doesn't).
+$buyerTx = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'buyer'; }));
+$recAny = null; foreach ($buyerTx as $t) { if ($t['folder'] === $tx) $recAny = $t; }
+if (!$recAny && !$buyer && preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx)) {
+    foreach ($all as $f) { if ($f['id'] === $tx && flr_tx_side($f['group']) === 'buyer') { list($st, $stn) = flr_tx_stage($f['group']); $recAny = ['folder' => $f['id'], 'name' => $f['name'], 'stage' => $st, 'stage_name' => $stn]; } }
+}
+$pastStage1 = $recAny && !$buyer;
 $isNew = (($_GET['new'] ?? ($_POST['new'] ?? '')) === '1');
 $hint = (string)($_GET['hint'] ?? ($_POST['hint'] ?? ''));
 // Started from a lead: carry the lead's details into the new buyer record and link the two.
@@ -42,9 +52,9 @@ if ($isNew && $lead && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava'];
     if (!empty($fin[0]) && isset($pm[$fin[0]])) $info['payment'] = $pm[$fin[0]];
 }
-if ($buyer) {
+if ($buyer || $pastStage1) {
     $r = sg_buyer_info($me, $tx);
-    if (!empty($r['ok'])) { $info = is_array($r['info']) ? $r['info'] : []; } else { $err = 'Could not load the saved information: ' . ($r['note'] ?? ''); }
+    if (!empty($r['ok'])) { $info = is_array($r['info']) ? $r['info'] : []; } elseif ($buyer) { $err = 'Could not load the saved information: ' . ($r['note'] ?? ''); }
 }
 if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
@@ -84,7 +94,9 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once __DIR__ . "/leadbox.php";
 require_once __DIR__ . "/dlib.php";
 if ($buyer) { lb_handle_link($me, 'buyer', $tx, (string)$buyer['name'], 1, $info, 'buyer.php?tx=' . urlencode($tx)); }
-if ($buyer) { dl_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
+if ($buyer || $pastStage1) { dl_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
+if ($buyer || $pastStage1) { ps_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
+if ($pastStage1) { lb_handle_link($me, 'buyer', $tx, (string)$recAny['name'], (int)$recAny['stage'], $info, 'buyer.php?tx=' . urlencode($tx)); }
 if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') !== 'linklead') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {
@@ -143,21 +155,30 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 </div></header>
 <section class="hero"><h1><?= $isNew && !$buyer ? 'Create New Buyer Record' : 'Buyer Info' ?></h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
 <main class="wrap">
-<?php if (!$buyer && !$isNew): ?>
+<?php if (!$buyer && !$pastStage1 && !$isNew): ?>
   <div class="panel sigbox">
-    <form method="get"><p><label for="tx"><strong>Which buyer?</strong></label><br>
-    <select id="tx" name="tx" class="txsel" onchange="this.form.submit()">
-      <option value="">Choose a buyer...</option>
-<?php foreach ($buyers as $f): ?>
-      <option value="<?= htmlspecialchars($f['id']) ?>"><?= htmlspecialchars($f['name']) ?></option>
-<?php endforeach; ?>
-    </select></p>
-<?php if (!$buyers): ?><p class="note">No buyer folders found yet. Create one in My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers first.</p><?php endif; ?>
-    <noscript><button class="btn" type="submit">Open</button></noscript></form>
+    <h2 style="margin-top:0">Your buyer records</h2>
+<?php if (!$buyerTx): ?><p class="note">No buyer folders found yet. Create one in My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers first.</p>
+<?php else: ?>
+    <?= ps_group_box('buyer', $buyerTx, function ($t) { return 'buyer.php?tx=' . urlencode($t['folder']); }) ?>
+<?php endif; ?>
+    <p style="margin-top:14px"><a class="btn ghost" href="my-transactions.php">Create a new buyer record in My Transactions</a></p>
   </div>
 <?php else: ?>
-<?php if ($buyer) echo lb_box($me, 'buyer', $tx, $info); ?>
-<?php if ($buyer) echo dl_box($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); ?>
+<?php if ($buyer || $pastStage1) echo lb_box($me, 'buyer', $tx, $info); ?>
+<?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0))); ?>
+<?php if ($buyer || $pastStage1) echo dl_box($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); ?>
+<?php if ($pastStage1): ?>
+  <div class="panel sigbox">
+    <h2 style="margin-top:0"><?= htmlspecialchars($recAny['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($recAny['stage_name'] ?: 'Buyer') ?></span></h2>
+    <p class="note">This buyer has moved past the Buyer Agreement stage, so the info fields are locked here (they were used to fill the contract packet). Use the Pipeline Stage and Contract Deadlines panels above to keep tracking the deal; the buyer's saved details are below.</p>
+<?php if ($info): ?>
+    <p style="margin:0 0 4px"><strong>Buyer 1:</strong> <?= htmlspecialchars(trim(($info['b1_name'] ?? '') . ' · ' . ($info['b1_phone'] ?? '') . ' · ' . ($info['b1_email'] ?? ''), ' ·')) ?></p>
+<?php if (!empty($info['b2_name'])): ?><p style="margin:0 0 4px"><strong>Buyer 2:</strong> <?= htmlspecialchars(trim(($info['b2_name'] ?? '') . ' · ' . ($info['b2_phone'] ?? '') . ' · ' . ($info['b2_email'] ?? ''), ' ·')) ?></p><?php endif; ?>
+<?php endif; ?>
+    <p style="margin-top:10px"><a class="btn ghost" href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a> <a class="btn ghost" href="buyer.php">All buyer records</a></p>
+  </div>
+<?php else: ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($buyer['name'] ?? ($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer')) ?></h2>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
@@ -186,6 +207,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     </fieldset>
     <p><button type="submit" class="btn"><?= $buyer ? 'Save buyer info' : 'Create buyer record' ?></button><?php if ($buyer): ?> <a class="btn ghost" href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer</a><?php endif; ?></p>
   </form>
+<?php endif; ?>
 <?php endif; ?>
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>

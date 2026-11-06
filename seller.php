@@ -4,6 +4,7 @@ require __DIR__ . "/guard.php";
 require __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/leadbox.php";
 require_once __DIR__ . "/dlib.php";
+require_once __DIR__ . "/pstage.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -23,6 +24,7 @@ if ($rec) {
     else { $old = !empty($r['old']); $err = $old ? '' : 'Could not load the saved information: ' . ($r['note'] ?? ''); }
     lb_handle_link($me, 'seller', $tx, (string)$rec['name'], (int)$rec['stage'], $info, 'seller.php?tx=' . urlencode($tx));
     dl_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
+    ps_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
 }
 if ($rec && !$old && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'save') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
@@ -43,7 +45,6 @@ if ($rec && !$old && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['o
     }
 }
 $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '')); };
-$byStage = []; foreach ($sellers as $t) { $byStage[$t['stage_name'] ?: 'Other'][] = $t; }
 ?>
 <!doctype html>
 <html lang="en">
@@ -82,18 +83,17 @@ $byStage = []; foreach ($sellers as $t) { $byStage[$t['stage_name'] ?: 'Other'][
 <?php if (!$rec): ?>
   <div class="panel sigbox">
     <h2 style="margin-top:0">Your seller records</h2>
-<?php if (!$sellers): ?><p class="note">No seller records found yet. They appear here once they are in My Transactions &rsaquo; 2 SELLERS. New records can take a few minutes to show.</p><?php endif; ?>
-<?php foreach ($byStage as $stn => $list): ?>
-    <h3 style="margin:14px 0 6px"><?= htmlspecialchars($stn) ?></h3>
-<?php foreach ($list as $t): ?>
-    <p style="margin:0 0 6px"><a href="seller.php?tx=<?= urlencode($t['folder']) ?>"><?= htmlspecialchars($t['name']) ?></a><?= $t['lead_id'] ? ' <span style="color:#6a777a;font-size:.85rem">· linked to a lead</span>' : '' ?></p>
-<?php endforeach; endforeach; ?>
+<?php if (!$sellers): ?><p class="note">No seller records found yet. They appear here once they are in My Transactions &rsaquo; 2 SELLERS. New records can take a few minutes to show.</p>
+<?php else: ?>
+    <?= ps_group_box('seller', $sellers, function ($t) { return 'seller.php?tx=' . urlencode($t['folder']); }) ?>
+<?php endif; ?>
   </div>
 <?php else: ?>
 <?= lb_box($me, 'seller', $tx, $info) ?>
+<?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0)) ?>
 <?= dl_box($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx)) ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
-    <h2><?= htmlspecialchars($rec['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($rec['stage_name'] ?: 'Seller') ?></span></h2>
+    <h2><?= htmlspecialchars($rec['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($rec['stage_name'] ?: 'Seller') ?></span> <span style="font-size:.85rem;font-weight:600;color:<?= htmlspecialchars(ps_fg('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;background:<?= htmlspecialchars(ps_color('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars(PS_STAGES['seller'][ps_get($tx, 'seller', (int)($rec['stage'] ?? 0))] ?? '') ?></span></h2>
 <?php if ($old): ?><p class="note">Seller details can be viewed and saved here after the office script is updated to v26. The lead box above works now.</p><?php endif; ?>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>

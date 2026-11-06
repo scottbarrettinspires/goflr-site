@@ -1,4 +1,12 @@
-<?php require __DIR__ . "/guard.php"; require_once __DIR__ . "/dlib.php"; ?>
+<?php
+require __DIR__ . "/guard.php";
+require_once __DIR__ . "/dlib.php";
+require_once __DIR__ . "/pstage.php";
+$me = $_SESSION['email'];
+$side = (($_GET['side'] ?? '') === 'seller') ? 'seller' : 'buyer';
+$buyers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'buyer'; }));
+$sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'seller'; }));
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -15,7 +23,17 @@
 <meta name="robots" content="noindex,nofollow">
 <title>My Transactions - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=11">
-<style>.stabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}</style>
+<style>
+.stabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+/* Sidebar + tabs, matching the Leads page's look. */
+.lwrap{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}
+.lside{display:flex;flex-direction:column;gap:8px;position:sticky;top:12px}
+.sb{font:inherit;font-weight:700;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;text-decoration:none;background:var(--white);color:var(--teal)}
+.sb.on{background:var(--teal);color:#fff;outline:3px solid #1f2a2c;outline-offset:2px}
+.sb .n{font-size:.78rem;font-weight:700;background:rgba(0,0,0,.08);border-radius:99px;padding:1px 8px}
+.sb.on .n{background:rgba(255,255,255,.25)}
+@media(max-width:800px){.lwrap{grid-template-columns:1fr}.lside{position:static;flex-direction:row;flex-wrap:wrap}.sb{flex:1 1 45%}}
+</style>
 </head>
 <body>
 <header class="top"><div class="in">
@@ -35,17 +53,41 @@
 
 <section class="hero">
   <h1>My Transactions</h1>
-  <p>You only see the files shared with your Google account.</p>
+  <p>Buyers and sellers who became clients, sorted into the same kind of pipeline stages as your Leads.</p>
 </section>
 
 <main class="wrap">
-  <div class="stabs"><a href="my-transactions.php" class="on">Transaction Folders</a><a href="signed.php">Signed Documents</a><a href="buyer.php">Buyer Records</a><a href="seller.php">Seller Records</a></div>
-  <div class="tips">
-    <div><b>1</b><span>Open a folder to see its files.</span></div>
-    <div><b>2</b><span>Click any document to view it in a new tab.</span></div>
-    <div><b>3</b><span>Fully executed contracts are tagged and listed first.</span></div>
+  <div class="stabs"><a href="my-transactions.php" class="on">My Transactions</a><a href="signed.php">Signed Documents</a></div>
+  <div class="lwrap">
+    <div class="lside">
+      <a class="sb<?= $side === 'buyer' ? ' on' : '' ?>" href="my-transactions.php?side=buyer">Buyers <span class="n"><?= count($buyers) ?></span></a>
+      <a class="sb<?= $side === 'seller' ? ' on' : '' ?>" href="my-transactions.php?side=seller">Sellers <span class="n"><?= count($sellers) ?></span></a>
+    </div>
+    <div>
+<?php if ($side === 'buyer'): ?>
+      <h2 style="margin:0 0 10px">Buyers</h2>
+<?php if (!$buyers): ?><p class="note">No buyer records yet. <a href="buyer.php?new=1">Create one</a> once a buyer signs an agreement.</p>
+<?php else: ?>
+      <?= ps_group_box('buyer', $buyers, function ($t) { return 'buyer.php?tx=' . urlencode($t['folder']); }) ?>
+<?php endif; ?>
+<?php else: ?>
+      <h2 style="margin:0 0 10px">Sellers</h2>
+<?php if (!$sellers): ?><p class="note">No seller records yet. They appear here once the listing folder is created in My Transactions &rsaquo; 2 SELLERS.</p>
+<?php else: ?>
+      <?= ps_group_box('seller', $sellers, function ($t) { return 'seller.php?tx=' . urlencode($t['folder']); }) ?>
+<?php endif; ?>
+<?php endif; ?>
+    </div>
   </div>
-  <div class="panel"><iframe class="frame" title="My Transactions" src="https://script.google.com/macros/s/AKfycby0tfcs_7y9_B1cH5zxcpRJkGAvbvY9WYrqsp_RR8tgcm6nEEvQVNQ1jS5iI-Lq54PC/exec"></iframe></div>
+  <details style="margin-top:22px">
+    <summary style="cursor:pointer;font-weight:700;color:var(--teal)">Browse the raw transaction folders and files</summary>
+    <div class="tips" style="margin-top:12px">
+      <div><b>1</b><span>Open a folder to see its files.</span></div>
+      <div><b>2</b><span>Click any document to view it in a new tab.</span></div>
+      <div><b>3</b><span>Fully executed contracts are tagged and listed first.</span></div>
+    </div>
+    <div class="panel"><iframe class="frame" title="My Transactions" src="https://script.google.com/macros/s/AKfycby0tfcs_7y9_B1cH5zxcpRJkGAvbvY9WYrqsp_RR8tgcm6nEEvQVNQ1jS5iI-Lq54PC/exec"></iframe></div>
+  </details>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
