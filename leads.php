@@ -370,7 +370,7 @@ function openLead(L,preset){
       if(row){row.style.margin="0";row.style.justifyContent="flex-end";slot.appendChild(row);}else{slot.appendChild(sb.firstElementChild||document.createTextNode(""));}
       hd.appendChild(slot);if(pw){hd.parentNode.insertBefore(pw,hd.nextSibling);}sb.remove();}
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
-    var bar=document.createElement("div");bar.className="mtabs";bar.innerHTML='<button type="button" data-p="lead" class="on">Lead</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
+    var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">'+(sphOnly?'Contact':'Lead')+'</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
     h2.parentNode.insertBefore(bar,h2.nextSibling);
     var pLead=document.createElement("div"),pNotes=document.createElement("div"),pHist=document.createElement("div");
     while(bar.nextSibling){pLead.appendChild(bar.nextSibling);}
@@ -383,8 +383,9 @@ function openLead(L,preset){
     var hb=document.getElementById("histbox");if(hb){hb.classList.add("pane");pHist.appendChild(hb);}
     var hc=document.createElement("div");hc.className="btns";hc.innerHTML='<button type="button" class="btn ghost mclose">Close</button>';pHist.appendChild(hc);
     modal.querySelectorAll(".mclose").forEach(function(b){b.onclick=close;});
-    function showPane(p){[["lead",pLead],["notes",pNotes],["hist",pHist]].forEach(function(x){x[1].hidden=x[0]!==p;});bar.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.p===p);});}
-    bar.querySelectorAll("button").forEach(function(b){b.onclick=function(){showPane(b.dataset.p);};});
+    pLead.dataset.pane="lead";pNotes.dataset.pane="notes";pHist.dataset.pane="hist";
+    function showPane(p){modal.querySelectorAll("[data-pane]").forEach(function(x){x.hidden=x.dataset.pane!==p;});bar.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.p===p);});}
+    bar.addEventListener("click",function(e){var b=e.target.closest("button[data-p]");if(b)showPane(b.dataset.p);});
     document.getElementById("noteAdd").onclick=function(){var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
       ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+d+": ";ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);ta.scrollTop=ta.scrollHeight;};
     document.getElementById("noteSave").onclick=async function(){var b=this,m=document.getElementById("noteMsg");b.disabled=true;
@@ -405,7 +406,11 @@ function openLead(L,preset){
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),ref:r});reopen(L.id);render();}catch(e){say(e.message,true);}};
   if(!isNew&&L.roles&&L.roles.sphere){var refd=LEADS.filter(function(x){return x.ref===L.id;});
     var rb=document.createElement("div");rb.className="touch";rb.innerHTML='<div class="hd"><span>Referrals from '+esc(nm(L))+'</span><span class="due later">'+refd.length+'</span></div>'+(refd.length?refd.map(function(x){return '<div><a href="#" data-open="'+esc(x.id)+'">'+esc(nm(x))+'</a> <span class="goal">'+esc(x.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub);}).join(", "))+'</span></div>';}).join(""):'<p class="goal">No referrals yet. When a lead names this person in Referred by, it shows here.</p>');
-    var mvb=document.getElementById("mvbox");mvb.parentNode.insertBefore(rb,mvb);rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
+    var tb=modal.querySelector(".mtabs");
+    if(tb){var pr=document.createElement("div");pr.dataset.pane="refs";pr.hidden=true;rb.querySelector(".hd").innerHTML='<span>Referrals received from '+esc(nm(L))+'</span>';pr.appendChild(rb);
+      var rc=document.createElement("div");rc.className="btns";rc.innerHTML='<button type="button" class="btn ghost">Close</button>';rc.firstChild.onclick=close;pr.appendChild(rc);modal.appendChild(pr);
+      var rbtn=document.createElement("button");rbtn.type="button";rbtn.dataset.p="refs";rbtn.innerHTML='Referrals Received<span class="n">'+refd.length+'</span>';tb.appendChild(rbtn);}
+    else{var mvb=document.getElementById("mvbox");mvb.parentNode.insertBefore(rb,mvb);}rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
   function refreshPills(box){var sum=modal.querySelector('.picksum[data-for="'+box+'"]'),sel=[];modal.querySelectorAll("#"+box+" .chip.on").forEach(function(c){sel.push(c.dataset.tag||c.dataset.int);});
     if(sum){sum.innerHTML=pills(sel,box,sum.dataset.label);bindOpen(sum);}}
   function bindOpen(root){root.querySelectorAll(".pickopen").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.pickwrap[data-box="'+b.dataset.box+'"]');if(w)w.hidden=!w.hidden;};});}
