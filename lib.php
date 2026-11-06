@@ -114,3 +114,15 @@ function flr_announcements($email) {
     $seen = flr_ann_dismissed($email);
     return array_values(array_filter($items, function ($a) use ($seen) { return !in_array($a['id'] ?? '', $seen, true); }));
 }
+
+// Staff sign-in: an Active person on the FLR Staff Directory sheet (Broker, Office Admin, Owner) can sign in too.
+function flr_staff_info($email) {
+    $email = strtolower(trim($email)); if ($email === '') return null;
+    $d = flr_directory(); if (!$d) return null;
+    foreach ((array)($d['staff'] ?? []) as $p) {
+        if (strtolower(trim((string)($p['email'] ?? ''))) === $email) {
+            return ['active' => true, 'staff' => true, 'position' => (string)($p['position'] ?? ''), 'name' => (string)($p['name'] ?? ''), 'photo_key' => !empty($p['photo']) ? flr_dir_photo_key($p['photo']) : '', 'commercial' => true, 'leasing' => true];
+        }
+    }
+    return null;
+}
