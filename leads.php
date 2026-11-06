@@ -69,8 +69,8 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .btn.sm{padding:8px 12px;font-size:.9rem}
 .hist{font-size:.85rem;color:#4b5b5d;max-height:160px;overflow:auto;border-top:1px solid var(--line);margin-top:10px;padding-top:8px}
 .mvbox{border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}.mvbox h3{margin:0 0 8px;font-size:1rem}
-.mvrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}.mvrow b{width:64px;font-size:.88rem}
-.mvb{font:inherit;font-size:.85rem;font-weight:700;padding:7px 11px;border-radius:9px;border:2px solid rgba(0,0,0,.1);cursor:pointer;opacity:.55}
+.mvrow{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:0 0 8px}.mvrow b{width:58px;font-size:.82rem}
+.mvb{font:inherit;font-size:.76rem;font-weight:700;padding:4px 8px;border-radius:8px;border:1.5px solid rgba(0,0,0,.1);cursor:pointer;opacity:.55;line-height:1.3}.mvb svg{width:10px;height:16px;vertical-align:-3px}#mvbox .btn.sm{padding:5px 10px;font-size:.78rem}#mvbox h3{font-size:.95rem}
 .mvb.on{opacity:1;outline:3px solid #1f2a2c;outline-offset:1px}.mvb.none{background:#f1f4f4;color:#4b5b5d}.mvb:hover{opacity:1}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.picksum{display:contents}.picksum .goal{font-size:.88rem;color:#6a777a}.chip{font:inherit;font-size:.85rem;font-weight:600;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:#4b5b5d;cursor:pointer}
 .chip.on{background:var(--teal);border-color:var(--teal);color:#fff}.chip .n{font-weight:700;opacity:.8;margin-left:4px}
