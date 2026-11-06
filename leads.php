@@ -124,7 +124,7 @@ var CSRF=<?= json_encode($_SESSION['csrf']) ?>, ALLSRC=<?= json_encode(LD_SOURCE
 var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=ALLSRC;
 var view={tab:"overview",sub:null,q:""};
-var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal");
+var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal"),MODAL=modal;
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
@@ -201,8 +201,8 @@ function renderOverview(){
 }
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
-  if(view.sub===null)view.sub=role==="new"?"all":keys[0];
-  var side=role==="new"?"":'<button class="sb h0" id="addHere">\u2795 NEW <span class="n">add</span></button>';
+  if(view.sub===null)view.sub=role==="new"?"all":"add"; // main categories open on the add-a-lead form
+  var side=role==="new"?"":'<button class="sb h0'+(view.sub==="add"?" on":"")+'" data-s="add">\u2795 NEW <span class="n">add</span></button>';
   if(role==="new"){side+='<button class="sb h1 on">'+ico("new")+'All NEW <span class="n">'+counts().new+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
@@ -213,14 +213,15 @@ function renderCat(){
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
   var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+(view.sub==="client"?"In My Transactions":subs[view.sub]);
   if(view.sub==="client")CATS[role].stage.client=role==="buyer"?"Signed or signing a buyer broker agreement. The record lives in My Transactions until the sale closes.":"Signed or signing a listing agreement. The record lives in My Transactions until the sale closes.";
-  var main='<div class="lpanel"><h2>'+esc(title)+'</h2>'+(role!=="new"&&CATS[role].stage[view.sub]?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">'+esc(CATS[role].stage[view.sub])+'</p>':(role==="new"?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">Leads from your website, landing pages and social media. Reach them, learn what they need, then move them to Buyers, Sellers or Sphere.</p>':''))+'<input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
+  var main=view.sub==="add"?'<div class="lpanel">'+(view.flash?'<p class="note" style="margin:0 0 10px">'+esc(view.flash)+'</p>':'')+'<p style="margin:0 0 10px;color:#5a6a6c;font-size:.9rem">'+(role==="sphere"?"Add a new Sphere contact below":"Add a new "+esc(CATS[role].label.replace(/s$/,"").toLowerCase())+" lead below")+', or tap a category to see who is in it.</p><div class="modal inl" id="inlAdd" style="padding:0;max-width:none;margin:0;background:none"></div></div>':'<div class="lpanel"><h2>'+esc(title)+'</h2>'+(role!=="new"&&CATS[role].stage[view.sub]?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">'+esc(CATS[role].stage[view.sub])+'</p>':(role==="new"?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">Leads from your website, landing pages and social media. Reach them, learn what they need, then move them to Buyers, Sellers or Sphere.</p>':''))+'<input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
     +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet.</p>')+'</div>';
   body.innerHTML='<div class="lwrap"><div class="lside">'+side+'</div><div>'+main+'</div></div>';
   body.querySelectorAll(".sb[data-s]").forEach(function(b){b.onclick=function(){view.sub=b.dataset.s;render();};});
-  var ah=document.getElementById("addHere");if(ah)ah.onclick=function(){var r={};r[role]=view.sub;openLead(null,r);};
-  var lq=document.getElementById("lq");lq.oninput=function(){view.q=lq.value;var p=lq.selectionStart;renderCat();var n=document.getElementById("lq");n.focus();n.setSelectionRange(p,p);};
+  view.flash="";
+  var ia=document.getElementById("inlAdd");if(ia){var r={};r[role]="-";openLead(null,r,ia);var mc=document.getElementById("m_close");if(mc)mc.textContent="Clear";}
+  var lq=document.getElementById("lq");if(lq)lq.oninput=function(){view.q=lq.value;var p=lq.selectionStart;renderCat();var n=document.getElementById("lq");n.focus();n.setSelectionRange(p,p);};
 }
-function render(){renderTabs();if(view.tab==="overview")renderOverview();else if(view.tab==="tags")renderTags();else renderCat();}
+function render(){modal=MODAL;renderTabs();if(view.tab==="overview")renderOverview();else if(view.tab==="tags")renderTags();else renderCat();}
 function isDnc(L){return L.view.some(function(v){return v.sub==="dnc";});}
 function tagCounts(){var c={};LEADS.forEach(function(L){(L.tags||[]).forEach(function(t){c[t]=(c[t]||0)+1;});});return c;}
 function renderTags(){
@@ -250,7 +251,7 @@ function renderTags(){
     var rows=[["First","Last","Phone","Email","Source","Tags","Interests","Referred by","Categories","Added","Do Not Contact"]].concat(list.map(function(L){return [L.first,L.last,L.phone,L.email,L.source,(L.tags||[]).join("; "),(L.interests||[]).join("; "),(function(){var p=L.ref?LEADS.filter(function(x){return x.id===L.ref;})[0]:null;return p?nm(p):"";})(),L.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" "+subLabel(v.role,v.sub);}).join("; "),L.added,isDnc(L)?"Yes":""];}));
     var blob=new Blob([rows.map(function(r){return r.map(q).join(",");}).join("\r\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="leads-"+(view.tag==="__none"?"no-source":view.tag.replace(/^[ir]:/,"")).replace(/[^A-Za-z0-9]+/g,"-")+".csv";document.body.appendChild(a);a.click();a.remove();};
 }
-function openSources(){
+function openSources(){modal=MODAL;
   var all=ALLSRC.slice();MYSRC.forEach(function(t){if(all.indexOf(t)<0)all.push(t);});
   var alli=ALLINT.slice();MYINT.forEach(function(t){if(alli.indexOf(t)<0)alli.push(t);});
   var sel=MYSRC.slice(),seli=MYINT.slice();
@@ -260,12 +261,12 @@ function openSources(){
     +chips(all,sel,"s")+addRow("src_new","Add your own, separated by commas (e.g. Builder partner)")
     +'<h3 style="margin:6px 0 4px">Interests and connections</h3><p style="color:#5a6a6c;margin:0 0 6px">Mostly for your Sphere: how you know people and what you share. Tag contacts with them to remember the connection and to reach everyone who golfs, plays pickleball and so on.</p>'
     +chips(alli,seli,"i")+addRow("int_new","Add your own, separated by commas (e.g. Rotary Club, Kayaking)")
-    +'<div class="btns"><button class="btn" id="src_save">Save</button><button class="btn ghost" id="m_close">Close</button></div><p class="note" id="m_msg" hidden></p>';
+    +'<div class="btns"><button class="btn" id="src_save">Save</button><button class="btn ghost" id="s_close">Close</button></div><p class="note" id="s_msg" hidden></p>';
     modal.querySelectorAll(".chip[data-g]").forEach(function(b){b.onclick=function(){var arr=b.dataset.g==="s"?sel:seli,t=b.dataset.s,i=arr.indexOf(t);if(i>-1)arr.splice(i,1);else arr.push(t);b.classList.toggle("on");};});
     modal.querySelectorAll("[data-add]").forEach(function(b){b.onclick=function(){var isS=b.dataset.add==="src_new",inp=document.getElementById(b.dataset.add);
       inp.value.split(",").map(function(x){return x.trim().slice(0,40);}).filter(Boolean).forEach(function(t){var L1=isS?all:alli,S1=isS?sel:seli;if(L1.indexOf(t)<0)L1.push(t);if(S1.indexOf(t)<0)S1.push(t);});draw();};});
-    document.getElementById("m_close").onclick=close;
-    document.getElementById("src_save").onclick=async function(){var b=this;b.disabled=true;try{var j=await api({action:"sources",sources:sel,interests:seli});MYSRC=j.sources;MYINT=j.interests;close();render();}catch(e){var m=document.getElementById("m_msg");m.textContent=e.message;m.hidden=false;b.disabled=false;}};
+    document.getElementById("s_close").onclick=close;
+    document.getElementById("src_save").onclick=async function(){var b=this;b.disabled=true;try{var j=await api({action:"sources",sources:sel,interests:seli});MYSRC=j.sources;MYINT=j.interests;close();render();}catch(e){var m=document.getElementById("s_msg");m.textContent=e.message;m.hidden=false;b.disabled=false;}};
   }
   draw();mback.classList.add("show");
 }
@@ -395,7 +396,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
   h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan.')+'</div>';
   return h;
 }
-function openLead(L,preset){
+function openLead(L,preset,inl){modal=inl||MODAL;
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
   var rs={};["buyer","seller","sphere"].forEach(function(k){rs[k]=(L.roles&&L.roles[k]&&L.roles[k].sub)||(preset&&preset[k])||"";});
   var h='<h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 0"><span>'+(isNew?"Add a lead":esc(nm(L))+(L.phone?'<a href="tel:'+esc(digits(L.phone))+'" style="margin-left:1.2em;color:var(--teal);text-decoration:none;white-space:nowrap">'+esc(L.phone)+'</a>':''))+'</span>'
@@ -441,7 +442,7 @@ function openLead(L,preset){
     var lg=(L.log||[]).slice().reverse();
     h+='<div class="hist" id="histbox"><strong>History</strong><br>'+(lg.length?lg.map(function(g){return esc(fmtD(g.d))+" · "+esc(g.role==="new"?"NEW":CATS[g.role]?CATS[g.role].label:g.role)+(g.mid?" · "+esc(g.mid):"")+(g.note?" · "+esc(g.note):"");}).join("<br>"):"No touches logged yet.")+'</div>';
   }
-  modal.innerHTML=h;mback.classList.add("show");
+  modal.innerHTML=h;if(!inl)mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
   if(!isNew){var mvbx=document.getElementById("mvbox"),ft=modal.querySelector(".touch");modal.insertBefore(mvbx,ft||fg);} // stage buttons first, then the next touch
   if(!isNew){ // Lead / Notes / History tabs inside the lead window
@@ -552,9 +553,9 @@ function openLead(L,preset){
   document.getElementById("m_close").onclick=close;
   document.getElementById("m_save").onclick=async function(){var b=this;b.disabled=true;
     var roles=readRoles(),any=Object.keys(roles).some(function(k){return roles[k];});
-    if(isNew&&!any){say("Choose Buyer, Seller or Sphere for this lead.",true);b.disabled=false;return;}
+    if(isNew&&!any){say(inl?"Tap a category for this lead (for example Ready, Soon or Later).":"Choose Buyer, Seller or Sphere for this lead.",true);b.disabled=false;return;}
     var tg=modal.querySelector("#tagbox")?readTags():undefined;if(isNew&&tg&&!tg.length&&val("f_source"))tg=undefined;
-    try{await api({action:"save",id:isNew?"":L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:roles,tags:tg,interests:readInts(),ref:(function(){var r=readRef(L);return r===null?(L.ref||""):r;})()});close();render();}
+    try{await api({action:"save",id:isNew?"":L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:roles,tags:tg,interests:readInts(),ref:(function(){var r=readRef(L);return r===null?(L.ref||""):r;})()});if(inl){var nn=(val("f_first")+" "+val("f_last")).trim()||"the lead";var where=Object.keys(roles).filter(function(k){return roles[k];}).map(function(k){return CATS[k].label+" · "+CATS[k].subs[roles[k]];}).join(" and ");view.flash="Added "+nn+(where?" to "+where:"")+".";}close();if(!inl)render();}
     catch(e){say(e.message,true);b.disabled=false;}};
   if(!isNew){document.getElementById("m_del").onclick=async function(){if(!confirmDel(this))return;try{await api({action:"delete",id:L.id});close();render();}catch(e){say(e.message,true);}};}
   modal.querySelectorAll(".touch").forEach(function(t){
@@ -571,9 +572,9 @@ function openLead(L,preset){
 }
 function confirmDel(b){if(b.dataset.sure)return true;b.dataset.sure="1";b.textContent="Tap again to delete";setTimeout(function(){delete b.dataset.sure;b.textContent="Delete";},4000);return false;}
 function reopen(id){var L=LEADS.filter(function(x){return x.id===id;})[0];if(L)openLead(L);}
-function readRoles(){var o={};modal.querySelectorAll(".mvrow").forEach(function(r){o[r.dataset.role]=r.dataset.val||"";});return o;}
+function readRoles(){var o={};modal.querySelectorAll(".mvrow").forEach(function(r){var v=r.dataset.val||"";o[r.dataset.role]=v==="-"?"":v;});return o;}
 function val(id){return document.getElementById(id).value.trim();}
-function close(){mback.classList.remove("show");modal.innerHTML="";}
+function close(){mback.classList.remove("show");if(modal!==MODAL){modal=MODAL;render();return;}MODAL.innerHTML="";var ia=document.getElementById("inlAdd");if(ia)modal=ia;} // a popup over the inline add form hands control back to it
 mback.addEventListener("click",function(e){if(e.target===mback)close();});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
 render();
