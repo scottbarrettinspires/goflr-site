@@ -26,7 +26,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Leads - FLR Agent Back Office</title>
+<title>Leads and Contacts - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=16">
 <style>
 .ltabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
@@ -106,7 +106,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Leads</h1><p>Hot leads are red, cold leads are blue. Work the reds first.</p></section>
+<section class="hero"><h1>Leads and Contacts</h1><p>Hot leads are red, cold leads are blue. Work the reds first.</p></section>
 <main class="wrap">
   <div class="ltabs" id="tabs"></div>
   <div id="body"></div>
