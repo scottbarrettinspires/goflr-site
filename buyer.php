@@ -96,22 +96,9 @@ require_once __DIR__ . "/dlib.php";
 if ($buyer) { lb_handle_link($me, 'buyer', $tx, (string)$buyer['name'], 1, $info, 'buyer.php?tx=' . urlencode($tx)); }
 if ($buyer || $pastStage1) { ps_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
 if ($pastStage1) { lb_handle_link($me, 'buyer', $tx, (string)$recAny['name'], (int)$recAny['stage'], $info, 'buyer.php?tx=' . urlencode($tx)); }
-// The pencil-edit on the Pipeline Stage contact bar: fixes one buyer's name/phone/email in place, even once the full
-// info form below is locked past the Buyer Agreement stage.
-if (($buyer || $pastStage1) && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') === 'editcontact') {
-    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
-    else {
-        list($cp, $fields, $cerr) = ps_contact_edit_fields(['b1', 'b2']);
-        if ($cerr) { $err = $cerr; }
-        else {
-            $new = $info; foreach ($fields as $ck => $cv) { $new[$ck] = $cv; } $new['updated'] = gmdate('c');
-            $r = sg_buyer_info_save($me, $tx, $new);
-            if (!empty($r['ok'])) { $info = $new; $msg = 'Contact info saved.'; lb_fill_contact($me, $tx, 'buyer', $new); }
-            else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
-        }
-    }
-}
-if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && !in_array(($_POST['op'] ?? ''), ['linklead', 'editcontact'], true)) {
+// Fixing a name/phone/email now happens on contact_edit.php, reached from the single pencil above the Pipeline Stage
+// ladder (it works even once the full info form below is locked past the Buyer Agreement stage).
+if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') !== 'linklead') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {
         $new = [];
@@ -180,10 +167,6 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </div>
 <?php else: ?>
 <?php if ($buyer || $pastStage1) echo lb_box($me, 'buyer', $tx, $info); ?>
-<?php if ($pastStage1 && ($msg || $err)): ?>
-<?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
-<?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
-<?php endif; ?>
 <?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info); ?>
 <?php if ($pastStage1): ?>
   <div class="panel sigbox">

@@ -137,39 +137,25 @@ function ps_contacts($side, array $info) {
     }
     return $out;
 }
-// Validates a pencil-edit submission from ps_box()'s contact card: picks which contact (b1/b2 or s1/s2) was edited and
-// returns its three fields, ready to merge into the record's saved info. Returns [$prefix, $fields, $error].
-function ps_contact_edit_fields(array $allowedPrefixes) {
-    $p = (string)($_POST['p'] ?? '');
-    if (!in_array($p, $allowedPrefixes, true)) return [null, null, 'Please choose which contact to edit.'];
-    $name = mb_substr(trim((string)($_POST['c_name'] ?? '')), 0, 200);
-    $phone = mb_substr(trim((string)($_POST['c_phone'] ?? '')), 0, 200);
-    $email = mb_substr(trim((string)($_POST['c_email'] ?? '')), 0, 200);
-    if ($name === '') return [$p, null, 'Please enter a name.'];
-    if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) return [$p, null, 'Please check the email address: ' . $email];
-    return [$p, [$p . '_name' => $name, $p . '_phone' => $phone, $p . '_email' => $email], ''];
-}
-// The buyer/seller's name and contact info, as a compact bar with a pencil to fix a name, phone or email in place
-// (posts to the same page as op=editcontact, so it works whether or not the record's info fields are otherwise locked).
+// The buyer/seller's name and contact info, as a compact bar with a single pencil that opens one edit screen (both
+// contacts at once) in the panel to the right, the same way a pipeline stage does.
 function ps_contact_bar($side, $tx, array $info) {
     $h = function ($s) { return htmlspecialchars((string)$s); };
     $contacts = ps_contacts($side, $info);
     $o = '<div style="margin-bottom:16px">';
-    if (!$contacts) { return $o . '<p class="note" style="margin:0">No contact info saved yet.</p></div>'; }
-    foreach ($contacts as $c) {
-        $o .= '<details style="margin-bottom:6px"><summary style="cursor:pointer;display:flex;flex-wrap:wrap;gap:14px;align-items:baseline;list-style:revert">';
-        $o .= '<strong>' . $h($c['name']) . '</strong>';
-        if ($c['phone'] !== '') $o .= '<a href="tel:' . $h(preg_replace('/[^0-9+]/', '', $c['phone'])) . '" onclick="event.stopPropagation()">' . $h($c['phone']) . '</a>';
-        if ($c['email'] !== '') $o .= '<a href="mailto:' . $h($c['email']) . '" onclick="event.stopPropagation()">' . $h($c['email']) . '</a>';
-        if ($c['phone'] === '' && $c['email'] === '') $o .= '<span style="color:#6a777a">No phone or email saved.</span>';
-        $o .= '<span style="color:#036f72;font-weight:700;margin-left:auto;white-space:nowrap">&#9998; Edit</span></summary>';
-        $o .= '<form method="post" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:10px 0 4px">';
-        $o .= '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="editcontact"><input type="hidden" name="p" value="' . $h($c['prefix']) . '">';
-        $o .= '<label>Name<br><input type="text" name="c_name" value="' . $h($c['name']) . '" required></label>';
-        $o .= '<label>Phone<br><input type="text" name="c_phone" value="' . $h($c['phone']) . '" inputmode="tel"></label>';
-        $o .= '<label>Email<br><input type="email" name="c_email" value="' . $h($c['email']) . '"></label>';
-        $o .= '<button type="submit" class="btn">Save</button></form></details>';
+    if ($contacts) {
+        foreach ($contacts as $c) {
+            $o .= '<p style="margin:0 0 6px;display:flex;flex-wrap:wrap;gap:14px;align-items:baseline">';
+            $o .= '<strong>' . $h($c['name']) . '</strong>';
+            if ($c['phone'] !== '') $o .= '<a href="tel:' . $h(preg_replace('/[^0-9+]/', '', $c['phone'])) . '">' . $h($c['phone']) . '</a>';
+            if ($c['email'] !== '') $o .= '<a href="mailto:' . $h($c['email']) . '">' . $h($c['email']) . '</a>';
+            if ($c['phone'] === '' && $c['email'] === '') $o .= '<span style="color:#6a777a">No phone or email saved.</span>';
+            $o .= '</p>';
+        }
+    } else {
+        $o .= '<p class="note" style="margin:0 0 6px">No contact info saved yet.</p>';
     }
+    $o .= '<p style="margin:0"><a href="contact_edit.php?tx=' . urlencode($tx) . '&side=' . urlencode($side) . '&embed=1" target="pscontent" style="color:#036f72;font-weight:700;text-decoration:none">&#9998; Edit contact info</a></p>';
     return $o . '</div>';
 }
 // The pill-button ladder for one record (click a step to move it to that pipeline stage — climbs bottom-to-top, the
@@ -215,16 +201,18 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = []) {
         }
     }
     $o .= '</div></form></div>';
-    // Right: the content panel for buyer records (nothing to show yet for sellers, whose stages have no screens).
+    // Right: the content panel. Every buyer stage (but Make An Offer) opens here; sellers' stages have no screens yet,
+    // but the panel still exists so the "Edit contact info" pencil above has somewhere to open into.
+    $src = '';
     if ($side === 'buyer') {
         $curMerged = $curDisp === 'offer' ? ps_offer_contract_state($tx) : null;
         $defDest = $curMerged ? $curMerged['dest'] : ps_dest($side, $cur, $tx);
         $defEmbeddable = $curMerged ? $curMerged['embeddable'] : ps_embeddable($cur);
         $src = ($defDest !== null && $defEmbeddable) ? ($defDest . '&embed=1') : '';
-        $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="flex:1;min-width:280px;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
-        if ($src === '') { $o .= ' srcdoc="<body style=\'font-family:sans-serif;color:#6a777a;padding:20px;margin:0\'>Click a stage on the left to view it here.</body>"'; }
-        $o .= '></iframe>';
     }
+    $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="flex:1;min-width:280px;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
+    if ($src === '') { $o .= ' srcdoc="<body style=\'font-family:sans-serif;color:#6a777a;padding:20px;margin:0\'>Click a stage, or Edit contact info, to view it here.</body>"'; }
+    $o .= '></iframe>';
     $o .= '</div></div>';
     return $o;
 }
