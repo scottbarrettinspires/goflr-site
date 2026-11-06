@@ -23,6 +23,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $new[$p . '_phone'] = mb_substr(trim((string)($_POST['f_' . $p . '_phone'] ?? '')), 0, 200);
             $new[$p . '_email'] = mb_substr(trim((string)($_POST['f_' . $p . '_email'] ?? '')), 0, 200);
         }
+        if ($side === 'buyer') {
+            $new['mailing'] = mb_substr(trim((string)($_POST['f_mailing'] ?? '')), 0, 200);
+            $pm = (string)($_POST['payment'] ?? '');
+            $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
+            $new['lender'] = mb_substr(trim((string)($_POST['f_lender'] ?? '')), 0, 200);
+            $new['preapproval'] = mb_substr(trim((string)($_POST['f_preapproval'] ?? '')), 0, 200);
+        }
         if ($new[$p1 . '_name'] === '') { $err = 'Please enter ' . $label . ' 1\'s name.'; }
         if (!$err) { foreach ([$p1 . '_email', $p2 . '_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; break; } } }
         if (!$err && $new[$p2 . '_name'] !== '' && $new[$p2 . '_email'] === '') { $err = $label . ' 2 needs an email address (phone is optional).'; }
@@ -54,6 +61,20 @@ sp_head('Edit Contact Info', $tx);
       <label>Phone<input type="text" name="f_<?= $p2 ?>_phone" value="<?= $v($p2 . '_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
       <label>Email<input type="email" name="f_<?= $p2 ?>_email" value="<?= $v($p2 . '_email') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
+<?php if ($side === 'buyer'): ?>
+    <fieldset class="wq"><legend>Buyer mailing address (used as the address for notices)</legend>
+      <label>Street, city, state, zip<input type="text" name="f_mailing" value="<?= $v('mailing') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+    </fieldset>
+    <fieldset class="wq"><legend>Method of payment</legend>
+      <div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:10px">
+<?php foreach (['cash' => 'Cash', 'conventional' => 'Conventional financing', 'fhava' => 'FHA / VA financing'] as $k => $l): ?>
+        <label class="wr" style="margin:0"><input type="radio" name="payment" value="<?= $k ?>"<?= ($info['payment'] ?? '') === $k ? ' checked' : '' ?>> <?= $l ?></label>
+<?php endforeach; ?>
+      </div>
+      <label>Lender (if financing)<input type="text" name="f_lender" value="<?= $v('lender') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Pre-approval amount<input type="text" name="f_preapproval" value="<?= $v('preapproval') ?>" inputmode="decimal" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+    </fieldset>
+<?php endif; ?>
     <p><button type="submit" class="btn">Save contact info</button></p>
   </form>
 </div>

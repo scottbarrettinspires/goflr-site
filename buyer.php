@@ -96,30 +96,8 @@ require_once __DIR__ . "/dlib.php";
 if ($buyer) { lb_handle_link($me, 'buyer', $tx, (string)$buyer['name'], 1, $info, 'buyer.php?tx=' . urlencode($tx)); }
 if ($buyer || $pastStage1) { ps_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
 if ($pastStage1) { lb_handle_link($me, 'buyer', $tx, (string)$recAny['name'], (int)$recAny['stage'], $info, 'buyer.php?tx=' . urlencode($tx)); }
-// Fixing a name/phone/email now happens on contact_edit.php, reached from the single pencil above the Pipeline Stage
-// ladder (it works even once the full info form below is locked past the Buyer Agreement stage).
-if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') !== 'linklead') {
-    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
-    else {
-        $new = [];
-        foreach ($FIELDS as $k) { $new[$k] = mb_substr(trim((string)($_POST['f_' . $k] ?? '')), 0, 200); }
-        $pm = (string)($_POST['payment'] ?? '');
-        $new['payment'] = in_array($pm, ['cash', 'conventional', 'fhava'], true) ? $pm : '';
-        foreach (['b1_email', 'b2_email'] as $k) { if ($new[$k] !== '' && !filter_var($new[$k], FILTER_VALIDATE_EMAIL)) { $err = 'Please check the email address: ' . $new[$k]; } }
-        // Browsers sometimes autofill the agent's own name into a buyer field; never keep that.
-        $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
-        foreach (['b1', 'b2'] as $p) { if ($mine !== '' && strtolower($new[$p . '_name']) === $mine) { $new[$p . '_name'] = ''; $new[$p . '_phone'] = ''; $new[$p . '_email'] = ''; $msg = 'Your own name was removed from a buyer line. '; } }
-        $new['updated'] = gmdate('c');
-        if (!$err) { $err = bi_missing($new); }
-        if (!$err) {
-            $r = sg_buyer_info_save($me, $tx, $new);
-            if (!empty($r['ok'])) { $info = $new; $msg .= 'Saved.';
-                lb_fill_contact($me, $tx, 'buyer', $new);
-            } else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
-            $info = $new;
-        } else { $info = $new; }
-    }
-}
+// Fixing a name/phone/email/payment detail now happens on contact_edit.php, reached from the single pencil above the
+// Pipeline Stage ladder -- there is no inline edit form on this page anymore for an existing record.
 $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '')); };
 ?>
 <!doctype html>
@@ -168,19 +146,19 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php else: ?>
 <?php if ($buyer || $pastStage1) echo lb_box($me, 'buyer', $tx, $info); ?>
 <?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info); ?>
-<?php if ($pastStage1): ?>
+<?php if ($buyer || $pastStage1): ?>
   <div class="panel sigbox">
-    <h2 style="margin-top:0"><?= htmlspecialchars($recAny['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($recAny['stage_name'] ?: 'Buyer') ?></span></h2>
-    <p class="note">This buyer has moved past the Buyer Agreement stage, so the full info form is locked here (it was used to fill the contract packet). Use the pencil next to the buyer's name above to fix a name, phone or email; use the Pipeline Stage and Contract Deadlines panels to keep tracking the deal.</p>
+    <h2 style="margin-top:0"><?= htmlspecialchars($recAny['name'] ?? $buyer['name'] ?? '') ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($recAny['stage_name'] ?: 'Buyer') ?></span></h2>
+<?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
+    <p class="note">Use the pencil next to the buyer's name above to edit contact info, mailing address, or payment/lender details. Use the Pipeline Stage ladder to move the deal forward (including Make An Offer) and the Contract Deadlines panel to keep tracking it.</p>
     <p style="margin-top:10px"><a class="btn ghost" href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a> <a class="btn ghost" href="buyer.php">All buyer records</a></p>
   </div>
 <?php else: ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
-    <h2><?= htmlspecialchars($buyer['name'] ?? ($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer')) ?></h2>
-<?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
+    <h2><?= htmlspecialchars($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer') ?></h2>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-    <?php if ($buyer): ?><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><?php else: ?><input type="hidden" name="new" value="1"><?php if ($leadId): ?><input type="hidden" name="lead" value="<?= htmlspecialchars($leadId) ?>"><?php endif; ?><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>"><?php endif; ?>
+    <input type="hidden" name="new" value="1"><?php if ($leadId): ?><input type="hidden" name="lead" value="<?= htmlspecialchars($leadId) ?>"><?php endif; ?><input type="hidden" name="hint" value="<?= htmlspecialchars($hint) ?>">
     <fieldset class="wq"><legend>Buyer 1 (all required)</legend>
       <label>Buyer full name<input type="text" name="f_b1_name" required value="<?= $v('b1_name') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Phone<input type="text" name="f_b1_phone" required value="<?= $v('b1_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
@@ -195,13 +173,15 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
       <label>Street, city, state, zip<input type="text" name="f_mailing" value="<?= $v('mailing') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
     <fieldset class="wq"><legend>Method of payment</legend>
+      <div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:10px">
 <?php foreach (['cash' => 'Cash', 'conventional' => 'Conventional financing', 'fhava' => 'FHA / VA financing'] as $k => $l): ?>
-      <label class="wr"><input type="radio" name="payment" value="<?= $k ?>"<?= ($info['payment'] ?? '') === $k ? ' checked' : '' ?>> <?= $l ?></label>
+        <label class="wr" style="margin:0"><input type="radio" name="payment" value="<?= $k ?>"<?= ($info['payment'] ?? '') === $k ? ' checked' : '' ?>> <?= $l ?></label>
 <?php endforeach; ?>
+      </div>
       <label>Lender (if financing)<input type="text" name="f_lender" value="<?= $v('lender') ?>" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
       <label>Pre-approval amount<input type="text" name="f_preapproval" value="<?= $v('preapproval') ?>" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" data-lpignore="true" data-1p-ignore></label>
     </fieldset>
-    <p><button type="submit" class="btn"><?= $buyer ? 'Save buyer info' : 'Create buyer record' ?></button><?php if ($buyer): ?> <a class="btn ghost" href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer</a><?php endif; ?></p>
+    <p><button type="submit" class="btn">Create buyer record</button></p>
   </form>
 <?php endif; ?>
 <?php endif; ?>
