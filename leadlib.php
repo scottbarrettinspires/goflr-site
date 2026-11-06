@@ -21,7 +21,7 @@ const LD_HEAT = ['new' => 0, 'ready' => 1, 'a' => 1, 'unid' => 1, 'soon' => 2, '
 const LD_STAGE = [
     'buyer'  => ['ready' => 'Ready to sign a buyer broker agreement and buy within about 3 months.', 'soon' => 'Likely to sign a buyer broker agreement in 3 to 6 months.', 'later' => 'Planning to buy 6 or more months out.', 'unid' => 'Not reached yet. Keep trying every few days until you make contact, then move them to Ready, Soon or Later.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
     'seller' => ['ready' => 'Ready to sign a listing agreement and sell within about 3 months.', 'soon' => 'Likely to sign a listing agreement in 3 to 6 months.', 'later' => 'Planning to sell 6 or more months out.', 'unid' => 'Not reached yet. Keep trying every few days until you make contact, then move them to Ready, Soon or Later.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
-    'sphere' => ['a' => 'Yes: a strong source of referrals and future business.', 'b' => 'Likely to refer or use you.', 'c' => 'Maybe. Stay in touch.', 'd' => 'Maybe not. Light touch only.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
+    'sphere' => ['a' => 'Always: refers people to you whenever they can, and a source of future business.', 'b' => 'Likely to refer or use you.', 'c' => 'Maybe. Stay in touch.', 'd' => 'Maybe not. Light touch only.', 'dnc' => 'Asked not to be contacted. No messages are sent.'],
 ];
 
 function ld_today() { return (new DateTime('now', new DateTimeZone('America/New_York')))->format('Y-m-d'); }
