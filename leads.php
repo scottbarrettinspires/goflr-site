@@ -276,11 +276,12 @@ function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data
 function pickBlock(kind,sel,all,label){
   if(!all.length)return '<p class="goal">'+(kind==="tag"?'Set up':'Choose your interests and connections in')+' <a href="#" class="opensrc">My Lead Sources</a>'+(kind==="tag"?' to tag leads by how you got them.':' to tag people with them.')+'</p>';
   var box=kind==="tag"?"tagbox":"intbox",attr=kind==="tag"?"data-tag":"data-int";
-  return '<div class="chips"><span class="picksum" data-for="'+box+'">'+pills(sel)+'</span><button type="button" class="chip pickbtn" data-box="'+box+'" style="border-style:dashed">'+(sel.length?"Change":"+ "+label)+'</button></div>'
+  return '<div class="chips"><span class="picksum" data-for="'+box+'" data-label="'+esc(label)+'">'+pills(sel,box,label)+'</span></div>'
     +'<div class="pickwrap" data-box="'+box+'" hidden style="border:1px solid var(--line);border-radius:12px;padding:10px;margin:4px 0 8px"><div class="chips" id="'+box+'">'+all.map(function(x){return '<button type="button" class="chip'+(sel.indexOf(x)>-1?" on":"")+'" '+attr+'="'+esc(x)+'">'+esc(x)+'</button>';}).join("")+'</div>'
     +'<button type="button" class="btn sm" data-done="'+box+'">Done</button> <a href="#" class="opensrc" style="font-size:.82rem">Edit my choices</a></div>';
 }
-function pills(sel){return sel.length?sel.map(function(x){return '<span class="chip on" style="cursor:default">'+esc(x)+'</span>';}).join(""):'<span class="goal" style="align-self:center">None chosen</span>';}
+// The chosen tags themselves are the buttons: tap one to change. With none chosen, one "+ Choose" tag shows.
+function pills(sel,box,label){return sel.length?sel.map(function(x){return '<button type="button" class="chip on pickopen" data-box="'+box+'" title="Tap to change">'+esc(x)+'</button>';}).join(""):'<button type="button" class="chip pickopen" data-box="'+box+'" style="border-style:dashed">+ '+esc(label||"Choose")+'</button>';}
 function tagChips(L,isNew){var t=(L.tags||[]).slice(),all=MYSRC.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});return pickBlock("tag",t,all,"Choose lead source");}
 function intChips(L){var t=(L.interests||[]).slice(),all=MYINT.slice();t.forEach(function(x){if(all.indexOf(x)<0)all.push(x);});return pickBlock("int",t,all,"Choose interests");}
 
@@ -405,8 +406,9 @@ function openLead(L,preset){
     var rb=document.createElement("div");rb.className="touch";rb.innerHTML='<div class="hd"><span>Referrals from '+esc(nm(L))+'</span><span class="due later">'+refd.length+'</span></div>'+(refd.length?refd.map(function(x){return '<div><a href="#" data-open="'+esc(x.id)+'">'+esc(nm(x))+'</a> <span class="goal">'+esc(x.view.map(function(v){return v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub);}).join(", "))+'</span></div>';}).join(""):'<p class="goal">No referrals yet. When a lead names this person in Referred by, it shows here.</p>');
     var mvb=document.getElementById("mvbox");mvb.parentNode.insertBefore(rb,mvb);rb.querySelectorAll("[data-open]").forEach(function(a){a.onclick=function(e){e.preventDefault();reopen(a.dataset.open);};});}
   function refreshPills(box){var sum=modal.querySelector('.picksum[data-for="'+box+'"]'),sel=[];modal.querySelectorAll("#"+box+" .chip.on").forEach(function(c){sel.push(c.dataset.tag||c.dataset.int);});
-    if(sum)sum.innerHTML=pills(sel);var pb=modal.querySelector('.pickbtn[data-box="'+box+'"]');if(pb)pb.textContent=sel.length?"Change":(box==="tagbox"?"+ Choose lead source":"+ Choose interests");}
-  modal.querySelectorAll(".pickbtn").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.pickwrap[data-box="'+b.dataset.box+'"]');w.hidden=!w.hidden;};});
+    if(sum){sum.innerHTML=pills(sel,box,sum.dataset.label);bindOpen(sum);}}
+  function bindOpen(root){root.querySelectorAll(".pickopen").forEach(function(b){b.onclick=function(){var w=modal.querySelector('.pickwrap[data-box="'+b.dataset.box+'"]');if(w)w.hidden=!w.hidden;};});}
+  bindOpen(modal);
   modal.querySelectorAll("[data-done]").forEach(function(b){b.onclick=function(){modal.querySelector('.pickwrap[data-box="'+b.dataset.done+'"]').hidden=true;};});
   modal.querySelectorAll("#tagbox .chip, #intbox .chip").forEach(function(c){c.addEventListener("click",function(){setTimeout(function(){refreshPills(c.parentNode.id);},0);});});
   modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
