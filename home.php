@@ -100,7 +100,7 @@ foreach ($FLR_EVENTS as $ev) {
       <p>What needs your attention today.</p>
     </div>
   </div>
-<?php if ($next): ?>
+<?php if ($next && !$isStaff): ?>
   <div class="nextup">
     <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span><?= $dt->format('j') ?></span></div>
     <div class="nb">
