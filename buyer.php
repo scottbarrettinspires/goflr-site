@@ -61,14 +61,14 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $info = $new;
         if (!$err) {
             $label = preg_replace('/\s+/', ' ', trim($new['b1_name'] . ($new['b2_name'] !== '' ? ' & ' . $new['b2_name'] : '')));
-            if ($lead) { $new['lead_source'] = (string)($lead['source'] ?? ''); $new['lead_added'] = (string)($lead['added'] ?? ''); $new['lead_notes'] = (string)($lead['notes'] ?? ''); }
+            if ($lead) { $new += ld_pack_for_record($lead, ld_load($me)['leads']); } // the whole lead file travels into the record
             $r = sg_script_post(['op' => 'createbuyer', 'email' => $me, 'hint' => $hint, 'name' => $label, 'info' => $new]);
             if (is_array($r) && !empty($r['ok']) && !empty($r['id'])) {
                 if ($lead) {
                     $fid = (string)$r['id'];
                     ld_update($me, function (&$db) use ($leadId, $fid, $label) {
                         foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $leadId) continue;
-                            $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label];
+                            $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label, 'stage' => 1];
                             $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer record created in My Transactions'];
                         }
                     });
@@ -79,7 +79,26 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
+// The lead behind this record: show it here, or link / add one for records made before the lead system.
+require_once __DIR__ . "/leadlib.php";
+$link = $buyer ? ld_find_by_folder($me, $tx) : null;
+if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') === 'linklead' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && !$link) {
+    $lid = (string)($_POST['lid'] ?? ''); $bi0 = sg_buyer_info($me, $tx); $bi0 = (!empty($bi0['ok']) && is_array($bi0['info'] ?? null)) ? $bi0['info'] : [];
+    $rec = (string)$buyer['name']; $today = ld_today();
+    ld_update($me, function (&$db) use ($lid, $tx, $rec, $today, $bi0) {
+        $role = ['sub' => 'client', 'since' => $today, 'touches' => 0, 'last' => '', 'folder' => $tx, 'record' => $rec, 'stage' => 1];
+        if ($lid === 'new') {
+            $p = preg_split('/\s+/', trim((string)($bi0['b1_name'] ?? $rec)), 2);
+            array_unshift($db['leads'], ['id' => bin2hex(random_bytes(6)), 'first' => $p[0] ?? '', 'last' => $p[1] ?? '', 'phone' => (string)($bi0['b1_phone'] ?? ''), 'email' => (string)($bi0['b1_email'] ?? ''),
+                'source' => '', 'notes' => '', 'added' => $today, 'created' => date('c'), 'roles' => ['buyer' => $role], 'log' => [['d' => $today, 'role' => 'buyer', 'mid' => '', 'note' => 'Added from the buyer record in My Transactions']]]);
+            return null;
+        }
+        foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') === $lid) { unset($L['roles']['new']); $L['roles']['buyer'] = $role; $L['log'][] = ['d' => $today, 'role' => 'buyer', 'mid' => '', 'note' => 'Linked to the buyer record in My Transactions']; } }
+        return null;
+    });
+    header('Location: buyer.php?tx=' . urlencode($tx) . '&linked=1'); exit;
+}
+if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') !== 'linklead') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {
         $new = [];
@@ -94,7 +113,12 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$err) { $err = bi_missing($new); }
         if (!$err) {
             $r = sg_buyer_info_save($me, $tx, $new);
-            if (!empty($r['ok'])) { $info = $new; $msg .= 'Saved.'; } else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
+            if (!empty($r['ok'])) { $info = $new; $msg .= 'Saved.';
+                if ($link) { // fill a missing phone or email on the linked lead from the record
+                    $lid = $link['id']; ld_update($me, function (&$db) use ($lid, $new) { foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $lid) continue;
+                        if (trim((string)($L['phone'] ?? '')) === '' && $new['b1_phone'] !== '') $L['phone'] = $new['b1_phone'];
+                        if (trim((string)($L['email'] ?? '')) === '' && $new['b1_email'] !== '') $L['email'] = $new['b1_email']; } return null; }); }
+            } else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
             $info = $new;
         } else { $info = $new; }
     }
@@ -146,7 +170,30 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <noscript><button class="btn" type="submit">Open</button></noscript></form>
   </div>
 <?php else: ?>
-  <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
+<?php if ($buyer):
+  if ($link) { $pk = ld_pack_for_record($link, ld_load($me)['leads']); $wt = ld_wants_text($link['wants'] ?? []); $nl = array_slice(array_values(array_filter(preg_split('/\r?\n/', (string)($link['notes'] ?? '')), 'strlen')), -3); }
+  else { $bi1 = $info; $match = ld_find_match($me, 'buyer', $bi1['b1_email'] ?? '', $bi1['b1_phone'] ?? ''); } ?>
+  <div class="panel" style="margin-bottom:14px;border-left:5px solid var(--teal,#036f72)">
+<?php if ($link): ?>
+    <h2 style="margin:0 0 6px;font-size:1.1rem">From Leads and Contacts</h2>
+<?php if (!empty($_GET['linked'])): ?><p class="note">Linked. This buyer now shows in Leads and Contacts under Buyers &rsaquo; In My Transactions.</p><?php endif; ?>
+    <p style="margin:0 0 6px;color:#4b5b5d;font-size:.92rem"><?= htmlspecialchars(implode(' · ', array_filter([($pk['lead_source'] ? 'Source: ' . $pk['lead_source'] : ''), ($pk['lead_ref'] ? 'Referred by ' . $pk['lead_ref'] : ''), ($pk['lead_added'] ? 'Lead since ' . date('M j, Y', strtotime($pk['lead_added'])) : ''), (($nh = count($link['log'] ?? [])) . ' history ' . ($nh === 1 ? 'entry' : 'entries'))]))) ?></p>
+    <p style="margin:0 0 6px"><strong>Looking for:</strong> <?= $wt !== '' ? htmlspecialchars($wt) : '<span style="color:#6a777a">Nothing recorded yet. Add it on the lead\'s Property Details tab.</span>' ?></p>
+<?php if ($nl): ?><p style="margin:0 0 6px;font-size:.9rem"><strong>Latest notes:</strong><br><?= implode('<br>', array_map('htmlspecialchars', $nl)) ?></p><?php endif; ?>
+    <p style="margin:8px 0 0"><a class="btn sm ghost" href="leads.php?open=<?= urlencode($link['id']) ?>">Open the lead: notes, history, property details</a></p>
+<?php elseif (!empty($match)): ?>
+    <h2 style="margin:0 0 6px;font-size:1.1rem">Is this your lead <?= htmlspecialchars(trim(($match['first'] ?? '') . ' ' . ($match['last'] ?? ''))) ?>?</h2>
+    <p style="margin:0 0 8px;color:#4b5b5d;font-size:.92rem">A lead in Leads and Contacts has the same <?= strtolower(trim((string)($match['email'] ?? ''))) === strtolower(trim((string)($bi1['b1_email'] ?? ''))) ? 'email' : 'phone' ?>. Link them so the lead's notes and history show here, follow-up pauses while you work the deal, and the buyer moves to your Sphere after closing.</p>
+    <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><input type="hidden" name="op" value="linklead"><input type="hidden" name="lid" value="<?= htmlspecialchars($match['id']) ?>"><button class="btn sm" type="submit">Yes, link them</button></form>
+    <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><input type="hidden" name="op" value="linklead"><input type="hidden" name="lid" value="new"><button class="btn sm ghost" type="submit">No, add as a new contact</button></form>
+<?php else: ?>
+    <h2 style="margin:0 0 6px;font-size:1.1rem">Not in Leads and Contacts yet</h2>
+    <p style="margin:0 0 8px;color:#4b5b5d;font-size:.92rem">This record was made outside the lead system. Add the buyer as a contact so their history lives in one place and they move to your Sphere after closing.</p>
+    <form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><input type="hidden" name="op" value="linklead"><input type="hidden" name="lid" value="new"><button class="btn sm" type="submit">Add to Leads and Contacts</button></form>
+<?php endif; ?>
+  </div>
+<?php endif; ?>
+  <form method="post" class="panel sigbox bi\" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($buyer['name'] ?? ($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer')) ?></h2>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>

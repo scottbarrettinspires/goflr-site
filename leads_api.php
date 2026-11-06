@@ -40,7 +40,7 @@ if ($act === 'startseller') {
     $root = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=mytxroot&email=' . urlencode($me));
     if (!is_array($root) || empty($root['ok'])) out(['ok' => false, 'msg' => 'Could not find your My Transactions folder.']);
     $nm = trim(($L0['first'] ?? '') . ' ' . ($L0['last'] ?? ''));
-    $info = ['s1_name' => $nm, 's1_phone' => (string)($L0['phone'] ?? ''), 's1_email' => (string)($L0['email'] ?? ''), 'property' => $addr, 'lead_source' => (string)($L0['source'] ?? ''), 'lead_added' => (string)($L0['added'] ?? ''), 'lead_notes' => (string)($L0['notes'] ?? ''), 'updated' => gmdate('c')];
+    $info = ['s1_name' => $nm, 's1_phone' => (string)($L0['phone'] ?? ''), 's1_email' => (string)($L0['email'] ?? ''), 'property' => $addr, 'lead_source' => (string)($L0['source'] ?? ''), 'lead_added' => (string)($L0['added'] ?? ''), 'lead_notes' => (string)($L0['notes'] ?? ''), 'updated' => gmdate('c')] + ld_pack_for_record($L0, ld_load($me)['leads']);
     $r = sg_script_post(['op' => 'createseller', 'email' => $me, 'hint' => $root['id'], 'name' => $addr, 'info' => $info]);
     if (!is_array($r) || empty($r['ok']) || empty($r['id'])) out(['ok' => false, 'msg' => (is_array($r) && isset($r['active'])) ? 'The office script needs the latest update (v25) before seller records can be created.' : 'Could not create the Pre Listing record' . (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '') . '.']);
     $pre = ['folder' => (string)$r['id'], 'record' => $addr];

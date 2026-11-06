@@ -249,3 +249,54 @@ function ld_sides_for($L) {
     if (preg_match('/interested in: selling/', $t)) return ['seller'];
     return ['buyer'];
 }
+
+// ---- Leads <-> My Transactions: one person, one record trail ----
+// Plain-text summaries of the buyer's wants and the seller's home (same wording as the lead window).
+function ld_wants_text($w) {
+    $w = (array)$w; $p = []; $a = function ($k) use ($w) { return array_values(array_filter((array)($w[$k] ?? []), 'strlen')); };
+    $m = function ($v) { $d = preg_replace('/[^\d.]/', '', (string)$v); return $d !== '' && is_numeric($d) ? number_format((float)$d) : (string)$v; };
+    if (!empty($w['price_min']) || !empty($w['price_max'])) { $p[] = '$' . (!empty($w['price_min']) ? $m($w['price_min']) : '0') . ' to ' . (!empty($w['price_max']) ? '$' . $m($w['price_max']) : 'open'); }
+    if (!empty($w['beds'])) $p[] = $w['beds'] . '+ beds'; if (!empty($w['baths'])) $p[] = $w['baths'] . '+ baths'; if (!empty($w['sqft'])) $p[] = $w['sqft'] . '+ sq ft';
+    if ($a('types')) $p[] = implode('/', $a('types')); if ($a('garage')) $p[] = implode('/', $a('garage')) . ' garage';
+    if ($a('pool') && $a('pool')[0] !== 'No pool') $p[] = 'pool: ' . strtolower($a('pool')[0]); if (!empty($w['areas'])) $p[] = 'in ' . $w['areas'];
+    if ($a('feats')) $p[] = implode(', ', $a('feats')); if ($a('fin')) $p[] = implode('/', $a('fin')) . ($a('pre') ? ' (' . strtolower($a('pre')[0]) . ')' : '');
+    if (!empty($w['move_by'])) $p[] = 'move by ' . $w['move_by'];
+    foreach (['must' => 'Must have', 'nice' => 'Nice to have', 'no' => 'Deal breakers'] as $k => $l) { if (!empty($w[$k])) $p[] = $l . ': ' . $w[$k]; }
+    return implode(' · ', $p);
+}
+function ld_home_text($w) {
+    $w = (array)$w; $p = []; $a = function ($k) use ($w) { return array_values(array_filter((array)($w[$k] ?? []), 'strlen')); };
+    $cy = (int)substr(ld_today(), 0, 4); $age = function ($y) use ($cy) { $y = (int)$y; return $y > 1900 ? ($cy - $y) . ' yrs' : ''; };
+    if (!empty($w['addr'])) $p[] = $w['addr']; if ($a('types')) $p[] = $a('types')[0];
+    if (!empty($w['beds']) || !empty($w['baths'])) $p[] = ($w['beds'] ?: '?') . ' bd / ' . ($w['baths'] ?: '?') . ' ba';
+    if (!empty($w['sqft'])) $p[] = $w['sqft'] . ' sq ft'; if (!empty($w['lot'])) $p[] = 'lot ' . $w['lot']; if (!empty($w['year'])) $p[] = 'built ' . $w['year'];
+    if ($a('garage')) $p[] = $a('garage')[0]; if ($a('pool') && $a('pool')[0] !== 'No pool') $p[] = 'pool: ' . implode(', ', $a('pool'));
+    if ($a('water') && $a('water')[0] !== 'Not waterfront') $p[] = implode(', ', $a('water')); if ($a('dock')) $p[] = implode(', ', $a('dock'));
+    if (!empty($w['roof_year'])) $p[] = trim((($a('roof')[0] ?? '') . ' roof ' . $age($w['roof_year'])));
+    if (!empty($w['ac_year'])) $p[] = 'AC ' . $age($w['ac_year']); if (!empty($w['wh_year'])) $p[] = 'water heater ' . $age($w['wh_year']);
+    if ($a('cond')) $p[] = $a('cond')[0]; if ($a('upd')) $p[] = 'updated: ' . implode(', ', $a('upd'));
+    if ($a('hoa')) $p[] = implode(', ', $a('hoa')) . (!empty($w['hoa_fee']) ? ' (' . $w['hoa_fee'] . ')' : '');
+    if ($a('flood')) $p[] = $a('flood')[0]; if ($a('occ')) $p[] = $a('occ')[0]; if (!empty($w['sell_by'])) $p[] = 'sell by ' . $w['sell_by'];
+    if (!empty($w['issues'])) $p[] = 'Known issues: ' . $w['issues'];
+    return implode(' · ', $p);
+}
+// Everything the lead section knows, packed for a My Transactions record info file.
+function ld_pack_for_record($L, $all) {
+    $ref = ''; foreach ((array)$all as $x) { if (($x['id'] ?? '') !== '' && ($x['id'] ?? '') === ($L['ref'] ?? '')) $ref = trim(($x['first'] ?? '') . ' ' . ($x['last'] ?? '')); }
+    return ['lead_id' => (string)($L['id'] ?? ''), 'lead_source' => (string)($L['source'] ?? ''), 'lead_added' => (string)($L['added'] ?? ''), 'lead_notes' => (string)($L['notes'] ?? ''),
+        'lead_ref' => $ref, 'lead_tags' => array_values((array)($L['tags'] ?? [])), 'lead_wants' => (array)($L['wants'] ?? []), 'lead_home' => (array)($L['home'] ?? [])];
+}
+// The lead linked to a My Transactions record folder (buyer or seller side), or null.
+function ld_find_by_folder($email, $fid) {
+    foreach (ld_load($email)['leads'] as $L) { foreach (['buyer', 'seller'] as $r) { if ($fid !== '' && ($L['roles'][$r]['folder'] ?? '') === $fid) return $L + ['_role' => $r]; } }
+    return null;
+}
+// A lead that looks like the same person (email or phone match), not yet linked to a record on this side.
+function ld_find_match($email, $side, $em, $ph) {
+    $em = strtolower(trim((string)$em)); $ph = substr(preg_replace('/\D/', '', (string)$ph), -10);
+    foreach (ld_load($email)['leads'] as $L) {
+        if (!empty($L['roles'][$side]['folder'])) continue;
+        if (($em !== '' && strtolower(trim((string)($L['email'] ?? ''))) === $em) || (strlen($ph) === 10 && substr(preg_replace('/\D/', '', (string)($L['phone'] ?? '')), -10) === $ph)) return $L;
+    }
+    return null;
+}
