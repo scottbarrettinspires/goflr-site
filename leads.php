@@ -8,7 +8,7 @@ ld_autosort($me);
 $leads = ld_view($me, $agent, $phone);
 $intake = ld_intake($me, $agent, $phone);
 $intakeUrl = 'https://goflr.com/lead_in.php?k=' . ($intake['key'] ?? '');
-$ldb = ld_load($me); $mySources = (array)($ldb['sources'] ?? []); $myInterests = (array)($ldb['interests'] ?? []);
+$ldb = ld_load($me); $mySources = ld_src_names((array)($ldb['sources'] ?? [])); $myInterests = (array)($ldb['interests'] ?? []);
 $cats = [];
 foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs'], 'stage' => LD_STAGE[$k]]; }
 ?>

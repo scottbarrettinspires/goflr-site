@@ -125,16 +125,21 @@ function ld_view($email, $agent, $phone) {
             } elseif ($nx) { $v += ['done' => true, 'plan' => $nx['plan']]; }
             $roles[] = $v;
         }
-        if (!isset($L['tags'])) { $L['tags'] = ld_auto_tags($L['source'] ?? ''); }
+        $L['tags'] = ld_src_names(isset($L['tags']) ? $L['tags'] : ld_auto_tags($L['source'] ?? ''));
         $L['view'] = $roles; $out[] = $L;
     }
     return $out;
 }
 
 // How agents get leads. Agents pick theirs in My Lead Sources; picked sources become tags on leads.
-const LD_SOURCES = ['Social media', 'Facebook', 'Instagram', 'Website', 'Landing page', 'Agent App', 'Open houses', 'FSBO', 'Expireds', 'Networking', 'Community events', 'Hosting seminars',
-    'Sphere / friends and family', 'Past clients', 'Referrals', 'Agent referrals', 'Zillow', 'Realtor.com', 'Sign calls', 'Door knocking', 'Cold calling', 'Direct mail', 'Email campaigns',
-    'Pre-foreclosure', 'Probate', 'Investors', 'Relocation', 'New construction', 'Renters'];
+const LD_SOURCES = ['Social media', 'Facebook', 'Instagram', 'Website', 'Landing page', 'Agent App', 'Open house', 'FSBO', 'Expired', 'Networking', 'Community event', 'Hosting seminar',
+    'Sphere / friend or family', 'Past client', 'Referral', 'Agent referral', 'Zillow', 'Realtor.com', 'Sign call', 'Door knocking', 'Cold calling', 'Direct mail', 'Email campaign',
+    'Pre-foreclosure', 'Probate', 'Investor', 'Relocation', 'New construction', 'Renter'];
+// Older plural names, kept working by renaming them on the fly.
+const LD_SRC_RENAME = ['Open houses' => 'Open house', 'Expireds' => 'Expired', 'Community events' => 'Community event', 'Hosting seminars' => 'Hosting seminar',
+    'Sphere / friends and family' => 'Sphere / friend or family', 'Past clients' => 'Past client', 'Referrals' => 'Referral', 'Agent referrals' => 'Agent referral',
+    'Sign calls' => 'Sign call', 'Email campaigns' => 'Email campaign', 'Investors' => 'Investor', 'Renters' => 'Renter'];
+function ld_src_names($a) { $o = []; foreach ((array)$a as $t) { $t = LD_SRC_RENAME[$t] ?? $t; if (!in_array($t, $o, true)) $o[] = $t; } return $o; }
 // Interests and connections, mostly for Sphere: shared activities and circles to remember and to reach people by.
 const LD_INTERESTS = ['Friend of a friend', 'Family', 'Neighbor', 'Coworker', 'Church', 'School parents', 'Business owner', 'Veteran',
     'Pickleball', 'Golf', 'Tennis', 'Bowling', 'Fishing', 'Boating', 'Softball', 'Running', 'Cycling',
@@ -143,8 +148,8 @@ const LD_INTERESTS = ['Friend of a friend', 'Family', 'Neighbor', 'Coworker', 'C
 function ld_auto_tags($source) {
     $s = trim((string)$source); if ($s === '') return [];
     $map = ['facebook' => ['Facebook', 'Social media'], 'instagram' => ['Instagram', 'Social media'], 'agent app' => ['Agent App'], 'landing page' => ['Landing page'], 'website' => ['Website'], 'lead form' => ['Website'],
-        'zillow' => ['Zillow'], 'realtor.com' => ['Realtor.com'], 'email signature' => ['Email campaigns'], 'zapier' => ['Website'],
-        'open house' => ['Open houses'], 'referral' => ['Referrals'], 'sign call' => ['Sign calls'], 'sphere' => ['Sphere / friends and family'], 'google' => ['Website'], 'other' => []];
+        'zillow' => ['Zillow'], 'realtor.com' => ['Realtor.com'], 'email signature' => ['Email campaign'], 'zapier' => ['Website'],
+        'open house' => ['Open house'], 'referral' => ['Referral'], 'sign call' => ['Sign call'], 'sphere' => ['Sphere / friend or family'], 'google' => ['Website'], 'other' => []];
     return $map[strtolower($s)] ?? [mb_substr($s, 0, 40)];
 }
 function ld_clean_tags($a) {
