@@ -90,7 +90,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </div>
 <?php else: ?>
 <?= lb_box($me, 'seller', $tx, $info) ?>
-<?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0)) ?>
+<?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0), (string)($rec['name'] ?? ''), $info) ?>
 <?= dl_box($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx)) ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($rec['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($rec['stage_name'] ?: 'Seller') ?></span> <span style="font-size:.85rem;font-weight:600;color:<?= htmlspecialchars(ps_fg('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;background:<?= htmlspecialchars(ps_color('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars(PS_STAGES['seller'][ps_get($tx, 'seller', (int)($rec['stage'] ?? 0))] ?? '') ?></span></h2>

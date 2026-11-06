@@ -166,7 +166,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </div>
 <?php else: ?>
 <?php if ($buyer || $pastStage1) echo lb_box($me, 'buyer', $tx, $info); ?>
-<?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0))); ?>
+<?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info); ?>
 <?php if ($buyer || $pastStage1) echo dl_box($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); ?>
 <?php if ($pastStage1): ?>
   <div class="panel sigbox">
