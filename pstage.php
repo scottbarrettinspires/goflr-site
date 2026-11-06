@@ -53,17 +53,21 @@ function ps_handle_save($me, $side, $tx, $self) {
     ps_set($me, $tx, $side, (string)($_POST['pstage'] ?? ''));
     header('Location: ' . $self); exit;
 }
-// The pill-button row for one record: click a pill to move the record to that pipeline stage. Same visual idea as the
-// Leads sub-category buttons — colored, current one outlined — but a plain form post rather than an AJAX call.
+// The pill-button ladder for one record: click a step to move the record to that pipeline stage. Climbs bottom-to-top —
+// the first stage (Agreement Executed / Prelisting Prep) sits at the bottom, Closing Completed at the top — on the left
+// side of the panel. Same visual idea as the Leads sub-category buttons (colored, current one outlined), posted as a
+// plain form rather than an AJAX call.
 function ps_box($side, $tx, $driveStage = 0) {
     $h = function ($s) { return htmlspecialchars((string)$s); };
     $cur = ps_get($tx, $side, $driveStage);
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
     $o .= '<h2 style="margin:0 0 10px;font-size:1.1rem">Pipeline Stage</h2>';
-    $o .= '<form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-wrap:wrap;gap:6px">';
+    $o .= '<p style="margin:0 0 10px;color:#4b5b5d;font-size:.88rem">Climb from the bottom toward Closing Completed at the top.</p>';
+    $o .= '<form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;max-width:280px">';
+    $i = 0;
     foreach (PS_STAGES[$side] as $k => $label) {
-        $on = $k === $cur; $bg = ps_color($side, $k); $fg = ps_fg($side, $k);
-        $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" style="background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;padding:7px 12px;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);cursor:pointer' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ';opacity:.72') . '">' . $h($label) . '</button>';
+        $i++; $on = $k === $cur; $bg = ps_color($side, $k); $fg = ps_fg($side, $k);
+        $o .= '<button type="submit" name="pstage" value="' . $h($k) . '" style="display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;padding:9px 14px;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);cursor:pointer;text-align:left' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ';opacity:.72') . '"><span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem">' . $i . '</span>' . $h($label) . '</button>';
     }
     $o .= '</div></form></div>';
     return $o;
