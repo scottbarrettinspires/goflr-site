@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . "/guard.php";
 require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/leadlib.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -73,7 +74,7 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     });
                 }
-                header('Location: buyer.php?tx=' . urlencode($r['id']) . '&created=1'); exit;
+                flr_tx_dirty($me); header('Location: buyer.php?tx=' . urlencode($r['id']) . '&created=1'); exit;
             }
             $err = 'Could not create the buyer record' . (is_array($r) && !empty($r['note']) ? ' (' . $r['note'] . ')' : '') . '.';
         }

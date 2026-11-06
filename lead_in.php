@@ -2,6 +2,7 @@
 // Public lead intake. GET ?k=KEY shows the agent's contact form; POST ?k=KEY (form fields or JSON) adds the lead to that agent's NEW tab.
 // Website builders, landing pages and Zapier can POST the same fields: first_name, last_name, name, phone, email, message, interest, source.
 require_once __DIR__ . '/pushlib.php';
+$GLOBALS['FLR_ACTOR'] = 'lead form';
 header('X-Robots-Tag: noindex, nofollow');
 $key = (string)($_GET['k'] ?? '');
 $hit = ld_intake_find($key);

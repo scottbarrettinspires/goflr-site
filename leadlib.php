@@ -35,23 +35,12 @@ function ld_dir() {
     return $d;
 }
 function ld_file($email) { return ld_dir() . '/' . sha1(strtolower(trim($email))) . '.json'; }
-function ld_load($email) {
-    $j = json_decode((string)@file_get_contents(ld_file($email)), true);
-    return is_array($j) ? $j : ['leads' => []];
-}
-// Read-modify-write under a lock so two tabs cannot overwrite each other.
-function ld_update($email, callable $fn) { return ld_update_file(ld_file($email), $fn); }
-function ld_update_file($f, callable $fn) {
-    $h = fopen($f, 'c+');
-    if (!$h) return null;
-    flock($h, LOCK_EX);
-    $raw = stream_get_contents($h); $db = json_decode((string)$raw, true); if (!is_array($db)) $db = ['leads' => []];
-    $res = $fn($db);
-    if (is_file($f) && filesize($f) > 0) { @copy($f, $f . '.bak'); }
-    ftruncate($h, 0); rewind($h); fwrite($h, json_encode($db)); fflush($h);
-    flock($h, LOCK_UN); fclose($h);
-    return $res;
-}
+// Leads live in the server database (flrdb.php). ld_file() is still the agent's handle (its name is the agent key).
+require_once __DIR__ . '/flrdb.php';
+function ld_load($email) { return flr_leads_load(flr_akey($email), strtolower(trim((string)$email))); }
+// Read-modify-write in one locked database transaction so two tabs cannot overwrite each other.
+function ld_update($email, callable $fn) { return flr_leads_update(flr_akey($email), $fn, strtolower(trim((string)$email))); }
+function ld_update_file($f, callable $fn) { return flr_leads_update(basename((string)$f, '.json'), $fn); }
 
 function ld_msgs() {
     static $m = null;
@@ -190,11 +179,8 @@ function ld_intake_reset($email) {
 }
 function ld_intake_find($key) {
     if (!preg_match('/^[a-f0-9]{32}$/', (string)$key)) return null;
-    foreach (glob(ld_dir() . '/' . substr($key, 0, 12) . '*.json') ?: [] as $f) {
-        $db = json_decode((string)@file_get_contents($f), true);
-        if (is_array($db) && !empty($db['intake']['key']) && hash_equals($db['intake']['key'], $key)) return ['file' => $f, 'agent' => $db['intake']];
-    }
-    return null;
+    $r = flr_intake_lookup($key); if (!$r || empty($r['intake']['key']) || !hash_equals($r['intake']['key'], $key)) return null;
+    return ['file' => ld_dir() . '/' . $r['akey'] . '.json', 'agent' => $r['intake']];
 }
 // Adds an incoming lead to NEW, or adds the inquiry to an existing lead with the same email or phone.
 function ld_intake_add($file, $in) {

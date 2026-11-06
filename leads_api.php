@@ -43,7 +43,7 @@ if ($act === 'startseller') {
     $info = ['s1_name' => $nm, 's1_phone' => (string)($L0['phone'] ?? ''), 's1_email' => (string)($L0['email'] ?? ''), 'property' => $addr, 'lead_source' => (string)($L0['source'] ?? ''), 'lead_added' => (string)($L0['added'] ?? ''), 'lead_notes' => (string)($L0['notes'] ?? ''), 'updated' => gmdate('c')] + ld_pack_for_record($L0, ld_load($me)['leads']);
     $r = sg_script_post(['op' => 'createseller', 'email' => $me, 'hint' => $root['id'], 'name' => $addr, 'info' => $info]);
     if (!is_array($r) || empty($r['ok']) || empty($r['id'])) out(['ok' => false, 'msg' => (is_array($r) && isset($r['active'])) ? 'The office script needs the latest update (v25) before seller records can be created.' : 'Could not create the Pre Listing record' . (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '') . '.']);
-    $pre = ['folder' => (string)$r['id'], 'record' => $addr];
+    $pre = ['folder' => (string)$r['id'], 'record' => $addr]; flr_tx_dirty($me);
 }
 if ($act === 'txmove' || $act === 'closeclient') {
     $L0 = $findL((string)($j['id'] ?? '')); if (!$L0) out(['ok' => false, 'msg' => 'That lead was not found.']);
@@ -57,6 +57,7 @@ if ($act === 'txmove' || $act === 'closeclient') {
         $fid = (string)($L0['roles'][$mv[0]]['folder'] ?? '');
         $r = $fid !== '' ? sg_script_post(['op' => 'movetx', 'email' => $me, 'folderId' => $fid, 'side' => $mv[0], 'stage' => $mv[1]]) : null;
         $okm = is_array($r) && !empty($r['ok']);
+        if ($okm) { flr_tx_set($fid, ['stage' => $mv[1], 'stage_name' => (string)($r['stage'] ?? '')]); flr_tx_dirty($me); }
         if ($act === 'txmove' && !$okm) { $warn = 'Stage updated here. The record folder could not be moved in My Transactions yet' . ((is_array($r) && isset($r['active'])) ? ' (the office script needs the v25 update)' : (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '')) . ', so move it by hand for now.'; }
         $pre[$mv[0]] = ['ok' => $okm, 'stage' => $mv[1]];
     }

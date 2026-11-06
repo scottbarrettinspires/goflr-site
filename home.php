@@ -239,5 +239,6 @@ navigator.serviceWorker.ready.then(function(reg){
 });
 })();
 </script>
+<script>try{fetch("tx_sync.php",{credentials:"same-origin"}).catch(function(){});}catch(e){}</script>
 </body>
 </html>

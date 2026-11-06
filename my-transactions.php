@@ -47,5 +47,6 @@
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
+<script>try{fetch("tx_sync.php",{credentials:"same-origin"}).catch(function(){});}catch(e){}</script>
 </body>
 </html>
