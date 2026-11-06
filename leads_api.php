@@ -18,6 +18,17 @@ if ($act === 'sources') {
     ld_update($me, function (&$db) use ($src, $int) { $db['sources'] = $src; $db['interests'] = $int; });
     out(['ok' => true, 'sources' => $src, 'interests' => $int, 'leads' => ld_view($me, $agent, $phone)]);
 }
+if ($act === 'wants') {
+    $w = (array)($j['wants'] ?? []); $clean = [];
+    foreach ($w as $k => $v) {
+        if (!preg_match('/^[a-z_]{1,24}$/', (string)$k)) continue;
+        if (is_array($v)) { $clean[$k] = ld_clean_tags($v); } else { $clean[$k] = ld_clean(is_scalar($v) ? $v : '', 600); }
+        if (count($clean) >= 40) break;
+    }
+    $id = (string)($j['id'] ?? '');
+    ld_update($me, function (&$db) use ($id, $clean) { foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') === $id) { $L['wants'] = $clean; $L['wants']['updated'] = ld_today(); } } });
+    out(['ok' => true, 'leads' => ld_view($me, $agent, $phone)]);
+}
 if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.
 $pre = [];

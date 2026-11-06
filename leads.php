@@ -89,7 +89,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .due{font-size:.72rem;padding:2px 8px}
 .bulk .btn{padding:5px 10px;font-size:.78rem}
 .modal .btns .btn.sm,.modal .btns a.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
-.touch textarea,.touch input,.fgrid input,.fgrid textarea{font-size:.92rem;padding:8px 10px}
+.touch textarea,.touch input,.fgrid input,.fgrid textarea,.fgrid select{font-size:.92rem;padding:8px 10px}
 .ltabs button.newtab{background:#d32f2f;border-color:#d32f2f;color:#fff}.ltabs button.newtab .n{background:rgba(255,255,255,.28);color:#fff}.ltabs button.newtab.on{background:#b71c1c;border-color:#b71c1c;box-shadow:0 0 0 3px rgba(183,28,28,.25)}
 .mtabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 12px}.mtabs button{font:inherit;font-size:.86rem;font-weight:700;padding:8px 14px;border:0;border-bottom:3px solid transparent;background:none;color:#5a6a6c;cursor:pointer}
 .mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
@@ -295,6 +295,45 @@ function refPicker(L){var cur=L.ref?LEADS.filter(function(x){return x.id===L.ref
 function readRef(L){var v=(document.getElementById("f_ref")||{value:""}).value.trim();if(!v)return "";var m=sphereList(L).filter(function(x){return refLabel(x)===v||nm(x)===v;})[0];return m?m.id:null;}
 function readInts(){var o=[];modal.querySelectorAll("#intbox .chip.on").forEach(function(b){o.push(b.dataset.int);});return o;}
 function readTags(){var o=[];modal.querySelectorAll("#tagbox .chip.on").forEach(function(b){o.push(b.dataset.tag);});return o;}
+
+// ---- Buyer "Home Wants": the buyer's ideal property, kept on the lead ----
+var HW={types:["Single family","Condo","Townhome","Villa","Manufactured","Multi-family","Land / lot","New construction"],
+  fin:["Cash","Conventional","FHA","VA","USDA","Not sure"],pre:["Pre-approved","In progress","Not yet"],
+  garage:["No garage needed","1 car","2 car","3+ car","Carport ok"],pool:["Must have","Nice to have","No pool"],
+  home:["Renting","Owns, needs to sell first","Owns, keeping it","Living with family","Other"],
+  feats:["Waterfront","Water view","Boat dock / lift","Golf course","Gated community","55+ community","No HOA","Low HOA","No CDD","Single story","Split bedroom plan",
+    "Office / den","Bonus room","Guest suite / in-law","Open floor plan","Updated kitchen","Screened lanai","Fenced yard","Large yard","RV / boat parking",
+    "Workshop","Impact windows / shutters","Newer roof","Solar","Fireplace","Spa / hot tub","Horse property","Near beaches","Near shopping","Easy commute","Top schools","Move-in ready","Fixer-upper ok"]};
+function hwSel(id,opts,cur,ph){return '<select id="'+id+'"><option value="">'+(ph||"Any")+'</option>'+opts.map(function(o){return '<option'+(String(cur)===String(o)?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select>';}
+function hwChips(grp,opts,cur,multi){cur=cur||[];if(!Array.isArray(cur))cur=cur?[cur]:[];return '<div class="chips" data-grp="'+grp+'" data-multi="'+(multi?1:0)+'">'+opts.map(function(o){return '<button type="button" class="chip'+(cur.indexOf(o)>-1?" on":"")+'" data-v="'+esc(o)+'">'+esc(o)+'</button>';}).join("")+'</div>';}
+function hwSummary(w){if(!w)return "";var p=[];
+  if(w.price_min||w.price_max)p.push("$"+(w.price_min||"0")+" to $"+(w.price_max||"open"));if(w.beds)p.push(w.beds+"+ beds");if(w.baths)p.push(w.baths+"+ baths");
+  if(w.sqft)p.push(w.sqft+"+ sq ft");if((w.types||[]).length)p.push(w.types.join("/"));if((w.garage||[]).length)p.push(w.garage.join("/")+" garage");
+  if((w.pool||[]).length&&w.pool[0]!=="No pool")p.push("pool: "+w.pool[0].toLowerCase());if(w.areas)p.push("in "+w.areas);if((w.feats||[]).length)p.push(w.feats.join(", "));
+  if((w.fin||[]).length)p.push((w.fin||[]).join("/")+((w.pre||[]).length?" ("+w.pre[0].toLowerCase()+")":""));if(w.move_by)p.push("move by "+w.move_by);return p.join(" · ");}
+function hwForm(w){w=w||{};var n=[1,2,3,4,5,6],b=["1","1.5","2","2.5","3","3.5","4+"];
+  return '<div class="fgrid">'
+   +'<div class="full"><label>Areas, cities or ZIP codes</label><input id="hw_areas" value="'+esc(w.areas||"")+'" placeholder="e.g. Trinity, Land O Lakes, 34655"></div>'
+   +'<div><label>Price from</label><input id="hw_price_min" inputmode="numeric" value="'+esc(w.price_min||"")+'" placeholder="e.g. 350,000"></div><div><label>Price to</label><input id="hw_price_max" inputmode="numeric" value="'+esc(w.price_max||"")+'" placeholder="e.g. 500,000"></div>'
+   +'<div class="full"><label>Property type</label>'+hwChips("types",HW.types,w.types,true)+'</div>'
+   +'<div><label>Bedrooms (at least)</label>'+hwSel("hw_beds",n,w.beds)+'</div><div><label>Bathrooms (at least)</label>'+hwSel("hw_baths",b,w.baths)+'</div>'
+   +'<div><label>Living area, sq ft (at least)</label><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div><label>Lot size (at least)</label><input id="hw_lot" value="'+esc(w.lot||"")+'" placeholder="e.g. 1/4 acre"></div>'
+   +'<div><label>Year built (newer than)</label><input id="hw_year" inputmode="numeric" value="'+esc(w.year||"")+'"></div><div><label>Stories</label>'+hwSel("hw_stories",["1 story","2 story","Either"],w.stories)+'</div>'
+   +'<div class="full"><label>Garage</label>'+hwChips("garage",HW.garage,w.garage,false)+'</div>'
+   +'<div class="full"><label>Pool</label>'+hwChips("pool",HW.pool,w.pool,false)+'</div>'
+   +'<div class="full"><label>Features and lifestyle</label>'+hwChips("feats",HW.feats,w.feats,true)+'</div>'
+   +'<div class="full"><label>Must-haves</label><textarea id="hw_must" rows="2">'+esc(w.must||"")+'</textarea></div>'
+   +'<div class="full"><label>Nice to have</label><textarea id="hw_nice" rows="2">'+esc(w.nice||"")+'</textarea></div>'
+   +'<div class="full"><label>Deal-breakers</label><textarea id="hw_no" rows="2">'+esc(w.no||"")+'</textarea></div>'
+   +'<div class="full"><label>Paying with</label>'+hwChips("fin",HW.fin,w.fin,false)+'</div>'
+   +'<div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,w.pre,false)+'</div>'
+   +'<div><label>Lender</label><input id="hw_lender" value="'+esc(w.lender||"")+'"></div><div><label>Pre-approved amount</label><input id="hw_preamt" inputmode="numeric" value="'+esc(w.preamt||"")+'"></div>'
+   +'<div><label>Move by</label><input id="hw_move_by" type="date" value="'+esc(w.move_by||"")+'"></div><div><label>Lease ends (if renting)</label><input id="hw_lease" type="date" value="'+esc(w.lease||"")+'"></div>'
+   +'<div class="full"><label>Current home</label>'+hwChips("home",HW.home,w.home,false)+'</div>'
+   +'<div class="full"><label>Why they are moving</label><input id="hw_why" value="'+esc(w.why||"")+'"></div>'
+   +'<div class="full"><label>Who else decides</label><input id="hw_who" value="'+esc(w.who||"")+'" placeholder="e.g. spouse, parents"></div></div>';}
+function hwRead(root){var o={};["areas","price_min","price_max","beds","baths","sqft","lot","year","stories","must","nice","no","lender","preamt","move_by","lease","why","who"].forEach(function(k){var el=root.querySelector("#hw_"+k);if(el)o[k]=el.value.trim();});
+  root.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(b){return b.dataset.v;});});return o;}
 var MV_ACT=false,MV_LBL=true;
 function mvBox(L,isNew,rs){MV_ACT=!isNew;
   var cur=["buyer","seller","sphere"].filter(function(k){return rs[k];});
@@ -395,6 +434,18 @@ function openLead(L,preset){
     document.getElementById("noteSave").onclick=async function(){var b=this,m=document.getElementById("noteMsg");b.disabled=true;
       try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:ta.value.trim()},roles:readRoles()});
         L.notes=ta.value.trim();m.textContent="Saved";bar.querySelector('[data-p="notes"] .n').textContent=L.notes?L.notes.split(/\n/).length:0;render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+    if(L.roles&&L.roles.buyer){ // Home Wants tab for buyers
+      var pw2=document.createElement("div");pw2.dataset.pane="wants";pw2.hidden=true;var sum=hwSummary(L.wants);
+      pw2.innerHTML='<div class="touch" style="margin-top:0"><div class="hd"><span>Ideal home</span>'+(L.wants&&L.wants.updated?'<span class="due later">Updated '+esc(fmtD(L.wants.updated))+'</span>':'')+'</div><p class="goal" id="hw_sum">'+(sum?esc(sum):'Nothing recorded yet. Fill this in during your buyer consultation.')+'</p>'
+        +'<div class="btns"><button type="button" class="btn sm ghost" id="hw_copy">Copy summary for your MLS search</button></div></div>'+hwForm(L.wants)
+        +'<div class="btns"><button type="button" class="btn" id="hw_save">Save home wants</button><button type="button" class="btn ghost mclose2">Close</button><span class="goal" id="hw_msg"></span></div>';
+      modal.appendChild(pw2);var wb=document.createElement("button");wb.type="button";wb.dataset.p="wants";wb.textContent="Home Wants";bar.insertBefore(wb,bar.children[1]);
+      pw2.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(g.dataset.multi!=="1"&&!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
+      pw2.querySelector(".mclose2").onclick=close;
+      document.getElementById("hw_copy").onclick=function(){var t=hwSummary(hwRead(pw2));var b=this;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy:",t);});};
+      document.getElementById("hw_save").onclick=async function(){var b=this,m=document.getElementById("hw_msg");b.disabled=true;var w=hwRead(pw2);
+        try{await api({action:"wants",id:L.id,wants:w});L.wants=w;document.getElementById("hw_sum").textContent=hwSummary(w)||"Nothing recorded yet.";m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+    }
     if(preset&&preset.pane)showPane(preset.pane);
   }
   var pg=document.getElementById("pre_go");if(pg)pg.onclick=async function(){pg.disabled=true;pg.innerHTML='<span class="bspin"></span>Creating...';

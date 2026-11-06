@@ -35,6 +35,11 @@ $FIELDS = ['b1_name', 'b1_phone', 'b1_email', 'b2_name', 'b2_phone', 'b2_email',
 $info = []; $msg = ''; $err = '';
 if ($isNew && $lead && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $info = ['b1_name' => trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')), 'b1_phone' => (string)($lead['phone'] ?? ''), 'b1_email' => (string)($lead['email'] ?? '')];
+    $w = (array)($lead['wants'] ?? []); $fin = (array)($w['fin'] ?? []);
+    if (!empty($w['lender'])) $info['lender'] = (string)$w['lender'];
+    if (!empty($w['preamt'])) $info['preapproval'] = (string)$w['preamt'];
+    $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava'];
+    if (!empty($fin[0]) && isset($pm[$fin[0]])) $info['payment'] = $pm[$fin[0]];
 }
 if ($buyer) {
     $r = sg_buyer_info($me, $tx);
