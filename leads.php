@@ -315,7 +315,7 @@ function openLead(L,preset){
    +'<div><label>Source</label><input id="f_source" list="srcs" value="'+esc(L.source)+'"><datalist id="srcs">'+SOURCES.map(function(s){return '<option value="'+esc(s)+'">';}).join("")+'</datalist></div>'
    +'<div><label>Added</label><input value="'+esc(L.added?fmtD(L.added):"Today")+'" disabled></div>'
    +'<div class="full mvbox" id="mvbox">'+mvBox(L,isNew,rs)+'</div>'
-   +'<div class="full"><label>How you got this lead</label>'+tagChips(L,isNew)+'</div>'
+   +'<div class="full" id="srcblock"><label>How you got this lead</label>'+tagChips(L,isNew)+'</div>'
    +'<div class="full"><label>Referred by</label>'+refPicker(L)+'</div>'
    +'<div class="full"><label>Interests and connections</label>'+intChips(L)+'</div>'
    +'<div class="full"><label>Notes</label><textarea id="f_notes" rows="3">'+esc(L.notes)+'</textarea></div></div>'
@@ -355,6 +355,12 @@ function openLead(L,preset){
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
   if(!isNew){modal.insertBefore(document.getElementById("mvbox"),fg);}
   if(!isNew){ // Lead / Notes / History tabs inside the lead window
+    // Lead source tags sit at the top right, beside the name and phone; the chooser opens just below the header.
+    var sb=document.getElementById("srcblock"),hd=modal.querySelector("h2");
+    if(sb&&hd){var lbl=sb.querySelector("label");if(lbl)lbl.remove();var row=sb.querySelector(".chips"),pw=sb.querySelector(".pickwrap");
+      var slot=document.createElement("span");slot.title="How you got this lead";slot.style.cssText="margin-left:auto;font-size:1rem;font-weight:400;display:flex;align-items:center";
+      if(row){row.style.margin="0";row.style.justifyContent="flex-end";slot.appendChild(row);}else{slot.appendChild(sb.firstElementChild||document.createTextNode(""));}
+      hd.appendChild(slot);if(pw){hd.parentNode.insertBefore(pw,hd.nextSibling);}sb.remove();}
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
     var bar=document.createElement("div");bar.className="mtabs";bar.innerHTML='<button type="button" data-p="lead" class="on">Lead</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
     h2.parentNode.insertBefore(bar,h2.nextSibling);
