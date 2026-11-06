@@ -180,7 +180,7 @@ function renderOverview(){
    +'<div class="stat hot"><b>'+unr+'</b><span>Not reached yet (Undetermined)</span></div>'
    +'<div class="stat hot"><b>'+readyB+'</b><span>Ready buyers</span></div>'
    +'<div class="stat hot"><b>'+readyS+'</b><span>Ready sellers</span></div>'
-   +'<div class="stat"><b>'+sa+'</b><span>Sphere A Yes</span></div>'
+   +'<div class="stat"><b>'+sa+'</b><span>Sphere A Always</span></div>'
    +'<div class="stat" style="border-left:5px solid #036f72"><b>'+LEADS.filter(function(L){return L.roles&&((L.roles.buyer&&L.roles.buyer.sub==="client")||(L.roles.seller&&L.roles.seller.sub==="client"));}).length+'</b><span>Clients in My Transactions</span></div>'
    +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
    +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
