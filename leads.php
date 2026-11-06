@@ -78,6 +78,18 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#f4f8f8;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 12px}
 .lsearch{width:100%;max-width:340px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;margin:0 0 12px}
 @media(max-width:800px){.lwrap{grid-template-columns:1fr}.lside{position:static;flex-direction:row;flex-wrap:wrap}.sb{flex:1 1 45%}.fgrid{grid-template-columns:1fr}}
+
+/* compact controls across the Leads page */
+.chip{font-size:.76rem;padding:4px 9px;border-radius:99px}.chip .n{margin-left:3px}
+.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
+.modal .btns .btn,.modal .btns a.btn{padding:7px 13px;font-size:.84rem;border-radius:9px}
+.ltabs button{padding:8px 13px;font-size:.88rem;border-radius:10px}.ltabs button .n{font-size:.72rem;padding:1px 7px}
+.sb{padding:9px 12px;font-size:.9rem;border-radius:10px}
+.qa a{width:30px;height:30px;font-size:.85rem}
+.due{font-size:.72rem;padding:2px 8px}
+.bulk .btn{padding:5px 10px;font-size:.78rem}
+.modal .btns .btn.sm,.modal .btns a.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
+.touch textarea,.touch input,.fgrid input,.fgrid textarea{font-size:.92rem;padding:8px 10px}
 </style>
 </head>
 <body>
