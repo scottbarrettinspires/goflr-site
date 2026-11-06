@@ -71,9 +71,7 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = []) {
     $cur = ps_get($tx, $side, $driveStage);
     $o = '<div class="panel sigbox" style="margin-bottom:14px"><div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">';
     // Left: the stage ladder.
-    $o .= '<div><h2 style="margin:0 0 10px;font-size:1.1rem">Pipeline Stage</h2>';
-    $o .= '<p style="margin:0 0 10px;color:#4b5b5d;font-size:.88rem;max-width:280px">Climb from the bottom toward Closing Completed at the top.</p>';
-    $o .= '<form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;max-width:280px">';
+    $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;max-width:280px">';
     $i = 0;
     foreach (PS_STAGES[$side] as $k => $label) {
         $i++; $on = $k === $cur; $bg = ps_color($side, $k); $fg = ps_fg($side, $k);
@@ -82,7 +80,6 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = []) {
     $o .= '</div></form></div>';
     // Right: who this record is about.
     $o .= '<div style="min-width:220px;flex:1">';
-    $o .= '<h2 style="margin:0 0 10px;font-size:1.1rem">' . $h($recName ?: ucfirst($side)) . '</h2>';
     $contacts = ps_contacts($side, $info);
     if ($contacts) {
         foreach ($contacts as $c) {
