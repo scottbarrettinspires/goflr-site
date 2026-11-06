@@ -434,12 +434,12 @@ function openLead(L,preset){
     document.getElementById("noteSave").onclick=async function(){var b=this,m=document.getElementById("noteMsg");b.disabled=true;
       try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:ta.value.trim()},roles:readRoles()});
         L.notes=ta.value.trim();m.textContent="Saved";bar.querySelector('[data-p="notes"] .n').textContent=L.notes?L.notes.split(/\n/).length:0;render();}catch(e){m.textContent=e.message;}b.disabled=false;};
-    if(L.roles&&L.roles.buyer){ // Home Wants tab for buyers
+    if(L.roles&&L.roles.buyer){ // Property Details tab for buyers
       var pw2=document.createElement("div");pw2.dataset.pane="wants";pw2.hidden=true;var sum=hwSummary(L.wants);
       pw2.innerHTML='<div class="touch" style="margin-top:0"><div class="hd"><span>Ideal home</span>'+(L.wants&&L.wants.updated?'<span class="due later">Updated '+esc(fmtD(L.wants.updated))+'</span>':'')+'</div><p class="goal" id="hw_sum">'+(sum?esc(sum):'Nothing recorded yet. Fill this in during your buyer consultation.')+'</p>'
         +'<div class="btns"><button type="button" class="btn sm ghost" id="hw_copy">Copy summary for your MLS search</button></div></div>'+hwForm(L.wants)
-        +'<div class="btns"><button type="button" class="btn" id="hw_save">Save home wants</button><button type="button" class="btn ghost mclose2">Close</button><span class="goal" id="hw_msg"></span></div>';
-      modal.appendChild(pw2);var wb=document.createElement("button");wb.type="button";wb.dataset.p="wants";wb.textContent="Home Wants";bar.insertBefore(wb,bar.children[1]);
+        +'<div class="btns"><button type="button" class="btn" id="hw_save">Save property details</button><button type="button" class="btn ghost mclose2">Close</button><span class="goal" id="hw_msg"></span></div>';
+      modal.appendChild(pw2);var wb=document.createElement("button");wb.type="button";wb.dataset.p="wants";wb.textContent="Property Details";bar.insertBefore(wb,bar.children[1]);
       pw2.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(g.dataset.multi!=="1"&&!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
       pw2.querySelector(".mclose2").onclick=close;
       document.getElementById("hw_copy").onclick=function(){var t=hwSummary(hwRead(pw2));var b=this;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy:",t);});};
