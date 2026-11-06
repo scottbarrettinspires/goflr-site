@@ -258,7 +258,7 @@ function ld_home_text($w) {
     if (!empty($w['sqft'])) $p[] = $w['sqft'] . ' sq ft'; if (!empty($w['lot'])) $p[] = 'lot ' . $w['lot']; if (!empty($w['year'])) $p[] = 'built ' . $w['year'];
     if ($a('garage')) $p[] = $a('garage')[0]; if ($a('pool') && $a('pool')[0] !== 'No pool') $p[] = 'pool: ' . implode(', ', $a('pool'));
     if ($a('water') && $a('water')[0] !== 'Not waterfront') $p[] = implode(', ', $a('water')); if ($a('dock')) $p[] = implode(', ', $a('dock'));
-    if (!empty($w['roof_year'])) $p[] = trim((($a('roof')[0] ?? '') . ' roof ' . $age($w['roof_year'])));
+    if (!empty($w['roof_year'])) $p[] = ucfirst(trim((($a('roof')[0] ?? '') . ' roof ' . $age($w['roof_year']))));
     if (!empty($w['ac_year'])) $p[] = 'AC ' . $age($w['ac_year']); if (!empty($w['wh_year'])) $p[] = 'water heater ' . $age($w['wh_year']);
     if ($a('cond')) $p[] = $a('cond')[0]; if ($a('upd')) $p[] = 'updated: ' . implode(', ', $a('upd'));
     if ($a('hoa')) $p[] = implode(', ', $a('hoa')) . (!empty($w['hoa_fee']) ? ' (' . $w['hoa_fee'] . ')' : '');

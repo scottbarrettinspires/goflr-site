@@ -416,7 +416,7 @@ function openLead(L,preset,inl){modal=inl||MODAL;
       var head=ico(v.sub)+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
       h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+head+'</span>'+dueBadge(v)+'</div>';
       if(v.sub==="client"){
-        var isB=v.role==="buyer",onPg=isB&&(v.stage||1)===1,open=v.folder?(onPg?'buyer.php?tx='+encodeURIComponent(v.folder):'https://drive.google.com/drive/folders/'+encodeURIComponent(v.folder)):"";
+        var isB=v.role==="buyer",onPg=!isB||(v.stage||1)===1,open=v.folder?(onPg?(isB?'buyer.php':'seller.php')+'?tx='+encodeURIComponent(v.folder):'https://drive.google.com/drive/folders/'+encodeURIComponent(v.folder)):"";
         h+='<p class="goal">'+(isB?'Buyer':'Listing')+' record: <strong>'+esc(v.record||"")+'</strong> · Stage: <strong>'+esc(v.stagename)+'</strong>. '+(v.stage===3?'Closing check-ins run every 5 days until closing.':'Nurture messages pause while you work with this client directly.')+'</p><div class="btns">';
         if(open)h+='<a class="btn sm" href="'+esc(open)+'"'+(onPg?'':' target="_blank" rel="noopener"')+'>Open '+(isB?'buyer':'listing')+' record</a>';
         if(isB&&v.folder&&v.stage===1)h+='<a class="btn sm ghost" href="wizard.php?tx='+encodeURIComponent(v.folder)+'">Make a contract offer</a><button class="btn sm ghost t_mv" data-role="buyer" data-st="3">Contract executed: move to Pending</button>';

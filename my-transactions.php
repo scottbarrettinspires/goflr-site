@@ -15,7 +15,7 @@
 <meta name="robots" content="noindex,nofollow">
 <title>My Transactions - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=11">
-<style>.stabs{display:flex;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}</style>
+<style>.stabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}</style>
 </head>
 <body>
 <header class="top"><div class="in">
@@ -37,7 +37,7 @@
 </section>
 
 <main class="wrap">
-  <div class="stabs"><a href="my-transactions.php" class="on">Transaction Folders</a><a href="signed.php">Signed Documents</a></div>
+  <div class="stabs"><a href="my-transactions.php" class="on">Transaction Folders</a><a href="signed.php">Signed Documents</a><a href="buyer.php">Buyer Records</a><a href="seller.php">Seller Records</a></div>
   <div class="tips">
     <div><b>1</b><span>Open a folder to see its files.</span></div>
     <div><b>2</b><span>Click any document to view it in a new tab.</span></div>
