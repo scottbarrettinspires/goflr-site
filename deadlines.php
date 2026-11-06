@@ -30,9 +30,8 @@ $rows = dl_upcoming($all ? '' : $me, 60, true);
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="my-transactions.php">My Transactions</a>
     <a href="leads.php">Leads</a>
-    <a href="deadlines.php" aria-current="page">Deadlines</a>
+    <a href="my-transactions.php">Transactions</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>

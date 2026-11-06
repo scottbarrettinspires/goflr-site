@@ -104,9 +104,8 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="my-transactions.php">My Transactions</a>
     <a href="leads.php" aria-current="page">Leads</a>
-    <a href="deadlines.php">Deadlines</a>
+    <a href="my-transactions.php">Transactions</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>

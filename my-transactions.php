@@ -40,9 +40,8 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="my-transactions.php" aria-current="page">My Transactions</a>
     <a href="leads.php">Leads</a>
-    <a href="deadlines.php">Deadlines</a>
+    <a href="my-transactions.php" aria-current="page">Transactions</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
