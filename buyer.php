@@ -94,7 +94,6 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once __DIR__ . "/leadbox.php";
 require_once __DIR__ . "/dlib.php";
 if ($buyer) { lb_handle_link($me, 'buyer', $tx, (string)$buyer['name'], 1, $info, 'buyer.php?tx=' . urlencode($tx)); }
-if ($buyer || $pastStage1) { dl_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
 if ($buyer || $pastStage1) { ps_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
 if ($pastStage1) { lb_handle_link($me, 'buyer', $tx, (string)$recAny['name'], (int)$recAny['stage'], $info, 'buyer.php?tx=' . urlencode($tx)); }
 // The pencil-edit on the Pipeline Stage contact bar: fixes one buyer's name/phone/email in place, even once the full
@@ -186,7 +185,6 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
 <?php endif; ?>
 <?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info); ?>
-<?php if ($buyer || $pastStage1) echo dl_box($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); ?>
 <?php if ($pastStage1): ?>
   <div class="panel sigbox">
     <h2 style="margin-top:0"><?= htmlspecialchars($recAny['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($recAny['stage_name'] ?: 'Buyer') ?></span></h2>

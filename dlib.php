@@ -160,6 +160,8 @@ function dl_box($me, $side, $tx, $self, $only = null, $title = null) {
 }
 
 // Which DL_ITEMS keys count as contract contingencies (as opposed to deposits, loan app, or the closing date itself).
+// Used only to decide when the ladder's "Contingencies Satisfied" label kicks in -- the Contingencies screen itself now
+// shows and saves every deadline (see contingencies.php), not just these.
 const DL_CONTINGENCY_KEYS = ['inspect', 'appraisal', 'loan', 'title', 'hoa'];
 // True once every contingency the agent has actually entered a period for is marked Done/waived. False (and the default
 // label "Contingencies") if none are configured yet, or any configured one is still open.
