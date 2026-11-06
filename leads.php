@@ -303,7 +303,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
       +'<div class="mvtip" style="font-size:.82rem;color:#5a6a6c">Is this person buying, selling or both? Then tap how soon.</div>';}
   var bs=cur.some(function(k){return k==="buyer"||k==="seller";});
   var h=(isNew?'<h3>Category</h3>':(bs?'<h3>Let\'s Move This Lead Closer To Appointment Time:</h3>':''))+cur.map(function(k){
-    return (k==="sphere"&&!isNew?'<h3'+(bs?' style="margin-top:10px"':'')+'>How Likely To Refer Me For Leads:</h3>':'')+mv(k,rs[k],false);}).join("");
+    return (k==="sphere"&&!isNew?'<h3'+(bs?' style="margin-top:10px"':'')+'>How Likely To Refer Me Real Estate Leads:</h3>':'')+mv(k,rs[k],false);}).join("");
   var extra=[],has=function(k){return cur.indexOf(k)>-1;};
   if(!has("seller")&&(has("buyer")||has("sphere")))extra.push(["seller","add",has("buyer")?"Add As Seller Also":"Add As Seller"]);
   if(!has("buyer")&&(has("seller")||has("sphere")))extra.push(["buyer","add",has("seller")?"Add As Buyer Also":"Add As Buyer"]);
