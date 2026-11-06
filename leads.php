@@ -305,8 +305,8 @@ function openLead(L,preset){
    +'<div class="btns"><button class="btn" id="m_save">'+(isNew?"Add lead":"Save changes")+'</button><button class="btn ghost" id="m_close">Close</button>'+(isNew?"":'<button class="btn ghost" id="m_del" style="margin-left:auto;color:#b71c1c;border-color:#e3b4b4">Delete</button>')+'</div><p class="note" id="m_msg" hidden></p>';
   if(!isNew){
     L.view.forEach(function(v){
-      var head=ico(v.sub)+(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
-      h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+esc(head)+'</span>'+dueBadge(v)+'</div>';
+      var head=ico(v.sub)+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
+      h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+head+'</span>'+dueBadge(v)+'</div>';
       if(v.sub==="client"){
         var isB=v.role==="buyer",open=v.folder?(isB?'buyer.php?tx='+encodeURIComponent(v.folder):'https://drive.google.com/drive/folders/'+encodeURIComponent(v.folder)):"";
         h+='<p class="goal">'+(isB?'Buyer':'Listing')+' record: <strong>'+esc(v.record||"")+'</strong> · Stage: <strong>'+esc(v.stagename)+'</strong>. '+(v.stage===3?'Closing check-ins run every 5 days until closing.':'Nurture messages pause while you work with this client directly.')+'</p><div class="btns">';
