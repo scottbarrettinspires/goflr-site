@@ -301,7 +301,8 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
       +[["buyer","Buyer"],["seller","Seller"],["both","Buyer and Seller"]].map(function(x){return '<button type="button" class="mvb mvside" style="opacity:1;background:#fff;font-size:.86rem;padding:6px 12px;border-color:#d32f2f;color:#b71c1c" data-side="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>'
       +'<div class="mvh" data-role="buyer" hidden>'+mv("buyer","",false)+'</div><div class="mvh" data-role="seller" hidden>'+mv("seller","",false)+'</div>'
       +'<div class="mvtip" style="font-size:.82rem;color:#5a6a6c">Is this person buying, selling or both? Then tap how soon.</div>';}
-  var h='<h3>'+(isNew?'Category':'Move lead')+'</h3>'+cur.map(function(k){return mv(k,rs[k],false);}).join("");
+  var bs=cur.some(function(k){return k==="buyer"||k==="seller";});
+  var h=(isNew?'<h3>Category</h3>':(bs?'<h3>Let\'s Move This Lead Closer To Appointment Time:</h3>':''))+cur.map(function(k){return mv(k,rs[k],false);}).join("");
   var extra=[],has=function(k){return cur.indexOf(k)>-1;};
   if(!has("seller")&&(has("buyer")||has("sphere")))extra.push(["seller","add",has("buyer")?"Add As Seller Also":"Add As Seller"]);
   if(!has("buyer")&&(has("seller")||has("sphere")))extra.push(["buyer","add",has("seller")?"Add As Buyer Also":"Add As Buyer"]);
@@ -432,7 +433,7 @@ function openLead(L,preset){
       if(orow&&!orow.dataset.val){var tp=modal.querySelector(".mvtip");if(tp)tp.textContent="Now tap how soon for "+(oth==="seller"?"selling":"buying")+".";return;}}
     if(sphereMove&&r.dataset.role==="sphere"){modal.querySelectorAll('.mvrow[data-role="buyer"],.mvrow[data-role="seller"]').forEach(function(o){if(o.dataset.val!=="client")o.dataset.val="";});}
     if(isNew)return;
-    try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles()});var lbl=CATS[r.dataset.role].label+" · "+(b.dataset.v?CATS[r.dataset.role].subs[b.dataset.v]:"none");reopen(L.id);render();var hh=document.querySelector("#mvbox h3");if(hh)hh.innerHTML="Move lead <span style=\"font-weight:500;color:#2e8b57\">· Saved: "+esc(lbl)+"</span>";}
+    try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles()});var lbl=CATS[r.dataset.role].label+" · "+(b.dataset.v?CATS[r.dataset.role].subs[b.dataset.v]:"none");reopen(L.id);render();var hh=document.querySelector("#mvbox h3"),sv='<span style="font-weight:500;color:#2e8b57;font-size:.85rem"> Saved: '+esc(lbl)+'</span>';if(hh){hh.insertAdjacentHTML("beforeend",sv);}else{var mbx=document.getElementById("mvbox");if(mbx)mbx.insertAdjacentHTML("afterbegin",'<div style="margin:0 0 6px">'+sv+'</div>');}}
     catch(err){r.dataset.val=prev;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x.dataset.v===prev);});say(err.message,true);}
   });});
   var msg=document.getElementById("m_msg");function say(t,bad){msg.textContent=t;msg.className=bad?"note sigerr":"note";msg.hidden=false;}
