@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . "/guard.php";
+require_once __DIR__ . "/dlib.php";
 require __DIR__ . "/leadlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');
@@ -105,9 +106,11 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
     <a href="home.php">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="leads.php" aria-current="page">Leads</a>
+    <a href="deadlines.php">Deadlines</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
+    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>

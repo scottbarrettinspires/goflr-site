@@ -1,4 +1,4 @@
-<?php require __DIR__ . "/guard.php"; ?>
+<?php require __DIR__ . "/guard.php"; require_once __DIR__ . "/dlib.php"; ?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -24,9 +24,11 @@
     <a href="home.php">Home</a>
     <a href="my-transactions.php" aria-current="page">My Transactions</a>
     <a href="leads.php">Leads</a>
+    <a href="deadlines.php">Deadlines</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
+    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>

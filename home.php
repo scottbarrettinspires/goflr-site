@@ -19,7 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 $anns = flr_announcements($me);
 require_once __DIR__ . "/leadlib.php";
 require_once __DIR__ . "/push_keys.php";
+require_once __DIR__ . "/dlib.php";
 ld_autosort($me);
+$dlUpcoming = dl_upcoming($me, 14);
 $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 foreach (ld_view($me, '', '') as $L) {
     $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
@@ -77,9 +79,11 @@ foreach ($FLR_EVENTS as $ev) {
     <a href="home.php" aria-current="page">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="leads.php">Leads</a>
+    <a href="deadlines.php">Deadlines</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
+    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
@@ -205,11 +209,15 @@ if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementBy
       <p>Nothing due right now.<?= $newN ? ' ' . $newN . ' NEW lead' . ($newN === 1 ? '' : 's') . ' to sort.' : ' Add leads to start your follow-up plan.' ?></p>
 <?php endif; ?>
     </a>
-    <div class="card soon">
+    <a class="card" href="deadlines.php" style="border-left:5px solid #b7791f">
       <h2>Upcoming Contract Deadlines</h2>
-      <p>Inspection, financing, appraisal and closing dates on your open contracts.</p>
-      <span class="tag">Coming soon</span>
-    </div>
+<?php if ($dlUpcoming): $overdue = 0; foreach ($dlUpcoming as $d) if ($d['left'] < 0) $overdue++; ?>
+      <p><strong><?= count($dlUpcoming) ?> deadline<?= count($dlUpcoming) === 1 ? '' : 's' ?> in the next 14 days</strong><?= $overdue ? ' · ' . $overdue . ' OVERDUE' : '' ?></p>
+      <p style="margin:0"><?php foreach (array_slice($dlUpcoming, 0, 3) as $d): ?><?= htmlspecialchars($d['label']) ?> — <?= htmlspecialchars($d['name'] ?: 'untitled') ?> (<?= htmlspecialchars(dl_when($d['left'])) ?>)<br><?php endforeach; ?></p>
+<?php else: ?>
+      <p>Nothing due in the next 14 days. Enter dates on a buyer or seller record's Contract Deadlines panel.</p>
+<?php endif; ?>
+    </a>
   </div>
 <?php if ($needFile): ?>
 <script>

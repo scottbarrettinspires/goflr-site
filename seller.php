@@ -3,6 +3,7 @@
 require __DIR__ . "/guard.php";
 require __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/leadbox.php";
+require_once __DIR__ . "/dlib.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -21,6 +22,7 @@ if ($rec) {
     if (!empty($r['ok'])) { $info = is_array($r['info'] ?? null) ? $r['info'] : []; }
     else { $old = !empty($r['old']); $err = $old ? '' : 'Could not load the saved information: ' . ($r['note'] ?? ''); }
     lb_handle_link($me, 'seller', $tx, (string)$rec['name'], (int)$rec['stage'], $info, 'seller.php?tx=' . urlencode($tx));
+    dl_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
 }
 if ($rec && !$old && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'save') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
@@ -67,9 +69,11 @@ $byStage = []; foreach ($sellers as $t) { $byStage[$t['stage_name'] ?: 'Other'][
     <a href="home.php">Home</a>
     <a href="my-transactions.php" aria-current="page">My Transactions</a>
     <a href="leads.php">Leads</a>
+    <a href="deadlines.php">Deadlines</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
+    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
@@ -87,6 +91,7 @@ $byStage = []; foreach ($sellers as $t) { $byStage[$t['stage_name'] ?: 'Other'][
   </div>
 <?php else: ?>
 <?= lb_box($me, 'seller', $tx, $info) ?>
+<?= dl_box($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx)) ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($rec['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($rec['stage_name'] ?: 'Seller') ?></span></h2>
 <?php if ($old): ?><p class="note">Seller details can be viewed and saved here after the office script is updated to v26. The lead box above works now.</p><?php endif; ?>

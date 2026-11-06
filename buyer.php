@@ -82,7 +82,9 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 // The lead behind this record: shown in a box at the top; records made before the lead system can be linked or added.
 require_once __DIR__ . "/leadbox.php";
+require_once __DIR__ . "/dlib.php";
 if ($buyer) { lb_handle_link($me, 'buyer', $tx, (string)$buyer['name'], 1, $info, 'buyer.php?tx=' . urlencode($tx)); }
+if ($buyer) { dl_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
 if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['op'] ?? '') !== 'linklead') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     else {
@@ -131,9 +133,11 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="home.php">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="leads.php">Leads</a>
+    <a href="deadlines.php">Deadlines</a>
     <a href="forms.php" aria-current="page">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
+    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
@@ -153,6 +157,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </div>
 <?php else: ?>
 <?php if ($buyer) echo lb_box($me, 'buyer', $tx, $info); ?>
+<?php if ($buyer) echo dl_box($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($buyer['name'] ?? ($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer')) ?></h2>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?> <a href="wizard.php?tx=<?= urlencode($tx) ?>">Make a contract offer &rarr;</a></p><?php endif; ?>

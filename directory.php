@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . "/guard.php";
+require_once __DIR__ . "/dlib.php";
 $d = flr_directory();
 function dir_phone_digits($p) { $x = preg_replace('/[^0-9+]/', '', (string)$p); return $x; }
 function dir_phone_fmt($p) { $x = preg_replace('/\D/', '', (string)$p); if (strlen($x) === 11 && $x[0] === '1') $x = substr($x, 1); return strlen($x) === 10 ? substr($x, 0, 3) . '-' . substr($x, 3, 3) . '-' . substr($x, 6) : trim((string)$p); }
@@ -55,9 +56,11 @@ function dir_card($p, $sub) {
     <a href="home.php">Home</a>
     <a href="my-transactions.php">My Transactions</a>
     <a href="leads.php">Leads</a>
+    <a href="deadlines.php">Deadlines</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php" aria-current="page">Directory</a>
+    <?php if (flr_is_broker()): ?><a href="dashboard.php">Dashboard</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
