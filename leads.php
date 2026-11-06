@@ -94,6 +94,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .mtabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 12px}.mtabs button{font:inherit;font-size:.86rem;font-weight:700;padding:8px 14px;border:0;border-bottom:3px solid transparent;background:none;color:#5a6a6c;cursor:pointer}
 .mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
 .hist.pane{max-height:none;border-top:0;margin-top:0;padding-top:0;font-size:.9rem;line-height:1.7}
+#mvbox.mvnew{border:2px solid #d32f2f;background:#fff6f5;box-shadow:0 2px 10px rgba(211,47,47,.12)}
 </style>
 </head>
 <body>
@@ -295,8 +296,8 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
   var cur=["buyer","seller","sphere"].filter(function(k){return rs[k];});
   MV_LBL=!cur.length; // category names only while the lead has no category yet (NEW)
   if(!cur.length){ // NEW (online) leads: buyer, seller or both, then the stage. Sphere does not apply to these.
-    return '<h3>'+(isNew?'Category':'Sort this lead')+'</h3><div class="mvrow" id="mvside">'
-      +[["buyer","Buyer"],["seller","Seller"],["both","Buyer and Seller"]].map(function(x){return '<button type="button" class="mvb mvside" style="opacity:1;background:#fff" data-side="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>'
+    return '<div class="mvrow" id="mvside" style="margin:0 0 10px"><h3 style="margin:0 8px 0 0;font-size:1.05rem;color:#b71c1c">Is this lead a</h3>'
+      +[["buyer","Buyer"],["seller","Seller"],["both","Buyer and Seller"]].map(function(x){return '<button type="button" class="mvb mvside" style="opacity:1;background:#fff;font-size:.86rem;padding:6px 12px;border-color:#d32f2f;color:#b71c1c" data-side="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div>'
       +'<div class="mvh" data-role="buyer" hidden>'+mv("buyer","",false)+'</div><div class="mvh" data-role="seller" hidden>'+mv("seller","",false)+'</div>'
       +'<div class="mvtip" style="font-size:.82rem;color:#5a6a6c">Is this person buying, selling or both? Then tap how soon.</div>';}
   var h='<h3>'+(isNew?'Category':'Move lead')+'</h3>'+cur.map(function(k){return mv(k,rs[k],false);}).join("");
@@ -411,9 +412,9 @@ function openLead(L,preset){
   modal.querySelectorAll(".opensrc").forEach(function(os){os.onclick=function(e){e.preventDefault();openSources();};});
   modal.querySelectorAll("#tagbox .chip").forEach(function(b){b.onclick=async function(){b.classList.toggle("on");if(isNew)return;
     try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:val("f_notes")},roles:readRoles(),tags:readTags()});render();}catch(e){b.classList.toggle("on");say(e.message,true);}};});
-  var sideMode="";
+  var sideMode="";if(modal.querySelector("#mvside")){var mb=document.getElementById("mvbox");if(mb)mb.classList.add("mvnew");}
   modal.querySelectorAll(".mvside").forEach(function(b){b.onclick=function(){var sd=b.dataset.side;sideMode=sd;
-    modal.querySelectorAll(".mvside").forEach(function(x){x.classList.toggle("on",x===b);x.style.background=x===b?"#036f72":"#fff";x.style.color=x===b?"#fff":"";});
+    modal.querySelectorAll(".mvside").forEach(function(x){x.classList.toggle("on",x===b);x.style.background=x===b?"#d32f2f":"#fff";x.style.color=x===b?"#fff":"#b71c1c";});
     modal.querySelectorAll(".mvh").forEach(function(w){var show=sd==="both"||w.dataset.role===sd;w.hidden=!show;if(!show){var r=w.querySelector(".mvrow");if(r){r.dataset.val="";r.querySelectorAll(".mvb").forEach(function(x){x.classList.remove("on");});}}});
     var tip=modal.querySelector(".mvtip");if(tip)tip.textContent=sd==="both"?"Tap how soon for buying and for selling. Each saves right away.":"Tap how soon. The lead leaves NEW right away.";};});
   var sphereMove=false;
