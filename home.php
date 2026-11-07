@@ -143,7 +143,7 @@ foreach ($FLR_EVENTS as $ev) {
 <?php endif; ?>
 </section>
 
-<main class="wrap<?= $isStaff ? '' : ' hasside' ?>">
+<main class="wrap hasside">
 <style>.hasside{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start}.homemain{min-width:0}
 @media(max-width:900px){.hasside{grid-template-columns:minmax(0,1fr)}}</style>
 <div class="homemain">
@@ -307,7 +307,7 @@ if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementBy
 <?php endif; ?>
 <?php endif; ?>
 </div>
-<?php if (!$isStaff) require __DIR__ . "/collab_side.php"; // Collaboration: Recent posts + Most active, down the right side ?>
+<?php require __DIR__ . "/collab_side.php"; // Collaboration: Recent posts + Most active, down the right side (agents and staff) ?>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only. Having trouble signing in? Contact the office.</footer>

@@ -41,7 +41,7 @@ foreach ($pdo->query("SELECT data FROM leads")->fetchAll(PDO::FETCH_COLUMN) as $
     <div class="card" style="border-left:5px solid #c0392b"><h2><?= $overdueTotal ?></h2><p>Overdue contract deadlines</p></div>
   </div>
   <h2 style="margin:22px 0 10px">By agent</h2>
-  <div class="panel sigbox">
+  <div class="panel sigbox" style="overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:.92rem">
   <tr style="text-align:left;border-bottom:2px solid var(--line)"><th style="padding:6px 8px 6px 0">Agent</th><th style="padding:6px 8px">Leads</th><th style="padding:6px 8px">Buyer recs</th><th style="padding:6px 8px">Seller recs</th><th style="padding:6px 8px">Pending/Closing</th><th style="padding:6px 0">Deadlines (14d)</th></tr>
 <?php foreach ($agents as $a): $k = $a['akey']; $meta = json_decode($a['meta'] ?: '{}', true) ?: []; $dn = $meta['name'] ?? ($a['email'] ?: $k); $nL = (int)($leadCounts[$k] ?? 0); $t = $txByAgent[$k] ?? []; $nd = (int)($dlByAgent[$k] ?? 0);
