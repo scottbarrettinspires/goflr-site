@@ -22,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($a === 'pin' || $a === 'unpin') { $err = co_pin_post($id, $a === 'pin'); $go = '#p' . $id; }
         elseif ($a === 'comment') { $err = co_add_comment($id, $_POST['body'] ?? ''); $go = '#p' . $id; }
         elseif ($a === 'delcomment') { $c = co_comment($id); $err = co_delete_comment($id); $go = $c ? '#p' . $c['post_id'] : ''; }
+        $single = (int)($_POST['single'] ?? 0);
+        if ($single && $a !== 'delete' && strpos($go, '#') === 0) $go = '?post=' . $single . $go;
         if ($err === '') { header('Location: collab.php' . $go); exit; }
     }
 }
@@ -29,15 +31,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) $err = 'That photo is too large. Please choose a smaller one.';
 
 $before = (int)($_GET['before'] ?? 0);
-list($posts, $more) = co_feed(20, $before);
+$single = (int)($_GET['post'] ?? 0); // one post on its own page, opened from the side lists
+if ($single) { $sp = co_single($single); $posts = $sp ? [$sp] : []; $more = false; }
+else { list($posts, $more) = co_feed(20, $before); }
+$recent = co_recent(3);
+$active = co_active(3, array_column($recent, 'id'));
 co_mark_seen($me['email']);
 $editId = (int)($_GET['edit'] ?? 0);
 $mePerson = om_person($me['key'], $me['name']);
-$csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSION['csrf']) . '">';
+$csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSION['csrf']) . '">' . ($single ? '<input type="hidden" name="single" value="' . $single . '">' : '');
 
 function co_av($p, $px) {
     return '<span class="cav" style="width:' . $px . 'px;height:' . $px . 'px;flex-basis:' . $px . 'px;font-size:' . round($px * .38) . 'px"><span>' . htmlspecialchars($p['ini']) . '</span>'
         . ($p['photo'] ? '<img src="' . htmlspecialchars($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '') . '</span>';
+}
+// One side-list entry: thumbnail (the post's photo, else the author's headshot), name, preview, counts.
+function co_side_item($r, $current) {
+    $au = om_person($r['author_key'], $r['author_name']);
+    $th = $r['image'] !== '' ? '<span class="coth"><img src="collab_img.php?f=' . rawurlencode($r['image']) . '" alt="" loading="lazy"></span>' : co_av($au, 52);
+    $meta = htmlspecialchars(co_ago($r['created'])) . ($r['n_likes'] ? ' &middot; &#128077; ' . $r['n_likes'] : '') . ($r['n_comments'] ? ' &middot; &#128172; ' . $r['n_comments'] : '');
+    return '<a class="coitem' . ($current ? ' on' : '') . '" href="collab.php?post=' . (int)$r['id'] . '#p' . (int)$r['id'] . '">' . $th
+        . '<span class="cotx"><span class="nm">' . htmlspecialchars($r['author_name'] ?: $r['author_email']) . '</span><span class="pv">' . htmlspecialchars($r['preview']) . '</span><span class="mt">' . $meta . '</span></span></a>';
 }
 function co_likers($p, $myEmail) {
     $n = count($p['likes']); if (!$n) return '';
@@ -49,7 +63,23 @@ function co_likers($p, $myEmail) {
 sp_head('Collaboration');
 ?>
 <style>
-.cofeed{max-width:680px;margin:0 auto}
+.colayout{display:grid;grid-template-columns:270px minmax(0,680px);gap:22px;justify-content:center;align-items:start}
+.cofeed{min-width:0}
+.coside{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}
+.coside h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:#5a6a6c;margin:0 0 8px}
+.coside .grp{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 14px}
+.coitem{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;text-decoration:none;color:inherit}
+.coitem:hover{background:#f1f4f4}.coitem.on{background:var(--teal-soft)}
+.coth{flex:0 0 52px;width:52px;height:52px;border-radius:10px;overflow:hidden;background:#f1f4f4}.coth img{width:100%;height:100%;object-fit:cover;display:block}
+.cotx{min-width:0;display:flex;flex-direction:column;line-height:1.3}.cotx .nm{font-weight:700;font-size:.85rem}
+.cotx .pv{font-size:.85rem;color:#2a3638;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.cotx .mt{font-size:.75rem;color:#5a6a6c;margin-top:2px}
+@media(max-width:900px){
+  .colayout{grid-template-columns:minmax(0,1fr)}
+  .coside{position:static;max-height:none;overflow:visible;margin:0 -16px}
+  .coside .grp{border:0;background:none;padding:0 16px;margin:0 0 12px}
+  .coside .list{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
+  .coside .coitem{flex:0 0 76%;max-width:300px;background:var(--white);border:1px solid var(--line);scroll-snap-align:start}
+}
 .cocard{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .cav{position:relative;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;flex:0 0 auto}
 .cav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -78,10 +108,22 @@ sp_head('Collaboration');
 .conote{font-size:.78rem;color:#5a6a6c;margin:8px 0 0}
 .comore{display:block;font-size:.85rem;color:#5a6a6c;background:none;border:0;padding:0 0 8px;cursor:pointer;font-weight:600}
 </style>
+<div class="colayout">
+<aside class="coside" aria-label="Recent and most active posts">
+<?php if ($recent): ?>
+  <div class="grp"><h3>Recent posts</h3><div class="list"><?php foreach ($recent as $r) echo co_side_item($r, $single === (int)$r['id']); ?></div></div>
+<?php endif; if ($active): ?>
+  <div class="grp"><h3>Most active</h3><div class="list"><?php foreach ($active as $r) echo co_side_item($r, $single === (int)$r['id']); ?></div></div>
+<?php endif; if (!$recent): ?>
+  <div class="grp"><h3>Recent posts</h3><p style="font-size:.85rem;color:#5a6a6c;margin:0">New posts will show here.</p></div>
+<?php endif; ?>
+</aside>
 <div class="cofeed">
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
 
-<?php if (!$before): ?>
+<?php if ($single): ?>
+  <p style="margin:0 0 12px"><a href="collab.php">&larr; Back to all posts</a></p>
+<?php elseif (!$before): ?>
   <form class="cocard comp" method="post" enctype="multipart/form-data">
     <?= $csrfIn ?><input type="hidden" name="a" value="post">
     <div class="cohead"><?= co_av($mePerson, 42) ?><div class="who"><div class="nm"><?= htmlspecialchars($me['name']) ?></div></div></div>
@@ -99,7 +141,7 @@ sp_head('Collaboration');
 <?php endif; ?>
 
 <?php if (!$posts): ?>
-  <div class="cocard" style="text-align:center;color:#5a6a6c"><?= $before ? 'No older posts.' : 'No posts yet. Be the first to share a win, a question, or a listing.' ?></div>
+  <div class="cocard" style="text-align:center;color:#5a6a6c"><?= $single ? 'That post is no longer available.' : ($before ? 'No older posts.' : 'No posts yet. Be the first to share a win, a question, or a listing.') ?></div>
 <?php endif; ?>
 
 <?php foreach ($posts as $p):
@@ -113,7 +155,7 @@ sp_head('Collaboration');
         <div class="meta" title="<?= htmlspecialchars(date('l, M j, Y g:ia', strtotime($p['created']))) ?>"><?= htmlspecialchars(co_ago($p['created'])) ?><?= $p['edited'] ? ' &middot; edited' : '' ?></div></div>
 <?php if ($mine || $me['staff']): ?>
       <details class="comenu"><summary aria-label="Post options">&hellip;</summary><div class="dd">
-        <?php if ($mine): ?><a href="collab.php?edit=<?= (int)$p['id'] ?>#p<?= (int)$p['id'] ?>">Edit post</a><?php endif; ?>
+        <?php if ($mine): ?><a href="collab.php?<?= $single ? 'post=' . $single . '&amp;' : '' ?>edit=<?= (int)$p['id'] ?>#p<?= (int)$p['id'] ?>">Edit post</a><?php endif; ?>
         <?php if ($me['staff']): ?><form method="post"><?= $csrfIn ?><input type="hidden" name="a" value="<?= $p['pinned'] ? 'unpin' : 'pin' ?>"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>"><button type="submit"><?= $p['pinned'] ? 'Unpin' : 'Pin to top' ?></button></form><?php endif; ?>
         <?php if ($canDel): ?><form method="post" onsubmit="return confirm('Delete this post<?= $mine ? '' : ' for everyone' ?>?');"><?= $csrfIn ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>"><button type="submit" style="color:#c0392b"><?= $mine ? 'Delete post' : 'Remove post' ?></button></form><?php endif; ?>
       </div></details>
@@ -122,7 +164,7 @@ sp_head('Collaboration');
 <?php if ($editId === (int)$p['id'] && $mine): ?>
     <form method="post" style="margin-top:10px"><?= $csrfIn ?><input type="hidden" name="a" value="edit"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
       <textarea name="body" rows="4" maxlength="<?= CO_MAX_BODY ?>" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit"><?= htmlspecialchars($p['body']) ?></textarea>
-      <p style="margin:8px 0 0"><button class="btn sm" type="submit" style="border:0;cursor:pointer;font:inherit;font-weight:600;padding:6px 14px">Save</button> <a href="collab.php#p<?= (int)$p['id'] ?>" style="margin-left:8px;font-size:.9rem">Cancel</a></p>
+      <p style="margin:8px 0 0"><button class="btn sm" type="submit" style="border:0;cursor:pointer;font:inherit;font-weight:600;padding:6px 14px">Save</button> <a href="collab.php<?= $single ? '?post=' . $single : '' ?>#p<?= (int)$p['id'] ?>" style="margin-left:8px;font-size:.9rem">Cancel</a></p>
     </form>
 <?php elseif ($p['body'] !== ''): ?>
     <div class="cobody"><?= co_text($p['body']) ?></div>
@@ -136,7 +178,7 @@ sp_head('Collaboration');
       <button type="button" class="cocmt" data-id="<?= (int)$p['id'] ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/></svg>Comment</button>
     </div>
     <div class="cocoms">
-<?php $hide = max(0, $nc - 3); if ($hide): ?>      <button type="button" class="comore" data-n="<?= $hide ?>">View <?= $hide ?> more comment<?= $hide === 1 ? '' : 's' ?></button>
+<?php $hide = $single ? 0 : max(0, $nc - 3); if ($hide): ?>      <button type="button" class="comore" data-n="<?= $hide ?>">View <?= $hide ?> more comment<?= $hide === 1 ? '' : 's' ?></button>
 <?php endif; foreach ($p['comments'] as $i => $c): $ca = om_person($c['author_key'], $c['author_name']); ?>
       <div class="cocom"<?= $i < $hide ? ' hidden' : '' ?>><?= co_av($ca, 32) ?><div><div class="cobub"><span class="nm"><?= htmlspecialchars($c['author_name'] ?: $c['author_email']) ?></span><?= $c['author_staff'] ? '<span class="cobadge">Staff</span>' : '' ?><div><?= co_text($c['body']) ?></div></div>
         <div class="cocm"><?= htmlspecialchars(co_ago($c['created'])) ?><?php if ($c['author_email'] === $me['email'] || $me['staff']): ?> &middot; <form method="post" style="display:inline" onsubmit="return confirm('Delete this comment?');"><?= $csrfIn ?><input type="hidden" name="a" value="delcomment"><input type="hidden" name="id" value="<?= (int)$c['id'] ?>"><button type="submit">Delete</button></form><?php endif; ?></div></div></div>
@@ -147,6 +189,7 @@ sp_head('Collaboration');
   </article>
 <?php endforeach; ?>
 <?php if ($more && $posts): ?><p style="text-align:center"><a class="btn ghost" href="collab.php?before=<?= (int)end($posts)['id'] ?>">Older posts</a></p><?php endif; ?>
+</div>
 </div>
 <script>
 (function(){

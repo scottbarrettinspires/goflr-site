@@ -57,15 +57,50 @@ function co_feed($limit = 20, $beforeId = 0) {
     $q = $pdo->prepare('SELECT * FROM co_posts WHERE deleted = 0 AND pinned = 0' . ($beforeId ? ' AND id < ?' : '') . ' ORDER BY id DESC LIMIT ' . ((int)$limit + 1));
     $q->execute($beforeId ? [(int)$beforeId] : []); $rest = $q->fetchAll();
     $more = count($rest) > $limit; $rest = array_slice($rest, 0, $limit);
-    $posts = array_merge($pinned, $rest); if (!$posts) return [[], false];
-    $ids = array_column($posts, 'id'); $in = implode(',', array_map('intval', $ids)); $me = co_me()['email'];
+    $posts = array_merge($pinned, $rest);
+    return [co_decorate($posts), $more];
+}
+// Add likes, "liked by me" and comments to a list of post rows.
+function co_decorate(array $posts) {
+    if (!$posts) return [];
+    $pdo = co_db(); $in = implode(',', array_map('intval', array_column($posts, 'id'))); $me = co_me()['email'];
     $likes = []; foreach ($pdo->query("SELECT post_id, email, name FROM co_likes WHERE post_id IN ($in) ORDER BY created")->fetchAll() as $l) $likes[$l['post_id']][] = $l;
     $coms = []; foreach ($pdo->query("SELECT * FROM co_comments WHERE post_id IN ($in) AND deleted = 0 ORDER BY id")->fetchAll() as $c) $coms[$c['post_id']][] = $c;
     foreach ($posts as &$p) {
         $p['likes'] = $likes[$p['id']] ?? []; $p['liked'] = in_array($me, array_column($p['likes'], 'email'), true);
         $p['comments'] = $coms[$p['id']] ?? [];
     }
-    return [$posts, $more];
+    return $posts;
+}
+// One post on its own page (from the side lists), or null if it's gone.
+function co_single($id) { $p = co_post($id); return $p ? co_decorate([$p])[0] : null; }
+
+// Side lists. Recent: the 3 newest posts. Most active: the posts with the most likes + comments in the last 30
+// days (comments count double, since they're a conversation), not repeating anything already in Recent.
+function co_recent($n = 3) {
+    return co_side_rows(co_db()->query('SELECT * FROM co_posts WHERE deleted = 0 ORDER BY id DESC LIMIT ' . (int)$n)->fetchAll());
+}
+function co_active($n = 3, array $skipIds = []) {
+    $since = date('c', strtotime('-30 days')); $pdo = co_db();
+    $q = $pdo->prepare('SELECT p.*, (SELECT COUNT(*) FROM co_likes l WHERE l.post_id = p.id AND l.created >= ?) AS lk,
+        (SELECT COUNT(*) FROM co_comments c WHERE c.post_id = p.id AND c.deleted = 0 AND c.created >= ?) AS cm
+        FROM co_posts p WHERE p.deleted = 0' . ($skipIds ? ' AND p.id NOT IN (' . implode(',', array_map('intval', $skipIds)) . ')' : '') . '
+        ORDER BY (lk + 2 * cm) DESC, p.id DESC LIMIT ' . (int)$n);
+    $q->execute([$since, $since]);
+    return co_side_rows(array_values(array_filter($q->fetchAll(), function ($r) { return $r['lk'] + $r['cm'] > 0; })));
+}
+// Adds total like/comment counts and a short preview to side-list rows.
+function co_side_rows(array $rows) {
+    if (!$rows) return [];
+    $pdo = co_db(); $in = implode(',', array_map('intval', array_column($rows, 'id')));
+    $lk = $pdo->query("SELECT post_id, COUNT(*) FROM co_likes WHERE post_id IN ($in) GROUP BY post_id")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $cm = $pdo->query("SELECT post_id, COUNT(*) FROM co_comments WHERE post_id IN ($in) AND deleted = 0 GROUP BY post_id")->fetchAll(PDO::FETCH_KEY_PAIR);
+    foreach ($rows as &$r) {
+        $r['n_likes'] = (int)($lk[$r['id']] ?? 0); $r['n_comments'] = (int)($cm[$r['id']] ?? 0);
+        $t = trim(preg_replace('/\s+/', ' ', (string)$r['body']));
+        $r['preview'] = $t === '' ? 'Shared a photo' : (mb_strlen($t) > 70 ? rtrim(mb_substr($t, 0, 68)) . '…' : $t);
+    }
+    return $rows;
 }
 function co_post($id) { $q = co_db()->prepare('SELECT * FROM co_posts WHERE id = ? AND deleted = 0'); $q->execute([(int)$id]); return $q->fetch() ?: null; }
 function co_comment($id) { $q = co_db()->prepare('SELECT * FROM co_comments WHERE id = ? AND deleted = 0'); $q->execute([(int)$id]); return $q->fetch() ?: null; }
