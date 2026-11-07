@@ -193,5 +193,5 @@ function om_handle_post($me, $myName, $isStaff) {
     }
     if (trim($body) === '') return 'Type a message first.';
     om_send($me, $myName, $fromKey, $isStaff, $body, $keys, $label);
-    header('Location: ' . $back . '?msgsent=1#messages'); exit;
+    header('Location: ' . $back . '?msgsent=1#composecard'); exit;
 }

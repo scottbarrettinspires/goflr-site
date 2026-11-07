@@ -19,15 +19,13 @@ $csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSIO
 if ($replyTo !== '' && strpos($replyTo, 'staff:') === 0 && $replyTo !== 'staff:*' && !isset($staffPeople[substr($replyTo, 6)])) $staffPeople[substr($replyTo, 6)] = $replyName;
 $fld = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit';
 ?>
-<style>#messages .btn.sm{padding:6px 14px;font-size:.85rem;font-family:inherit;line-height:1.4;cursor:pointer;vertical-align:middle}#messages button.btn.sm:not(.ghost){border:0}
-#messages .om{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}#messages .om.new{background:linear-gradient(90deg,rgba(3,111,114,.06),transparent)}
-#messages .omav{position:relative;flex:0 0 48px;width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;display:flex;align-items:center;justify-content:center}
-#messages .omav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#messages .ombody{flex:1;min-width:0}
-#messages .omnew{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#c0392b;color:#fff;border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle}</style>
-  <div class="panel sigbox" id="messages" style="border-left:5px solid #036f72;margin:0 0 16px">
+<style>.omcard .btn.sm{padding:6px 14px;font-size:.85rem;font-family:inherit;line-height:1.4;cursor:pointer;vertical-align:middle}.omcard button.btn.sm:not(.ghost){border:0}
+.omcard .om{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.omcard .om.new{background:linear-gradient(90deg,rgba(3,111,114,.06),transparent)}
+.omcard .omav{position:relative;flex:0 0 48px;width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;display:flex;align-items:center;justify-content:center}
+.omcard .omav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.omcard .ombody{flex:1;min-width:0}
+.omcard .omnew{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#c0392b;color:#fff;border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle}</style>
+  <div class="panel sigbox omcard" id="messages" style="border-left:5px solid #036f72;margin:0 0 16px">
     <h2 style="margin-top:0"><?= $omPage === 'messages.php' ? 'Inbox' : 'Messages' ?><?php if ($inbox): ?> <span style="font-size:.85rem;color:#5a6a6c;font-weight:400">(<?= count($inbox) ?>)</span><?php endif; ?></h2>
-<?php if (!empty($_GET['msgsent'])): ?><p class="note">Sent. They'll see it the next time they open their Home page.</p><?php endif; ?>
-<?php if (!empty($msgErr)): ?><p class="sigerr"><?= htmlspecialchars($msgErr) ?></p><?php endif; ?>
 <?php if (!$inbox): ?>
     <p style="color:#5a6a6c;margin:0 0 6px">No new messages.</p>
 <?php else: foreach ($inbox as $m):
@@ -46,9 +44,14 @@ $fld = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(-
     </div>
 <?php endforeach; endif; ?>
 
-    <form method="post" id="compose" style="margin-top:14px;padding-top:12px;border-top:2px solid var(--line)">
+  </div>
+
+  <div class="panel sigbox omcard" id="composecard" style="border-left:5px solid #e07b39;margin:0 0 16px">
+    <form method="post" id="compose">
+      <?php if (!empty($_GET['msgsent'])): ?><p class="note">Sent. They'll see it the next time they open their Home page.</p><?php endif; ?>
+      <?php if (!empty($msgErr)): ?><p class="sigerr"><?= htmlspecialchars($msgErr) ?></p><?php endif; ?>
       <?= $csrfIn ?>
-      <h3 style="margin:0 0 8px;font-size:1rem"><?= $replyTo ? ($isReply ? 'Reply to ' : 'Message ') . htmlspecialchars($replyName) : 'New message' ?></h3>
+      <h2 style="margin:0 0 10px"><?= $replyTo ? ($isReply ? 'Reply to ' : 'Message ') . htmlspecialchars($replyName) : 'New message' ?></h2>
 <?php if ($isStaff): $mode = $replyTo ? 'one' : (string)($_POST['mode'] ?? 'one'); ?>
       <p style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:14px">
         <label><input type="radio" name="mode" value="one" <?= $mode === 'one' ? 'checked' : '' ?>> One person</label>
