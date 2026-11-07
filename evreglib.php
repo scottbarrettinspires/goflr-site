@@ -42,8 +42,12 @@ function er_sessions(array $group, array $regs, $full = true) {
     $h = '<div class="ersess">';
     foreach ($group as $e) {
         $place = $full ? $e['address'] : $e['where'];
-        $h .= '<div class="ers"><div class="erwhen">' . ($e['zoom'] !== '' ? ER_ZOOM_ICON : ER_PLACE_ICON) . '<span><b>' . htmlspecialchars(date('l, M j', strtotime($e['date']))) . '</b>'
-            . htmlspecialchars(($e['start'] !== '' ? ' · ' . $e['start'] . ' – ' . $e['end'] : '') . ($place !== '' ? ' · ' . $place : '')) . '</span></div>'
+        // Home card ($full false): short form -- "Wed, Nov 11 · 11 AM–12:30 PM".
+        $day = date($full ? 'l, M j' : 'D, M j', strtotime($e['date']));
+        $short = function ($t) { return trim(str_replace(':00 ', ' ', $t . ' ')); }; // "11:00 AM" -> "11 AM"
+        $tm = $e['start'] !== '' ? ($full ? $e['start'] . ' – ' . $e['end'] : $short($e['start']) . '–' . $short($e['end'])) : '';
+        $h .= '<div class="ers"><div class="erwhen">' . ($e['zoom'] !== '' ? ER_ZOOM_ICON : ER_PLACE_ICON) . '<span><b>' . htmlspecialchars($day) . '</b>'
+            . htmlspecialchars(($tm !== '' ? ' · ' . trim($tm) : '') . ($place !== '' ? ' · ' . $place : '')) . '</span></div>'
             . er_widget($e, $regs[flr_event_key($e)] ?? []) . '</div>';
     }
     return $h . '</div>';

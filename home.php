@@ -154,7 +154,9 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 .nxside .tile{flex-basis:auto;width:58px;padding:6px 0}
 @keyframes nxwig{0%,100%{transform:rotate(0) scale(1)}20%{transform:rotate(-12deg) scale(1.12)}40%{transform:rotate(10deg) scale(1.12)}60%{transform:rotate(-6deg) scale(1.06)}80%{transform:rotate(4deg)}}
 @media(prefers-reduced-motion:reduce){.nxedu{animation:none}}.nxside h2{margin:4px 0 2px;font-size:1.08rem}
-.nxside .ersess{margin-top:6px}.nxside .ers{padding:7px 0}.nxside .ers .ereg{margin-top:6px}.nxside .nxmore{margin:0 0 2px}</style>
+.nxtitle{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px}.nxtitle h2{margin:2px 0 0!important}.nxtitle .nxmore{margin:0}.nxtitle .nxmore[open]{flex-basis:100%}
+.nxside .ersess{margin-top:6px}.nxside .ers{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:6px 0}.nxside .erwhen{flex:1 1 260px}
+.nxside .ers .ereg{margin-top:0;flex:0 1 auto;gap:8px 10px}.nxside .ertxt.muted{display:none}</style>
 <div class="homemain">
 <?php if ($next): ?>
   <div class="nextup nxside">
@@ -165,7 +167,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
       <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
     </div>
     <div class="nb">
-      <h2><?= htmlspecialchars($next['title']) ?></h2>
+      <div class="nxtitle"><h2><?= htmlspecialchars($next['title']) ?></h2>
 <?php if ($next['desc'] !== ''): ?>
       <details class="nxmore"><summary>More info</summary><p><?= htmlspecialchars($next['desc']) ?></p></details>
       <style>.nxmore{margin:2px 0 4px}.nxmore summary{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--teal);font-weight:600;font-size:.88rem;list-style:none;-webkit-tap-highlight-color:transparent}
@@ -173,6 +175,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 .nxmore[open] summary::after{transform:rotate(-135deg);margin-top:3px}.nxmore[open] summary{font-size:0}.nxmore[open] summary::before{content:"Less info";font-size:.88rem}
 .nxmore p{margin:8px 0 2px;font-size:.92rem;line-height:1.55;color:#455355}</style>
 <?php endif; ?>
+      </div>
 <?php if ($next['rsvp']): ?>      <div class="row" style="margin:6px 0 0"><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a></div>
 <?php endif; ?>
       <?= er_sessions($nextGroup, er_for(array_map('flr_event_key', $nextGroup)), false), er_assets() ?>
