@@ -3,7 +3,7 @@
 // (usually signed in person at the final walkthrough), then mark the record's pipeline stage Close Transaction.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/pstage.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 $me = $_SESSION['email'];
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }

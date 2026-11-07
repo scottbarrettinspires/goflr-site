@@ -1,7 +1,7 @@
 <?php
 // Lead manager actions for the signed-in agent. Every lead file is private to that agent.
 require __DIR__ . "/guard.php";
-require __DIR__ . "/leadlib.php";
+require_once __DIR__ . "/leadlib.php";
 require_once __DIR__ . "/sigtools.php";
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }

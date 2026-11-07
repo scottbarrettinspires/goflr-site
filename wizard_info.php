@@ -1,7 +1,7 @@
 <?php
 // Returns the saved Buyer Info for one of the signed-in agent's buyer folders (used by the wizard to prefill).
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 $tx = (string)($_GET['tx'] ?? '');
 if (!preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx)) { echo json_encode(['ok' => false]); exit; }

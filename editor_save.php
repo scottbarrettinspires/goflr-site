@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 @set_time_limit(120);
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }

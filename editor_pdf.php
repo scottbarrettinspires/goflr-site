@@ -1,7 +1,7 @@
 <?php
 // Streams one contract packet from the signed-in agent's buyer folder to the editor.
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 @set_time_limit(120);
 $tx = (string)($_GET['tx'] ?? ''); $id = (string)($_GET['id'] ?? '');
 if (!preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) || !preg_match('/^[A-Za-z0-9_-]{10,80}$/', $id)) { http_response_code(400); exit('Bad request'); }

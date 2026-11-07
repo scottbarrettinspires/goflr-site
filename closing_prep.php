@@ -4,7 +4,7 @@
 // walkthrough. The signed copy is uploaded from Close Transaction once the agent has it.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 $me = $_SESSION['email'];
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }

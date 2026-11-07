@@ -1,7 +1,7 @@
 <?php
 // Files the agent's fully signed documents into the transaction record, in the background so pages load fast.
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 @set_time_limit(170);
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }

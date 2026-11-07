@@ -3,7 +3,7 @@
 // this buyer record, if one has been filed here, plus a way to start one if not.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/pstage.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/subpage.php";
 $me = strtolower($_SESSION['email'] ?? '');
 $tx = (string)($_GET['tx'] ?? '');

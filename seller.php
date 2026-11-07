@@ -1,7 +1,7 @@
 <?php
 // Seller record page: the seller's details (kept in "Seller Info.json" in the listing folder) and the lead behind the listing.
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/leadbox.php";
 require_once __DIR__ . "/dlib.php";
 require_once __DIR__ . "/pstage.php";

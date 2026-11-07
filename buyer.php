@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/leadlib.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');

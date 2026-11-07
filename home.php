@@ -2,7 +2,7 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/events.php";
 require_once __DIR__ . "/evreglib.php"; // Register + who's going on the Next up card
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/dlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');

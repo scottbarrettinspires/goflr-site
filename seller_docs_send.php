@@ -1,7 +1,7 @@
 <?php
 // Sends seller-provided PDFs (uploaded by the agent, with signature boxes placed in the browser) to the buyers through DigiSigner.
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 @set_time_limit(180);
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 function out($a) { echo json_encode($a); exit; }

@@ -1,7 +1,7 @@
 <?php
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
-require __DIR__ . "/leadlib.php";
+require_once __DIR__ . "/leadlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');
 list($agent, $phone) = ld_me();

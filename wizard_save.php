@@ -2,7 +2,7 @@
 // Saves a built contract packet into the buyer's chosen transaction folder (brokerage copy).
 require __DIR__ . "/guard.php";
 @set_time_limit(120);
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 header('Content-Type: application/json');
 function out($a) { echo json_encode($a); exit; }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') out(['ok' => false, 'msg' => 'Not allowed']);
