@@ -123,7 +123,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
     <?php endif; ?>
-    <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
+    <a href="directory.php">Directory</a>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
