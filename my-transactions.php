@@ -145,15 +145,6 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php endif; ?>
   </div>
 <?php endif; ?>
-  <details style="margin-top:22px">
-    <summary style="cursor:pointer;font-weight:700;color:var(--teal)">Browse the raw transaction folders and files</summary>
-    <div class="tips" style="margin-top:12px">
-      <div><b>1</b><span>Open a folder to see its files.</span></div>
-      <div><b>2</b><span>Click any document to view it in a new tab.</span></div>
-      <div><b>3</b><span>Fully executed contracts are tagged and listed first.</span></div>
-    </div>
-    <div class="panel"><iframe class="frame" title="Active Business" src="https://script.google.com/macros/s/AKfycby0tfcs_7y9_B1cH5zxcpRJkGAvbvY9WYrqsp_RR8tgcm6nEEvQVNQ1jS5iI-Lq54PC/exec"></iframe></div>
-  </details>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
