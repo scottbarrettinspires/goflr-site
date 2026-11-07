@@ -80,7 +80,7 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     ld_update($me, function (&$db) use ($leadId, $fid, $label) {
                         foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $leadId) continue;
                             $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label, 'stage' => 1];
-                            $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer record created in My Transactions'];
+                            $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer record created in Active Business'];
                         }
                     });
                 }
@@ -124,7 +124,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php">Transactions</a>
+    <a href="my-transactions.php">Active Business</a>
     <a href="forms.php" aria-current="page">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
@@ -138,15 +138,16 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if (!$buyer && !$pastStage1 && !$isNew): ?>
   <div class="panel sigbox">
     <h2 style="margin-top:0">Your buyer records</h2>
-<?php if (!$buyerTx): ?><p class="note">No buyer folders found yet. Create one in My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers first.</p>
+<?php if (!$buyerTx): ?><p class="note">No buyer folders found yet. Create one in Active Business &rsaquo; 1 BUYERS &rsaquo; 1 Buyers first.</p>
 <?php else: ?>
     <?= ps_group_box('buyer', $buyerTx, function ($t) { return 'buyer.php?tx=' . urlencode($t['folder']); }) ?>
 <?php endif; ?>
-    <p style="margin-top:14px"><a class="btn ghost" href="my-transactions.php">Create a new buyer record in My Transactions</a></p>
+    <p style="margin-top:14px"><a class="btn ghost" href="my-transactions.php">Create a new buyer record in Active Business</a></p>
   </div>
 <?php else: ?>
 <?php if ($buyer || $pastStage1) echo lb_box($me, 'buyer', $tx, $info); ?>
 <?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info); ?>
+<?php if ($buyer || $pastStage1) { require_once __DIR__ . '/signed_panel.php'; echo sg_panel($me, $tx, (string)($buyer['name'] ?? $recAny['name'] ?? '')); } ?>
 <?php if ($buyer || $pastStage1): ?>
   <div class="panel sigbox">
     <h2 style="margin-top:0"><?= htmlspecialchars($recAny['name'] ?? $buyer['name'] ?? '') ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($recAny['stage_name'] ?: 'Buyer') ?></span></h2>

@@ -142,7 +142,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <nav>
     <a href="home.php">Home</a>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php">Transactions</a>
+    <a href="my-transactions.php">Active Business</a>
     <a href="forms.php" aria-current="page">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
@@ -152,7 +152,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <section class="hero"><h1>Send packet for signature</h1><p>Send a contract packet and the buyer disclosures from a buyer's folder in one email. Once the buyers sign, each signed copy is filed in Contract Offers under the property address.</p></section>
 <main class="wrap">
 <?php if (!$buyers): ?>
-  <p class="note">You need a buyer folder first: <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers &rsaquo; [buyer name]</strong>. <a href="wizard.php">Contract Forms Wizard</a></p>
+  <p class="note">You need a buyer folder first: <strong>Active Business &rsaquo; 1 BUYERS &rsaquo; 1 Buyers &rsaquo; [buyer name]</strong>. <a href="wizard.php">Contract Forms Wizard</a></p>
 <?php elseif ($result && $result['ok']): ?>
   <div class="panel sigbox"><h2>Sent</h2>
     <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, the signed documents are filed in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>

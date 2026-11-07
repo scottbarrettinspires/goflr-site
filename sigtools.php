@@ -37,7 +37,7 @@ function sg_refresh(&$rec) {
     if (!is_array($q)) return false;
     $rec['signers_status'] = [];
     foreach (($q['documents'][0]['signers'] ?? []) as $s) { $rec['signers_status'][$s['email'] ?? ''] = !empty($s['is_signature_completed']); }
-    if (!empty($q['is_completed'])) { $rec['completed'] = true; $rec['doc'] = $q['documents'][0]['document_id'] ?? ($rec['doc'] ?? ''); }
+    if (!empty($q['is_completed'])) { $rec['completed'] = true; if (empty($rec['completed_at'])) $rec['completed_at'] = gmdate('c'); $rec['doc'] = $q['documents'][0]['document_id'] ?? ($rec['doc'] ?? ''); }
     sg_save($rec['id'], $rec);
     return true;
 }
@@ -390,7 +390,7 @@ function sg_refresh_many(&$recs, $max = 8) {
         if ($code < 200 || $code >= 300 || !is_array($q)) continue;
         $r = $recs[$i]; $r['signers_status'] = [];
         foreach (($q['documents'][0]['signers'] ?? []) as $s) { $r['signers_status'][$s['email'] ?? ''] = !empty($s['is_signature_completed']); }
-        if (!empty($q['is_completed'])) { $r['completed'] = true; $r['doc'] = $q['documents'][0]['document_id'] ?? ($r['doc'] ?? ''); }
+        if (!empty($q['is_completed'])) { $r['completed'] = true; if (empty($r['completed_at'])) $r['completed_at'] = gmdate('c'); $r['doc'] = $q['documents'][0]['document_id'] ?? ($r['doc'] ?? ''); }
         sg_save($r['id'], $r); $recs[$i] = $r;
     }
     curl_multi_close($mh);

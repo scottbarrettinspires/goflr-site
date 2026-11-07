@@ -117,7 +117,7 @@ function flr_intake_lookup($key) {
     return null;
 }
 
-// ---- Transaction index: one row per My Transactions record folder (documents stay in Drive) ----
+// ---- Transaction index: one row per Active Business record folder (documents stay in Drive) ----
 function flr_tx_side($grp) { return preg_match('/^1\s/', $grp) ? 'buyer' : (preg_match('/^2\s/', $grp) ? 'seller' : 'other'); }
 function flr_tx_stage($grp) { $p = explode(' / ', $grp, 2); return preg_match('/^(\d+)\s*(.*)$/', trim($p[1] ?? ''), $m) ? [(int)$m[1], trim($m[2])] : [0, '']; }
 // Store what Drive shows now. Returns [rows changed, list of folder ids that changed stage].

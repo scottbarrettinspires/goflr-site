@@ -22,6 +22,10 @@ if (isset($_GET['dl'])) {
 }
 
 $msg = '';
+if (isset($_GET['seen'])) { // opened from a "newly signed" notice
+    $rs = sg_load((string)$_GET['seen']);
+    if ($rs && strtolower($rs['agent'] ?? '') === $me && !empty($rs['completed'])) { $rs['seen'] = true; sg_save($rs['id'], $rs); }
+}
 if (isset($_GET['refile'])) { // file this request's documents again (clears what was filed before)
     $rr = sg_load((string)$_GET['refile']);
     if ($rr && strtolower($rr['agent'] ?? '') === $me && !empty($rr['completed'])) { $rr['filed'] = null; unset($rr['extra'], $rr['zip']); sg_save($rr['id'], $rr); }
@@ -76,19 +80,19 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
   <nav>
     <a href="home.php">Home</a>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php" aria-current="page">Transactions</a>
+    <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Signed Documents</h1><p>Forms you sent for signature, and where the signed copies went.</p></section>
+<section class="hero"><h1>Signed Documents</h1><p>Every form you sent for signature. Each one also shows inside its buyer or seller record.</p></section>
 <main class="wrap">
-  <div class="stabs"><a href="my-transactions.php">Transaction Folders</a><a href="signed.php" class="on">Signed Documents</a></div>
+  <p><a href="my-transactions.php">&larr; Back to Active Business</a></p>
 <?php if ($msg): ?><p class="note"><strong><?= htmlspecialchars($msg) ?></strong></p><?php endif; ?>
 <?php if (!$recs): ?>
-  <p class="note">Nothing sent yet. Use the Contract Forms Wizard in <a href="my-transactions.php">My Transactions</a>
+  <p class="note">Nothing sent yet. Use the Contract Forms Wizard in <a href="my-transactions.php">Active Business</a>
     <a href="leads.php">Leads</a>, then Review and complete, then send it for signature.</p>
 <?php endif; ?>
 <?php foreach ($recs as $r):
@@ -125,7 +129,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
           </select>
           <button class="btn" type="submit">File it</button>
         </form>
-        <?php else: ?><p class="note"><?= !empty($fok) ? "Not filed yet. You have no transaction folders to file into yet. Create an address folder in My Transactions, then come back and assign it here." : "Not filed yet. Your transaction folders could not be loaded right now. Please try again, or contact the office." ?></p><?php endif; ?>
+        <?php else: ?><p class="note"><?= !empty($fok) ? "Not filed yet. You have no transaction folders to file into yet. Create an address folder in Active Business, then come back and assign it here." : "Not filed yet. Your transaction folders could not be loaded right now. Please try again, or contact the office." ?></p><?php endif; ?>
       <?php endif; ?>
     <?php endif; ?>
   </div>

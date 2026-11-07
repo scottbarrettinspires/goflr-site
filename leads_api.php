@@ -38,7 +38,7 @@ if ($act === 'startseller') {
     $addr = trim(preg_replace('/\s+/', ' ', (string)($j['address'] ?? '')));
     if ($addr === '' || strlen($addr) > 100 || preg_match('/[\\\/:*?"<>|]/', $addr)) out(['ok' => false, 'msg' => 'Enter the property address (no slashes or special characters).']);
     $root = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=mytxroot&email=' . urlencode($me));
-    if (!is_array($root) || empty($root['ok'])) out(['ok' => false, 'msg' => 'Could not find your My Transactions folder.']);
+    if (!is_array($root) || empty($root['ok'])) out(['ok' => false, 'msg' => 'Could not find your Active Business folder.']);
     $nm = trim(($L0['first'] ?? '') . ' ' . ($L0['last'] ?? ''));
     $info = ['s1_name' => $nm, 's1_phone' => (string)($L0['phone'] ?? ''), 's1_email' => (string)($L0['email'] ?? ''), 'property' => $addr, 'lead_source' => (string)($L0['source'] ?? ''), 'lead_added' => (string)($L0['added'] ?? ''), 'lead_notes' => (string)($L0['notes'] ?? ''), 'updated' => gmdate('c')] + ld_pack_for_record($L0, ld_load($me)['leads']);
     $r = sg_script_post(['op' => 'createseller', 'email' => $me, 'hint' => $root['id'], 'name' => $addr, 'info' => $info]);
@@ -58,7 +58,7 @@ if ($act === 'txmove' || $act === 'closeclient') {
         $r = $fid !== '' ? sg_script_post(['op' => 'movetx', 'email' => $me, 'folderId' => $fid, 'side' => $mv[0], 'stage' => $mv[1]]) : null;
         $okm = is_array($r) && !empty($r['ok']);
         if ($okm) { flr_tx_set($fid, ['stage' => $mv[1], 'stage_name' => (string)($r['stage'] ?? '')]); flr_tx_dirty($me); }
-        if ($act === 'txmove' && !$okm) { $warn = 'Stage updated here. The record folder could not be moved in My Transactions yet' . ((is_array($r) && isset($r['active'])) ? ' (the office script needs the v25 update)' : (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '')) . ', so move it by hand for now.'; }
+        if ($act === 'txmove' && !$okm) { $warn = 'Stage updated here. The record folder could not be moved in Active Business yet' . ((is_array($r) && isset($r['active'])) ? ' (the office script needs the v25 update)' : (is_array($r) && !empty($r['note']) ? ': ' . $r['note'] : '')) . ', so move it by hand for now.'; }
         $pre[$mv[0]] = ['ok' => $okm, 'stage' => $mv[1]];
     }
 }
@@ -85,7 +85,7 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
         elseif ($i < 0) { $L['tags'] = ld_auto_tags($f['source']); }
         $want = (array)($j['roles'] ?? []);
         foreach (LD_CATS as $k => $c) {
-            if (($L['roles'][$k]['sub'] ?? '') === 'client') continue; // in My Transactions: only "closed sale" moves it on
+            if (($L['roles'][$k]['sub'] ?? '') === 'client') continue; // in Active Business: only "closed sale" moves it on
             $sub = (string)($want[$k] ?? '');
             if ($sub === '' || !isset($c['subs'][$sub])) { unset($L['roles'][$k]); continue; }
             if (($L['roles'][$k]['sub'] ?? '') !== $sub) { $L['roles'][$k] = ['sub' => $sub, 'since' => $today, 'touches' => 0, 'last' => '']; }
@@ -99,7 +99,7 @@ $err = ld_update($me, function (&$db) use ($j, $act, $today, $pre) {
     if ($act === 'startseller') {
         $L = &$db['leads'][$i];
         $L['roles']['seller'] = ['sub' => 'client', 'since' => $today, 'touches' => 0, 'last' => '', 'folder' => $pre['folder'], 'record' => $pre['record'], 'stage' => 1];
-        $L['log'][] = ['d' => $today, 'role' => 'seller', 'mid' => '', 'note' => 'Pre Listing record created in My Transactions'];
+        $L['log'][] = ['d' => $today, 'role' => 'seller', 'mid' => '', 'note' => 'Pre Listing record created in Active Business'];
         return null;
     }
     if ($act === 'txmove') {

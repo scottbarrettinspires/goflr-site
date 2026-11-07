@@ -1,5 +1,5 @@
 <?php
-// Keeps the server's transaction index in step with the agent's My Transactions folders in Drive,
+// Keeps the server's transaction index in step with the agent's Active Business folders in Drive,
 // links each record to its lead, and carries stage moves made in Drive back to the lead. Called in the background by pages.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/sigtools.php";
@@ -15,7 +15,7 @@ $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute([$k, (s
 $root = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=mytxroot&email=' . urlencode($me));
 $hint = (is_array($root) && !empty($root['ok']) && !empty($root['id'])) ? (string)$root['id'] : '';
 $folders = sg_folders($me, $hint);
-if (!is_array($folders)) { $pdo->prepare('DELETE FROM kv WHERE k = ?')->execute([$k]); echo json_encode(['ok' => false, 'msg' => 'My Transactions did not answer: ' . ($GLOBALS['sg_folders_note'] ?? '')]); exit; }
+if (!is_array($folders)) { $pdo->prepare('DELETE FROM kv WHERE k = ?')->execute([$k]); echo json_encode(['ok' => false, 'msg' => 'Active Business did not answer: ' . ($GLOBALS['sg_folders_note'] ?? '')]); exit; }
 list($n, $moved) = flr_tx_sync($me, $folders);
 // Link records to leads, and bring Drive stage moves back into the lead.
 $tx = []; foreach (flr_tx_list($me, false) as $t) $tx[$t['folder']] = $t;
@@ -30,7 +30,7 @@ ld_update($me, function (&$db) use ($tx, $moved, &$changed) {
             $st = (int)$tx[$fid]['stage']; $valid = $side === 'seller' ? [1, 2, 3] : [1, 3];
             if (!in_array($st, $valid, true) || (int)($L['roles'][$side]['stage'] ?? 1) === $st) continue;
             $L['roles'][$side]['stage'] = $st; $L['roles'][$side]['touches'] = 0; $L['roles'][$side]['last'] = ''; $L['roles'][$side]['since'] = $today;
-            $L['log'][] = ['d' => $today, 'role' => $side, 'mid' => '', 'note' => 'Stage: ' . ld_stage_name($side, $st) . ' (moved in My Transactions)'];
+            $L['log'][] = ['d' => $today, 'role' => $side, 'mid' => '', 'note' => 'Stage: ' . ld_stage_name($side, $st) . ' (moved in Active Business)'];
             $changed[] = $L['id'];
         }
     }

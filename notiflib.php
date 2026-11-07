@@ -112,6 +112,23 @@ function nt_sections($email, $isStaff, $remote = true) {
             'url' => ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']), 'level' => $d['left'] < 0 ? 'red' : 'amber'];
     }
     $S[] = ['key' => 'deadlines', 'title' => 'Contract deadlines in the next ' . NT_DEADLINE_DAYS . ' days', 'empty' => 'Nothing due in the next ' . NT_DEADLINE_DAYS . ' days.', 'items' => $items, 'more' => ['deadlines.php', 'See all upcoming deadlines']];
+    // Newly signed documents: fully signed requests the agent hasn't looked at yet. Opening the record clears them;
+    // ones not filed in any record yet stay until they are (they link to signed.php to choose the record).
+    $items = [];
+    try {
+        require_once __DIR__ . '/signed_panel.php'; require_once __DIR__ . '/pstage.php';
+        $txAll = flr_tx_list($email);
+        foreach (sg_for_agent($email) as $r) {
+            if (empty($r['completed']) || !empty($r['seen'])) continue;
+            $rec = sg_record_for($r, $txAll);
+            $ct = strtotime($r['completed_at'] ?? '');
+            $what = $r['offer_address'] ?? '' ?: preg_replace('/^[^-]*-\s*/', '', (string)($r['form'] ?? 'Document'));
+            if ($rec) { $items[] = ['title' => 'Signed: ' . $what, 'sub' => ($ct ? date('M j', $ct) . ' · ' : '') . 'In ' . $rec['name'] . ' › Signed Documents', 'url' => $rec['url'], 'level' => 'amber']; }
+            elseif (empty($r['filed']) && !sg_can_file($r)) { $items[] = ['title' => 'Signed: ' . $what, 'sub' => 'Fully signed — choose which record to file it in', 'url' => 'signed.php?assign=' . urlencode($r['id']), 'level' => 'red']; }
+            else { $items[] = ['title' => 'Signed: ' . $what, 'sub' => ($ct ? date('M j', $ct) . ' · ' : '') . (!empty($r['filed']) ? 'Filed in ' . $r['filed']['folder'] : 'Being filed in your records'), 'url' => 'signed.php?seen=' . urlencode($r['id']), 'level' => 'amber']; }
+        }
+    } catch (Throwable $e) {}
+    $S[] = ['key' => 'signed', 'title' => 'Newly signed documents', 'empty' => 'No newly signed documents.', 'items' => $items];
     // Transaction records missing information.
     $items = [];
     try {

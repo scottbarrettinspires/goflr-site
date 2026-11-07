@@ -72,7 +72,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php" aria-current="page">Transactions</a>
+    <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="forms.php">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
@@ -86,7 +86,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if (!$rec): ?>
   <div class="panel sigbox">
     <h2 style="margin-top:0">Your seller records</h2>
-<?php if (!$sellers): ?><p class="note">No seller records found yet. They appear here once they are in My Transactions &rsaquo; 2 SELLERS. New records can take a few minutes to show.</p>
+<?php if (!$sellers): ?><p class="note">No seller records found yet. They appear here once they are in Active Business &rsaquo; 2 SELLERS. New records can take a few minutes to show.</p>
 <?php else: ?>
     <?= ps_group_box('seller', $sellers, function ($t) { return 'seller.php?tx=' . urlencode($t['folder']); }) ?>
 <?php endif; ?>
@@ -95,6 +95,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?= lb_box($me, 'seller', $tx, $info) ?>
 <?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0), (string)($rec['name'] ?? ''), $info) ?>
 <?= dl_box($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx)) ?>
+<?php require_once __DIR__ . '/signed_panel.php'; echo sg_panel($me, $tx, (string)($rec['name'] ?? '')); ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($rec['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($rec['stage_name'] ?: 'Seller') ?></span> <span style="font-size:.85rem;font-weight:600;color:<?= htmlspecialchars(ps_fg('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;background:<?= htmlspecialchars(ps_color('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars(PS_STAGES['seller'][ps_get($tx, 'seller', (int)($rec['stage'] ?? 0))] ?? '') ?></span></h2>
 <?php if ($old): ?><p class="note">Seller details can be viewed and saved here after the office script is updated to v26. The lead box above works now.</p><?php endif; ?>

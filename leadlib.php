@@ -148,7 +148,7 @@ function ld_clean_tags($a) {
 }
 function ld_stage_name($role, $n) {
     $m = $role === 'seller' ? [1 => 'Pre Listing', 2 => 'Active Listing', 3 => 'Pending Listing', 4 => 'Archived'] : [1 => 'Buyer Agreement', 3 => 'Pending Contract', 4 => 'Archived'];
-    return $m[(int)$n] ?? 'My Transactions';
+    return $m[(int)$n] ?? 'Active Business';
 }
 function ld_clean($s, $max = 200) { return mb_substr(trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', (string)$s)), 0, $max); }
 
@@ -236,7 +236,7 @@ function ld_sides_for($L) {
     return ['buyer'];
 }
 
-// ---- Leads <-> My Transactions: one person, one record trail ----
+// ---- Leads <-> Active Business: one person, one record trail ----
 // Plain-text summaries of the buyer's wants and the seller's home (same wording as the lead window).
 function ld_wants_text($w) {
     $w = (array)$w; $p = []; $a = function ($k) use ($w) { return array_values(array_filter((array)($w[$k] ?? []), 'strlen')); };
@@ -266,13 +266,13 @@ function ld_home_text($w) {
     if (!empty($w['issues'])) $p[] = 'Known issues: ' . $w['issues'];
     return implode(' · ', $p);
 }
-// Everything the lead section knows, packed for a My Transactions record info file.
+// Everything the lead section knows, packed for a Active Business record info file.
 function ld_pack_for_record($L, $all) {
     $ref = ''; foreach ((array)$all as $x) { if (($x['id'] ?? '') !== '' && ($x['id'] ?? '') === ($L['ref'] ?? '')) $ref = trim(($x['first'] ?? '') . ' ' . ($x['last'] ?? '')); }
     return ['lead_id' => (string)($L['id'] ?? ''), 'lead_source' => (string)($L['source'] ?? ''), 'lead_added' => (string)($L['added'] ?? ''), 'lead_notes' => (string)($L['notes'] ?? ''),
         'lead_ref' => $ref, 'lead_tags' => array_values((array)($L['tags'] ?? [])), 'lead_wants' => (array)($L['wants'] ?? []), 'lead_home' => (array)($L['home'] ?? [])];
 }
-// The lead linked to a My Transactions record folder (buyer or seller side), or null.
+// The lead linked to a Active Business record folder (buyer or seller side), or null.
 function ld_find_by_folder($email, $fid) {
     foreach (ld_load($email)['leads'] as $L) { foreach (['buyer', 'seller'] as $r) { if ($fid !== '' && ($L['roles'][$r]['folder'] ?? '') === $fid) return $L + ['_role' => $r]; } }
     return null;

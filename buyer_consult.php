@@ -1,6 +1,6 @@
 <?php
 // Reached from a lead's "Buyer Consultation" action: choose and prepare the buyer-side agreement before, or during, the
-// consultation, then continue on to start the buyer record in My Transactions.
+// consultation, then continue on to start the buyer record in Active Business.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/leadlib.php";
 require_once __DIR__ . "/pstage.php"; // pulls in sigtools.php for the Send-for-signature links
@@ -20,7 +20,7 @@ sp_head('Buyer Consultation');
 <div class="panel sigbox">
 <?php if ($lead): ?>
   <p class="note">Once it's signed, file it to the buyer's record from <a href="signed.php">Signed Documents</a> once the record below exists &mdash; the transaction can be picked when you send it, or assigned afterward.</p>
-  <p><a class="btn" href="buyer.php?new=1&lead=<?= urlencode($leadId) ?>">Start the buyer record in My Transactions</a></p>
+  <p><a class="btn" href="buyer.php?new=1&lead=<?= urlencode($leadId) ?>">Start the buyer record in Active Business</a></p>
 <?php else: ?>
   <p class="sigerr">That lead could not be found. <a href="leads.php">Back to Leads</a></p>
 <?php endif; ?>

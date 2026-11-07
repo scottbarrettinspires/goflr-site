@@ -17,13 +17,13 @@ function lb_handle_link($me, $side, $tx, $recName, $stage, array $info, $self) {
         if ($lid === 'new') {
             $nm = preg_split('/\s+/', trim((string)($info[$p . '_name'] ?? '')), 2);
             $L = ['id' => bin2hex(random_bytes(6)), 'first' => $nm[0] ?? '', 'last' => $nm[1] ?? '', 'phone' => (string)($info[$p . '_phone'] ?? ''), 'email' => (string)($info[$p . '_email'] ?? ''),
-                'source' => '', 'notes' => '', 'added' => $today, 'created' => date('c'), 'roles' => [$side => $role], 'log' => [['d' => $today, 'role' => $side, 'mid' => '', 'note' => 'Added from the ' . $w . ' record in My Transactions']]];
+                'source' => '', 'notes' => '', 'added' => $today, 'created' => date('c'), 'roles' => [$side => $role], 'log' => [['d' => $today, 'role' => $side, 'mid' => '', 'note' => 'Added from the ' . $w . ' record in Active Business']]];
             if ($side === 'seller') $L['home'] = ['addr' => (string)($info['property'] ?? '') ?: $recName, 'updated' => $today]; // listing folders are named by address
             array_unshift($db['leads'], $L);
             if ($L['first'] === '' && $L['phone'] === '' && $L['email'] === '') { $db['leads'][0]['first'] = $recName; }
             return null;
         }
-        foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') === $lid) { unset($L['roles']['new']); $L['roles'][$side] = $role; $L['log'][] = ['d' => $today, 'role' => $side, 'mid' => '', 'note' => 'Linked to the ' . $w . ' record in My Transactions']; } }
+        foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') === $lid) { unset($L['roles']['new']); $L['roles'][$side] = $role; $L['log'][] = ['d' => $today, 'role' => $side, 'mid' => '', 'note' => 'Linked to the ' . $w . ' record in Active Business']; } }
         return null;
     });
     $l = ld_find_by_folder($me, $tx); if ($l) flr_tx_set($tx, ['lead_id' => $l['id']]);
@@ -49,7 +49,7 @@ function lb_box($me, $side, $tx, array $info) {
         $pk = ld_pack_for_record($link, ld_load($me)['leads']); $nh = count($link['log'] ?? []);
         $nl = array_slice(array_values(array_filter(preg_split('/\r?\n/', (string)($link['notes'] ?? '')), 'strlen')), -3);
         $o .= '<h2 style="margin:0 0 6px;font-size:1.1rem">From Leads and Contacts</h2>';
-        if (!empty($_GET['linked'])) $o .= '<p class="note">Linked. This ' . $w . ' now shows in Leads and Contacts under ' . ($side === 'seller' ? 'Sellers' : 'Buyers') . ' &rsaquo; In My Transactions.</p>';
+        if (!empty($_GET['linked'])) $o .= '<p class="note">Linked. This ' . $w . ' now shows in Leads and Contacts under ' . ($side === 'seller' ? 'Sellers' : 'Buyers') . ' &rsaquo; In Active Business.</p>';
         $o .= '<p style="margin:0 0 6px;color:#4b5b5d;font-size:.92rem">' . $h(implode(' · ', array_filter([($pk['lead_source'] ? 'Source: ' . $pk['lead_source'] : ''), ($pk['lead_ref'] ? 'Referred by ' . $pk['lead_ref'] : ''), ($pk['lead_added'] ? 'Lead since ' . date('M j, Y', strtotime($pk['lead_added'])) : ''), $nh . ' history ' . ($nh === 1 ? 'entry' : 'entries')]))) . '</p>';
         if ($side === 'seller') { $t = ld_home_text($link['home'] ?? []); $o .= '<p style="margin:0 0 6px"><strong>The home:</strong> ' . ($t !== '' ? $h($t) : '<span style="color:#6a777a">Nothing recorded yet. Add it on the lead\'s Property Details tab.</span>') . '</p>'; }
         else { $t = ld_wants_text($link['wants'] ?? []); $o .= '<p style="margin:0 0 6px"><strong>Looking for:</strong> ' . ($t !== '' ? $h($t) : '<span style="color:#6a777a">Nothing recorded yet. Add it on the lead\'s Property Details tab.</span>') . '</p>'; }

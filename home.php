@@ -101,7 +101,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <a href="home.php" aria-current="page">Home</a>
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php">Transactions</a>
+    <a href="my-transactions.php">Active Business</a>
     <a href="forms.php">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
@@ -225,27 +225,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <p><a class="btn" href="sign_packet.php?tx=<?= urlencode($u['tx']) ?>&amp;dr=<?= urlencode($u['addr']) ?>">Email To Buyers For Signing</a></p>
   </div>
 <?php endforeach; ?>
-<?php foreach ($signedNotes as $n):
-    $names = []; $link = '';
-    if (!empty($n['filed'])) { $names[] = $n['filed']['name']; $link = $n['filed']['folder_url'] ?? ''; if ($link === '') $link = $n['filed']['url']; }
-    foreach (($n['extra'] ?? []) as $x) { if (!empty($x['filed'])) { $names[] = $x['filed']['name']; if (($n['filed']['folder_url'] ?? '') === '' && $link === '') $link = $x['filed']['url']; } }
-    $where = !empty($n['filed']) ? $n['filed']['folder'] : ''; ?>
-  <div class="panel sigbox" style="border-left:5px solid #2e8b57;margin-bottom:16px">
-    <p><strong>Signed: <?= htmlspecialchars($n['offer_address'] ?? preg_replace('/^[^-]*-\s*/', '', (string)($n['form'] ?? ''))) ?></strong></p>
-    <?php if ($names): ?>
-    <p>Your buyers have signed. These documents are filed in <strong><?= htmlspecialchars($where) ?></strong>:</p>
-    <ul><?php foreach ($names as $nm): ?><li><?= htmlspecialchars($nm) ?></li><?php endforeach; ?></ul>
-    <p><?php if ($link): ?><a class="btn" href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener">Open the record</a> <?php endif; ?><a class="btn ghost" href="signed.php">Signed Documents</a>
-    <?php elseif (sg_can_file($n)): ?>
-    <p style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Your buyers have signed. Filing the documents in your transaction record...</p>
-    <p>
-    <?php else: ?>
-    <p>Fully signed, but not filed in a transaction record yet.</p>
-    <p><a class="btn" href="signed.php">Choose the record</a>
-    <?php endif; ?>
-    <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="seen" value="<?= htmlspecialchars($n['id']) ?>"> <button class="btn ghost" type="submit">Dismiss</button></form></p>
-  </div>
-<?php endforeach; ?>
+<?php // Newly signed documents: a notice on the Notifications page (bell) links to the record's Signed Documents. ?>
 <?php if ($needFile): ?>
 <script>
 (async function(){try{var r=await fetch("file_pending.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>})});var j=await r.json();if(j.ok&&j.filed>0&&!(j.errors||[]).length)location.reload();}catch(e){}})();

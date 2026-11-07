@@ -29,7 +29,7 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
   <nav>
     <a href="home.php">Home</a>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php">Transactions</a>
+    <a href="my-transactions.php">Active Business</a>
     <a href="forms.php" aria-current="page">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
@@ -55,7 +55,7 @@ $pre = (string)($_GET['tx'] ?? '');
 <?php elseif ($all === null): ?>
   <p class="note">Your transaction folders could not be loaded: <?= htmlspecialchars($GLOBALS['sg_folders_note'] ?? '') ?>. Please tell the office.</p>
 <?php elseif (!$folders): ?>
-  <p class="note">You need a buyer folder first. Create a folder named for the buyer(s) inside <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers</strong>, then come back to this page.</p>
+  <p class="note">You need a buyer folder first. Create a folder named for the buyer(s) inside <strong>Active Business &rsaquo; 1 BUYERS &rsaquo; 1 Buyers</strong>, then come back to this page.</p>
   <p class="note">Looked in: <?= htmlspecialchars($GLOBALS['sg_folders_root'] ?? '') ?>. Folders found: <?= count($all) ?><?= $all ? ' (' . htmlspecialchars(implode('; ', array_unique(array_map(function ($f) { return $f['group']; }, $all)))) . ')' : '' ?>.</p>
 <?php else: ?>
   <div class="panel sigbox wz" id="wz">

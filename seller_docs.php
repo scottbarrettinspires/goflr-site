@@ -57,7 +57,7 @@ if ($buyer) {
   <nav>
     <a href="home.php">Home</a>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php">Transactions</a>
+    <a href="my-transactions.php">Active Business</a>
     <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
@@ -67,7 +67,7 @@ if ($buyer) {
 <section class="hero"><h1>Seller Disclosures for Signature</h1><p>Upload the PDFs the seller side sent, mark where the buyers sign and initial, and send them through DigiSigner.</p></section>
 <main class="wrap">
 <?php if (!$buyers): ?>
-  <p class="note">You need a buyer folder first: <strong>My Transactions &rsaquo; 1 BUYERS &rsaquo; 1 Buyers &rsaquo; [buyer name]</strong>.</p>
+  <p class="note">You need a buyer folder first: <strong>Active Business &rsaquo; 1 BUYERS &rsaquo; 1 Buyers &rsaquo; [buyer name]</strong>.</p>
 <?php elseif (!$buyer): ?>
   <form method="get" class="panel sigbox"><p><label for="tx"><strong>Which buyer?</strong></label><br>
     <select name="tx" id="tx" class="txsel" onchange="this.form.submit()"><option value="">Choose a buyer...</option>

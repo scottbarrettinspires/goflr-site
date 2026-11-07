@@ -106,7 +106,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php" aria-current="page">Leads</a>
-    <a href="my-transactions.php">Transactions</a>
+    <a href="my-transactions.php">Active Business</a>
     <a href="forms.php">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
@@ -140,13 +140,13 @@ function thermo(f){var top=2,bot=16,h=Math.round((bot-top)*f),y=bot-h;
   return '<svg width="14" height="22" viewBox="0 0 14 22" aria-hidden="true" style="vertical-align:-5px;margin-right:3px"><rect x="4" y="1" width="6" height="16" rx="3" fill="#fff" stroke="#7a2a24" stroke-width="1.2"/>'
     +(h>0?'<rect x="5.5" y="'+y+'" width="3" height="'+(h+2)+'" fill="#d32f2f"/>':'')+'<circle cx="7" cy="18" r="3.4" fill="#d32f2f" stroke="#7a2a24" stroke-width="1.2"/></svg>';}
 function ico(sub){if(THERMO[sub]!=null)return thermo(THERMO[sub])+" ";return ICON[sub]?ICON[sub]+" ":"";}
-function subLabel(role,sub){if(role==="new")return "NEW";if(sub==="client")return "In My Transactions";return (CATS[role]&&CATS[role].subs[sub])||sub;}
+function subLabel(role,sub){if(role==="new")return "NEW";if(sub==="client")return "In Active Business";return (CATS[role]&&CATS[role].subs[sub])||sub;}
 function heatClass(sub){return "h"+({new:0,ready:1,a:1,soon:2,b:2,later:3,c:3,unid:4,d:4,dnc:5,client:6}[sub]);}
 function inRole(L,role){return role==="new"?!L.view.some(function(v){return v.role!=="new";}):!!(L.roles&&L.roles[role]);}
 function vfor(L,role){for(var i=0;i<L.view.length;i++){if(L.view[i].role===role)return L.view[i];}return null;}
 function dueBadge(v){
   if(!v)return "";
-  if(v.sub==="client")return '<span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span>';
+  if(v.sub==="client")return '<span class="due" style="background:#e1f3f2;color:#036f72">In Active Business</span>';
   if(v.sub==="dnc")return '<span class="due off">Do not contact</span>';
   if(v.done)return '<span class="due later">Plan finished</span>';
   if(v.over>0)return '<span class="due over">Overdue '+v.over+' day'+(v.over===1?"":"s")+' · '+esc(v.ch)+'</span>';
@@ -186,7 +186,7 @@ function renderOverview(){
    +'<div class="stat hot"><b>'+readyB+'</b><span>Ready buyers</span></div>'
    +'<div class="stat hot"><b>'+readyS+'</b><span>Ready sellers</span></div>'
    +'<div class="stat"><b>'+sa+'</b><span>Sphere A Always</span></div>'
-   +'<div class="stat" style="border-left:5px solid #036f72"><b>'+LEADS.filter(function(L){return L.roles&&((L.roles.buyer&&L.roles.buyer.sub==="client")||(L.roles.seller&&L.roles.seller.sub==="client"));}).length+'</b><span>Clients in My Transactions</span></div>'
+   +'<div class="stat" style="border-left:5px solid #036f72"><b>'+LEADS.filter(function(L){return L.roles&&((L.roles.buyer&&L.roles.buyer.sub==="client")||(L.roles.seller&&L.roles.seller.sub==="client"));}).length+'</b><span>Clients in Active Business</span></div>'
    +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
    +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
    +'<div class="stat cold"><b>'+cold+'</b><span>Cold (D Maybe Not, Do Not Contact)</span></div></div>';
@@ -211,12 +211,12 @@ function renderCat(){
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
   if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
-    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">'+ico("client")+'In My Transactions <span class="n">'+nc+'</span></button>';}
+    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">'+ico("client")+'In Active Business <span class="n">'+nc+'</span></button>';}
   var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub);});
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
-  var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+(view.sub==="client"?"In My Transactions":subs[view.sub]);
-  if(view.sub==="client")CATS[role].stage.client=role==="buyer"?"Signed or signing a buyer broker agreement. The record lives in My Transactions until the sale closes.":"Signed or signing a listing agreement. The record lives in My Transactions until the sale closes.";
+  var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+(view.sub==="client"?"In Active Business":subs[view.sub]);
+  if(view.sub==="client")CATS[role].stage.client=role==="buyer"?"Signed or signing a buyer broker agreement. The record lives in Active Business until the sale closes.":"Signed or signing a listing agreement. The record lives in Active Business until the sale closes.";
   var main=view.sub==="add"?'<div class="lpanel">'+(view.flash?'<p class="note" style="margin:0 0 10px">'+esc(view.flash)+'</p>':'')+'<p style="margin:0 0 10px;color:#5a6a6c;font-size:.9rem">'+(role==="sphere"?"Add a new Sphere contact below":"Add a new "+esc(CATS[role].label.replace(/s$/,"").toLowerCase())+" lead below")+', or tap a category to see who is in it.</p><div class="modal inl" id="inlAdd" style="padding:0;max-width:none;margin:0;background:none"></div></div>':'<div class="lpanel"><h2>'+esc(title)+'</h2>'+(role!=="new"&&CATS[role].stage[view.sub]?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">'+esc(CATS[role].stage[view.sub])+'</p>':(role==="new"?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">Leads from your website, landing pages and social media. Reach them, learn what they need, then move them to Buyers, Sellers or Sphere.</p>':''))+'<input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
     +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet.</p>')+'</div>';
   body.innerHTML='<div class="lwrap"><div class="lside">'+side+'</div><div>'+main+'</div></div>';
@@ -277,7 +277,7 @@ function openSources(){modal=MODAL;
 
 body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
-function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client">'+(MV_LBL?'<b>'+esc(CATS[role].label)+'</b>':'')+'<span class="due" style="background:#e1f3f2;color:#036f72">In My Transactions</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'">'+(MV_LBL?'<b>'+esc(CATS[role].label)+'</b>':'')+''+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Buyer consultation: start the buyer record in My Transactions and get the buyer broker agreement signed">\uD83D\uDE0A Buyer Consultation</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Listing appointment: start the Pre Listing record in My Transactions and prepare your listing documents">\uD83D\uDE0A Listing Appointment</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
+function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client">'+(MV_LBL?'<b>'+esc(CATS[role].label)+'</b>':'')+'<span class="due" style="background:#e1f3f2;color:#036f72">In Active Business</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'">'+(MV_LBL?'<b>'+esc(CATS[role].label)+'</b>':'')+''+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Buyer consultation: start the buyer record in Active Business and get the buyer broker agreement signed">\uD83D\uDE0A Buyer Consultation</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Listing appointment: start the Pre Listing record in Active Business and prepare your listing documents">\uD83D\uDE0A Listing Appointment</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
   Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+ico(k)+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
 // Move lead: only the stages of the lead's own main category, with small buttons for the occasional cross-over.
 // Chosen tags show as pills beside a Choose button; the button opens the agent's own options from My Lead Sources.
@@ -396,7 +396,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
   if(!has("sphere")&&(has("buyer")||has("seller")))extra.push(["sphere","move","Move To Sphere"]);
   h+=["buyer","seller","sphere"].filter(function(k){return !has(k);}).map(function(k){return '<div class="mvh" data-role="'+k+'" hidden>'+mv(k,"",false)+'</div>';}).join("");
   if(extra.length){h+='<div style="margin:6px 0 2px;font-size:.84rem;display:flex;gap:16px;flex-wrap:wrap">'+extra.map(function(x){return '<a href="#" class="mvx" data-role="'+x[0]+'" data-mode="'+x[1]+'" style="color:var(--teal);font-weight:600">'+esc(x[2])+'</a>';}).join("")+'</div>';}
-  h+='<div class="mvpre" hidden style="margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px"><label style="font-size:.82rem;font-weight:600">Property address for the listing appointment</label><input id="pre_addr" value="'+esc((L.home&&L.home.addr)||"")+'" placeholder="e.g. 123 Palm Ave, Trinity FL" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box;margin:4px 0 8px"><button type="button" class="btn sm" id="pre_go">Set up listing appointment</button> <span class="goal">The record goes in My Transactions › SELLERS › Pre Listing with the seller\'s details, Property Details, notes and source. Prepare your listing documents there for the appointment.</span></div>';
+  h+='<div class="mvpre" hidden style="margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px"><label style="font-size:.82rem;font-weight:600">Property address for the listing appointment</label><input id="pre_addr" value="'+esc((L.home&&L.home.addr)||"")+'" placeholder="e.g. 123 Palm Ave, Trinity FL" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box;margin:4px 0 8px"><button type="button" class="btn sm" id="pre_go">Set up listing appointment</button> <span class="goal">The record goes in Active Business › SELLERS › Pre Listing with the seller\'s details, Property Details, notes and source. Prepare your listing documents there for the appointment.</span></div>';
   h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan.')+'</div>';
   return h;
 }

@@ -21,7 +21,7 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>My Transactions - FLR Agent Back Office</title>
+<title>Active Business - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=11">
 <style>
 .stabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
@@ -42,7 +42,7 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php" aria-current="page">Transactions</a>
+    <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="forms.php">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
@@ -53,12 +53,11 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
 </div></header>
 
 <section class="hero">
-  <h1>My Transactions</h1>
+  <h1>Active Business</h1>
   <p>Buyers and sellers who became clients, sorted into the same kind of pipeline stages as your Leads.</p>
 </section>
 
 <main class="wrap">
-  <div class="stabs"><a href="my-transactions.php" class="on">My Transactions</a><a href="signed.php">Signed Documents</a></div>
   <div class="lwrap">
     <div class="lside">
       <a class="sb<?= $side === 'buyer' ? ' on' : '' ?>" href="my-transactions.php?side=buyer">Buyers <span class="n"><?= count($buyers) ?></span></a>
@@ -73,7 +72,7 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
 <?php endif; ?>
 <?php else: ?>
       <h2 style="margin:0 0 10px">Sellers</h2>
-<?php if (!$sellers): ?><p class="note">No seller records yet. They appear here once the listing folder is created in My Transactions &rsaquo; 2 SELLERS.</p>
+<?php if (!$sellers): ?><p class="note">No seller records yet. They appear here once the listing folder is created in Active Business &rsaquo; 2 SELLERS.</p>
 <?php else: ?>
       <?= ps_group_box('seller', $sellers, function ($t) { return 'seller.php?tx=' . urlencode($t['folder']); }) ?>
 <?php endif; ?>
@@ -87,7 +86,7 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
       <div><b>2</b><span>Click any document to view it in a new tab.</span></div>
       <div><b>3</b><span>Fully executed contracts are tagged and listed first.</span></div>
     </div>
-    <div class="panel"><iframe class="frame" title="My Transactions" src="https://script.google.com/macros/s/AKfycby0tfcs_7y9_B1cH5zxcpRJkGAvbvY9WYrqsp_RR8tgcm6nEEvQVNQ1jS5iI-Lq54PC/exec"></iframe></div>
+    <div class="panel"><iframe class="frame" title="Active Business" src="https://script.google.com/macros/s/AKfycby0tfcs_7y9_B1cH5zxcpRJkGAvbvY9WYrqsp_RR8tgcm6nEEvQVNQ1jS5iI-Lq54PC/exec"></iframe></div>
   </details>
 </main>
 
