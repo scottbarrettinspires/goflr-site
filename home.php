@@ -146,7 +146,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <?php $nd = flr_group_days($nextGroup); ?>
     <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
     <div class="nb">
-      <span class="tag">Next up &middot; <?= htmlspecialchars(flr_group_tag($nextGroup)) ?></span>
       <h2><?= htmlspecialchars($next['title']) ?></h2>
 <?php if ($next['desc'] !== ''): ?>
       <details class="nxmore"><summary>More info</summary><p><?= htmlspecialchars($next['desc']) ?></p></details>
