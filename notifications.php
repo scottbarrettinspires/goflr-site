@@ -10,6 +10,7 @@ if (!empty($_GET['refresh']) && !$isStaff) { // re-read every record's details f
 }
 $sections = nt_sections($me, $isStaff, true);
 $total = nt_count($sections);
+$_SESSION['ntc'] = ['t' => time(), 'n' => $total];
 sp_head('Notifications');
 ?>
 <style>

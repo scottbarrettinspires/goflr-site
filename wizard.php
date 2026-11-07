@@ -1,6 +1,6 @@
 <?php
 require __DIR__ . "/guard.php";
-require __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/sigtools.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -35,6 +35,9 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>
   </nav>
+<?php // This page turns off output buffering (to show its loading screen at once), so guard.php can't add the
+      // top-bar icons for it; print them here directly.
+      echo flr_header_icons($_SESSION['email'] ?? ''); ?>
 </div></header>
 <section class="hero"><h1>Contract Forms Wizard</h1><p>Buyer contract packet: answer the questions and the right forms are merged for you.</p></section>
 <main class="wrap">
