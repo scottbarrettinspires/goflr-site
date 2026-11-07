@@ -115,15 +115,10 @@ function flr_announcements($email) {
     return array_values(array_filter($items, function ($a) use ($seen) { return !in_array($a['id'] ?? '', $seen, true); }));
 }
 
-// Upcoming birthdays/anniversaries (next 14 days) for Active agents, from the Agent Records sheet's "agentdates"
-// op. Cached briefly; falls back to the last good copy if the script is unreachable so a page load never blocks on it.
+// Upcoming birthdays/anniversaries (next 14 days) for Active agents, from the server-side Agent Records table
+// (arlib.php) -- no Apps Script call. Never breaks the Home page: any error just means an empty panel.
 function flr_agent_dates() {
-    $f = flr_dir_dir() . '/agentdates.json';
-    if (is_file($f) && time() - filemtime($f) < 1800) { $j = json_decode((string)@file_get_contents($f), true); if (is_array($j)) return (array)($j['items'] ?? []); }
-    $j = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=agentdates');
-    if (is_array($j) && !empty($j['ok'])) { @file_put_contents($f, json_encode($j), LOCK_EX); return (array)($j['items'] ?? []); }
-    if (is_file($f)) { $o = json_decode((string)@file_get_contents($f), true); if (is_array($o)) return (array)($o['items'] ?? []); }
-    return [];
+    try { require_once __DIR__ . '/arlib.php'; return ar_upcoming_dates(14); } catch (Throwable $e) { return []; }
 }
 
 // Staff sign-in: an Active person on the FLR Staff Directory sheet (Broker, Office Admin, Owner) can sign in too.

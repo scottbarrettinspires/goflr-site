@@ -125,6 +125,39 @@ function ar_save($agentId, array $fields, $by = '') {
 }
 function ar_delete($agentId) { ar_db()->prepare('DELETE FROM agent_records WHERE agent_id = ?')->execute([$agentId]); }
 
+// Upcoming birthdays and work anniversaries for Active agents, within $days (today counts as 0), Eastern time.
+// Birthdate is MM-DD (no year, so age is never known or shown); anniversaries come from Date hired (YYYY-MM-DD) and
+// only count once the agent has completed at least one year. Feb 29 falls on Feb 28 in non-leap years.
+// Item shape (used by home.php): type, name, email, monthDay, daysAway, postOk, years (anniversary only).
+function ar_upcoming_dates($days = 14, $today = null) {
+    $tz = new DateTimeZone('America/New_York');
+    $t = $today ? new DateTime($today, $tz) : new DateTime('today', $tz); $t->setTime(0, 0);
+    $next = function ($m, $d) use ($t, $tz) {
+        foreach ([(int)$t->format('Y'), (int)$t->format('Y') + 1] as $y) {
+            $dd = ($m === 2 && $d === 29 && !checkdate(2, 29, $y)) ? 28 : $d;
+            if (!checkdate($m, $dd, $y)) return null;
+            $c = new DateTime(sprintf('%04d-%02d-%02d', $y, $m, $dd), $tz);
+            if ($c >= $t) return $c;
+        }
+        return null;
+    };
+    $out = [];
+    foreach (ar_all() as $r) {
+        if (strtolower($r['status']) !== 'active') continue;
+        $f = $r['fields']; $name = $r['preferred_name'] !== '' ? $r['preferred_name'] : $r['full_name']; if ($name === '') continue;
+        if (preg_match('/^(\d{1,2})-(\d{1,2})$/', $f['birthdate'] ?? '', $m) && ($c = $next((int)$m[1], (int)$m[2]))) {
+            $da = (int)$t->diff($c)->days;
+            if ($da <= $days) $out[] = ['type' => 'birthday', 'name' => $name, 'email' => $r['email'], 'monthDay' => $c->format('m-d'), 'daysAway' => $da, 'postOk' => ar_yes($f['birthday_post_ok'] ?? '')];
+        }
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $f['date_hired'] ?? '', $m) && ($c = $next((int)$m[2], (int)$m[3]))) {
+            $da = (int)$t->diff($c)->days; $yrs = (int)$c->format('Y') - (int)$m[1];
+            if ($da <= $days && $yrs >= 1) $out[] = ['type' => 'anniversary', 'name' => $name, 'email' => $r['email'], 'monthDay' => $c->format('m-d'), 'daysAway' => $da, 'years' => $yrs, 'postOk' => ar_yes($f['anniversary_post_ok'] ?? '')];
+        }
+    }
+    usort($out, function ($a, $b) { return [$a['daysAway'], $a['name']] <=> [$b['daysAway'], $b['name']]; });
+    return $out;
+}
+
 // Import a sheet pull shaped {header:[...], keys:[...], records:[{key:value}]}. Columns are matched by header TEXT
 // (not position), every row is an upsert by Agent ID, and nothing is ever deleted. Returns a summary array, or
 // ['error' => '...'] without changing anything if the data isn't the expected shape.
