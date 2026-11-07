@@ -35,11 +35,10 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>
   </nav>
-<?php // This page turns off output buffering (to show its loading screen at once), so guard.php can't add the
-      // top-bar icons for it; print them here directly.
-      echo flr_header_icons($_SESSION['email'] ?? ''); ?>
 </div></header>
-<section class="hero"><h1>Contract Forms Wizard</h1><p>Buyer contract packet: answer the questions and the right forms are merged for you.</p></section>
+<?php // This page turns off output buffering (to show its loading screen at once), so guard.php can't add the
+      // Notifications / Messages / Settings icons for it; print them here directly, in the usual spot.
+?><section class="hero hashi"><?= flr_header_icons($_SESSION['email'] ?? '') ?><h1>Contract Forms Wizard</h1><p>Buyer contract packet: answer the questions and the right forms are merged for you.</p></section>
 <main class="wrap">
 <style>#flrload{display:flex;align-items:center;gap:14px;padding:22px 4px;color:#006b68;font-weight:600}#flrload i{width:26px;height:26px;border:4px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite}@keyframes flrspin{to{transform:rotate(360deg)}}</style>
 <div id="flrload" role="status"><i></i><span>Opening the Contract Forms Wizard... loading your buyers and the form rules.</span></div>

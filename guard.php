@@ -28,10 +28,14 @@ ob_start(function ($buf) use ($email) {
             . '<div style="height:38px"></div>';
         $out = preg_replace('/<body([^>]*)>/i', '<body$1>' . $banner, $out, 1);
     }
-    // Notifications / Messages / Settings icons (with red counts) in the top bar of every signed-in page. Home shows
-    // them beside the welcome line instead, so it's skipped here.
-    if (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'home.php' && strpos($out, '<header class="top"><div class="in">') !== false) {
-        $out = preg_replace_callback('#(<header class="top"><div class="in">.*?)(</div></header>)#s', function ($m) use ($email) { return $m[1] . flr_header_icons($email) . $m[2]; }, $out, 1);
+    // Notifications / Messages / Settings icons (with red counts) on every signed-in page, in the same spot as on
+    // Home: the top right of the page title, just under the menu bar. Home places its own.
+    if (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'home.php') {
+        if (strpos($out, '<section class="hero">') !== false) {
+            $out = preg_replace_callback('#<section class="hero">#', function () use ($email) { return '<section class="hero hashi">' . flr_header_icons($email); }, $out, 1);
+        } elseif (strpos($out, '</div></header>') !== false) { // a page with no title area: a slim row under the menu bar
+            $out = preg_replace_callback('#</div></header>#', function () use ($email) { return '</div></header><div class="hirow">' . flr_header_icons($email) . '</div>'; }, $out, 1);
+        }
     }
     return $out;
 });
@@ -51,9 +55,10 @@ function flr_header_icons($email) {
     $badge = function ($n) { return $n ? '<span class="hib">' . ($n > 99 ? '99+' : $n) . '</span>' : ''; };
     $i = function ($href, $title, $n, $svg) use ($badge) { return '<a class="hic" href="' . $href . '" title="' . $title . '" aria-label="' . $title . ($n ? ', ' . $n : '') . '">' . $svg . $badge($n) . '</a>'; };
     $sv = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
-    return '<style>.hicons{display:flex;gap:8px;align-items:center;margin-left:auto}@media(min-width:961px){.top .in{gap:12px}.top nav a{padding:8px 9px;font-size:.93rem}}.hic{position:relative;width:38px;height:38px;border-radius:50%;background:#fff;color:#036f72;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}'
-        . '.hic:hover{background:#e6f2f2}.hib{position:absolute;top:-5px;right:-6px;min-width:19px;height:19px;padding:0 5px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .68rem/19px system-ui,sans-serif;text-align:center;border:2px solid #fff}'
-        . '@media(max-width:960px){.hicons{order:-1;margin-left:auto}.top .in .brand{order:-2}}</style>'
+    return '<style>.hashi{position:relative;padding-right:200px}.hashi .hicons{position:absolute;top:40px;right:20px}.hirow{max-width:1080px;margin:0 auto;padding:16px 20px 0;display:flex;justify-content:flex-end}'
+        . '.hicons{display:flex;gap:10px;align-items:center}.hic{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:#fff;color:#036f72;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 4px 14px rgba(3,111,114,.2)}'
+        . '.hic:hover{background:#e6f2f2}.hic svg{width:24px;height:24px}.hib{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid #fff}'
+        . '@media(max-width:600px){.hashi{padding-right:20px;padding-top:18px}.hashi .hicons{position:static;justify-content:flex-end;gap:8px;margin:0 0 6px}.hic{flex-basis:44px;width:44px;height:44px}.hic svg{width:21px;height:21px}}</style>'
         . '<span class="hicons">'
         . $i('notifications.php', 'Notifications', $nt, $sv . '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>')
         . $i('messages.php', 'Messages', $msgs, $sv . '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>')
