@@ -28,7 +28,7 @@ $regs = er_for(array_map('flr_event_key', $upcoming));
   <nav>
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
-    <a href="leads.php">Leads</a>
+    <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>

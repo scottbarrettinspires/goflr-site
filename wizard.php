@@ -28,7 +28,7 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="leads.php">Leads</a>
+    <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>

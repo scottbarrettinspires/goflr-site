@@ -76,7 +76,7 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
   <nav>
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
-    <a href="leads.php">Leads</a>
+    <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
     <a href="directory.php" aria-current="page">Directory</a> <a href="collab.php">Collaboration</a>

@@ -79,7 +79,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <a href="leads.php">Leads</a>
+    <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>
@@ -91,7 +91,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
 <?php if ($msg): ?><p class="note"><strong><?= htmlspecialchars($msg) ?></strong></p><?php endif; ?>
 <?php if (!$recs): ?>
   <p class="note">Nothing sent yet. Use the Contract Forms Wizard in <a href="my-transactions.php">Active Business</a>
-    <a href="leads.php">Leads</a>, then Review and complete, then send it for signature.</p>
+    <a href="leads.php">Leads &amp; Contacts</a>, then Review and complete, then send it for signature.</p>
 <?php endif; ?>
 <?php foreach ($recs as $r):
     $who = []; foreach ($r['signers'] ?? [] as $s) { $d = !empty($r['signers_status'][$s['email']]); $who[] = htmlspecialchars($s['email']) . ($d ? ' &#10003;' : ''); }
