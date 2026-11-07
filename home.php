@@ -162,7 +162,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
   <div class="nextup nxside">
     <?php $nd = flr_group_days($nextGroup); ?>
     <div class="nxleft">
-      <?php $nxEmoji = ['🤩', '😃', '🤓', '😎', '🥳', '😄', '🙌'][random_int(0, 6)]; // a different face each visit, to catch the eye ?>
+      <?php $nxPick = ['🤩', '😃', '🤓', '😎', '🥳', '😄', '🙌', '🔔', '📣', '👉']; $nxEmoji = $nxPick[random_int(0, count($nxPick) - 1)]; // a different one each visit, to catch the eye ?>
       <span class="nxedu" title="Training" role="img" aria-label="Training"><?= $nxEmoji ?></span>
       <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
     </div>
