@@ -2,6 +2,9 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
 require_once __DIR__ . "/msglib.php";
+require_once __DIR__ . "/favlib.php";
+$myEmail = strtolower(trim($_SESSION['email'] ?? ''));
+$myFavs = fav_list($myEmail);
 $omMine = om_my_keys($_SESSION['email'] ?? '', flr_is_broker());
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $canLoginAs = flr_is_broker();
@@ -9,11 +12,14 @@ $d = flr_directory();
 function dir_phone_digits($p) { $x = preg_replace('/[^0-9+]/', '', (string)$p); return $x; }
 function dir_phone_fmt($p) { $x = preg_replace('/\D/', '', (string)$p); if (strlen($x) === 11 && $x[0] === '1') $x = substr($x, 1); return strlen($x) === 10 ? substr($x, 0, 3) . '-' . substr($x, 3, 3) . '-' . substr($x, 6) : trim((string)$p); }
 // $msgKey: who a Message button addresses ('' = no button, e.g. your own card or someone not in Agent Records).
-function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '') {
+// $fav: null = no favorite star (staff cards, your own card); true/false = starred or not.
+function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i = 0) {
     $name = htmlspecialchars($p['name']); $ph = trim((string)($p['phone'] ?? '')); $em = trim((string)($p['email'] ?? ''));
     $ini = ''; foreach (preg_split('/\s+/', trim($p['name'])) as $w) { if ($w !== '' && strlen($ini) < 2) $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
     $img = !empty($p['photo']) ? '<img src="dirphoto.php?k=' . flr_dir_photo_key($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '';
-    $h = '<div class="dcard" data-s="' . htmlspecialchars(strtolower($p['name'] . ' ' . $sub . ' ' . $em . ' ' . $ph)) . '"><div class="dav"><span>' . htmlspecialchars($ini) . '</span>' . $img . '</div><div class="dtx"><div class="dnm">' . $name . '</div>';
+    $star = $fav === null ? '' : '<button type="button" class="dstar' . ($fav ? ' on' : '') . '" aria-pressed="' . ($fav ? 'true' : 'false') . '" title="' . ($fav ? 'Remove from favorites' : 'Add to favorites') . '" aria-label="Favorite ' . $name . '">'
+        . '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg></button>';
+    $h = '<div class="dcard" data-s="' . htmlspecialchars(strtolower($p['name'] . ' ' . $sub . ' ' . $em . ' ' . $ph)) . '" data-email="' . htmlspecialchars(strtolower($em)) . '" data-n="' . htmlspecialchars(strtolower($p['name'])) . '" data-i="' . (int)$i . '"><div class="davw"><div class="dav"><span>' . htmlspecialchars($ini) . '</span>' . $img . '</div>' . $star . '</div><div class="dtx"><div class="dnm">' . $name . '</div>';
     if ($sub !== '') $h .= '<div class="dsub">' . htmlspecialchars($sub) . '</div>';
     if ($ph !== '') $h .= '<div><a href="tel:' . htmlspecialchars(dir_phone_digits($ph)) . '">' . htmlspecialchars(dir_phone_fmt($ph)) . '</a></div>';
     if ($em !== '') $h .= '<div><a href="mailto:' . htmlspecialchars($em) . '">' . htmlspecialchars($em) . '</a></div>';
@@ -50,6 +56,10 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '') {
 .dav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .dtx{min-width:0;font-size:.95rem;line-height:1.45}.dtx a{color:var(--teal);text-decoration:none;overflow-wrap:anywhere}.dtx a:hover{text-decoration:underline}
 .dnm{font-weight:700;font-size:1.05rem}.dsub{color:#5a6a6c;font-size:.85rem}
+.davw{position:relative;flex:0 0 76px}
+.dstar{position:absolute;top:-6px;right:-8px;width:32px;height:32px;padding:0;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.dstar svg path{fill:#fff;stroke:#c9cfd0;stroke-width:1;stroke-linejoin:round;transition:fill .15s}
+.dstar:hover svg path{fill:#fff6cc}.dstar.on svg path{fill:#f5c518;stroke:#d4a200}.dstar:focus-visible{outline:2px solid var(--teal);border-radius:50%}
 .dtx a.dmsg{display:inline-block;background:var(--teal);color:#fff;border-radius:99px;padding:3px 12px;font-size:.82rem;font-weight:600}.dtx a.dmsg:hover{text-decoration:none;background:var(--teal-dark)}
 .dbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:0 0 18px}.dbar .dtools{margin:0;flex:1}
 #dmap{display:none;height:calc(100vh - 260px);min-height:480px;border:1px solid var(--line);border-radius:14px}
@@ -93,9 +103,18 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '') {
   <div id="dlist"><section class="dsec"><h2>Staff <span><?= count($d['staff'] ?? []) ?></span></h2><div class="dgrid">
 <?php foreach ((array)($d['staff'] ?? []) as $p) { $k = om_key_for($p['email'] ?? '', true); echo dir_card($p, (string)($p['position'] ?? ''), null, in_array($k, $omMine, true) ? '' : $k), "\n"; } ?>
   </div></section>
-  <section class="dsec"><h2>Active agents <span><?= count($d['agents'] ?? []) ?></span></h2><div class="dgrid">
-<?php foreach ((array)($d['agents'] ?? []) as $p) { $k = om_key_for($p['email'] ?? '', false); echo dir_card($p, '', $canLoginAs ? $_SESSION['csrf'] : null, in_array($k, $omMine, true) ? '' : $k), "\n"; } ?>
-  </div></section>
+<?php $agentsAll = array_values((array)($d['agents'] ?? [])); $favCards = ''; $restCards = ''; $nFav = 0; $nRest = 0;
+foreach ($agentsAll as $i => $p) {
+    $em = strtolower(trim((string)($p['email'] ?? ''))); $k = om_key_for($p['email'] ?? '', false);
+    $isMe = ($em !== '' && $em === $myEmail) || ($k !== '' && in_array($k, $omMine, true)); // you sign in with a different Google address
+    $isFav = !$isMe && isset($myFavs[$em]);
+    $card = dir_card($p, '', $canLoginAs ? $_SESSION['csrf'] : null, in_array($k, $omMine, true) ? '' : $k, ($isMe || $em === '') ? null : $isFav, $i) . "\n";
+    if ($isFav) { $favCards .= $card; $nFav++; } else { $restCards .= $card; $nRest++; }
+} ?>
+  <section class="dsec" id="favsec"<?= $nFav ? '' : ' style="display:none"' ?>><h2>&#9733; Favorites <span id="favn"><?= $nFav ?></span></h2><div class="dgrid" id="favgrid">
+<?= $favCards ?>  </div></section>
+  <section class="dsec"><h2>Active agents <span id="restn"><?= $nRest ?></span></h2><div class="dgrid" id="restgrid">
+<?= $restCards ?>  </div></section>
   </div>
   <p class="note" id="none" hidden>No one matches that search.</p>
 <?php if (!empty($d['note'])): ?><p class="note"><?= htmlspecialchars($d['note']) ?></p><?php endif; ?>
@@ -107,6 +126,20 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '') {
 [].forEach.call(document.querySelectorAll(".dcard"),function(c){var m=!v||c.dataset.s.indexOf(v)>-1;c.style.display=m?"":"none";if(m)n++;});
 [].forEach.call(document.querySelectorAll(".dsec"),function(s){s.style.display=s.querySelector(".dcard:not([style*='none'])")?"":"none";});
 document.getElementById("none").hidden=n>0;});})();
+// Favorites: star an agent to move them into Favorites at the top (saved for you only).
+(function(){var fg=document.getElementById("favgrid"),rg=document.getElementById("restgrid"),fs=document.getElementById("favsec");if(!fg||!rg)return;
+var CSRF=<?= json_encode($_SESSION['csrf']) ?>;
+function place(card,grid){var kids=[].slice.call(grid.querySelectorAll(".dcard")),at=null; // keep the directory's own order
+  for(var j=0;j<kids.length;j++){if(+kids[j].dataset.i>+card.dataset.i){at=kids[j];break;}}
+  grid.insertBefore(card,at);}
+function counts(){var f=fg.querySelectorAll(".dcard").length;document.getElementById("favn").textContent=f;document.getElementById("restn").textContent=rg.querySelectorAll(".dcard").length;fs.style.display=f?"":"none";}
+function set(b,on){b.classList.toggle("on",on);b.setAttribute("aria-pressed",on?"true":"false");b.title=on?"Remove from favorites":"Add to favorites";}
+document.addEventListener("click",function(e){var b=e.target.closest(".dstar");if(!b)return;e.preventDefault();
+  var card=b.closest(".dcard"),on=!b.classList.contains("on");set(b,on);place(card,on?fg:rg);counts();
+  fetch("fav_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:CSRF,email:card.dataset.email,on:on})})
+   .then(function(r){return r.json();}).then(function(j){if(!j.ok)throw 0;})
+   .catch(function(){set(b,!on);place(card,on?rg:fg);counts();alert("Couldn't save that favorite. Please try again.");});});
+})();
 </script>
 <?php
 $pins = [];
