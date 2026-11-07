@@ -151,7 +151,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 .nxside .erbtn:not(.on){background:#e07b39;color:#fff}.nxside .erbtn:not(.on):hover{background:#c96a2c}
 .nxside .erzoom{background:#fff;color:var(--teal);border-color:var(--teal)}.nxside .erzoom:hover{background:var(--teal-soft)}
 .nxside .erwho{flex-wrap:nowrap}.nxside .erwho .ertxt{flex:0 1 auto;white-space:nowrap}
-.nxcal{display:inline-flex;align-items:center;gap:6px;margin-left:auto;color:var(--teal);font-weight:600;font-size:.88rem;text-decoration:none;white-space:nowrap}.nxcal:hover{text-decoration:underline}.nxtitle .nxcal{align-self:center}</style>
+.nxcal{display:inline-flex;align-items:center;gap:6px;margin-left:auto;color:var(--teal);font-weight:600;font-size:.88rem;text-decoration:none;white-space:nowrap}.nxcal:hover{text-decoration:underline}.nxtitle .nxcal{align-self:center;order:1}.nxtitle .nxmore{order:2;flex-basis:100%;margin-top:2px}</style>
 <div class="homemain">
 <?php if ($next): ?>
   <div class="nextup nxside">
