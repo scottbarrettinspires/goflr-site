@@ -29,14 +29,14 @@
 <body>
 <div class="top"><img src="/icon-192.png" alt=""><h1>FLR Office</h1><p>Florida Luxury Realty agent back office on your phone. No app store needed.</p></div>
 <div class="box">
-  <div class="sec" id="done"><h2>You're all set</h2><p>The FLR Office app is installed and open. On the Home page, tap <strong>Turn on alerts</strong> to get a notification for every new lead.</p><a class="btn" href="/home.php">Go to Home</a></div>
+  <div class="sec" id="done"><h2>You're all set</h2><p>The FLR Office app is installed and open. Tap the gear (<strong>Settings</strong>) on the Home page, then <strong>Turn on alerts</strong> to get a notification for every new lead.</p><a class="btn" href="/home.php">Go to Home</a></div>
 
   <div class="sec" id="ios-safari">
     <h2>Install on iPhone</h2>
     <div class="step"><span class="n">1</span><div>Tap the <strong>Share</strong> button <span class="ic"><svg width="18" height="20" viewBox="0 0 18 20" fill="none" stroke="#036f72" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 13V2M5 6l4-4 4 4"/><path d="M5 9H3v9h12V9h-2"/></svg></span> at the bottom of Safari (on iPad, at the top).</div></div>
     <div class="step"><span class="n">2</span><div>Scroll down and tap <strong>Add to Home Screen</strong> <span class="ic"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#036f72" stroke-width="1.8"><rect x="2" y="2" width="14" height="14" rx="3"/><path d="M9 6v6M6 9h6" stroke-linecap="round"/></svg></span>. If you don't see it, tap <strong>Edit Actions</strong> at the bottom of the list to add it.</div></div>
     <div class="step"><span class="n">3</span><div>Make sure <strong>Open as Web App</strong> is on (newer iPhones), then tap <strong>Add</strong>.</div></div>
-    <div class="step"><span class="n">4</span><div>Open <strong>FLR Office</strong> from your home screen, sign in, and tap <strong>Turn on alerts</strong> on the Home page.</div></div>
+    <div class="step"><span class="n">4</span><div>Open <strong>FLR Office</strong> from your home screen, sign in, and tap the gear (<strong>Settings</strong>) on the Home page, then <strong>Turn on alerts</strong>.</div></div>
     <div class="note">New-lead alerts on iPhone need iOS 16.4 or later and only work from the home-screen app, not from Safari.</div>
   </div>
 
@@ -56,7 +56,7 @@
     <div id="android-steps">
       <div class="step"><span class="n">1</span><div>In <strong>Chrome</strong>, tap the <strong>&#8942;</strong> menu at the top right.</div></div>
       <div class="step"><span class="n">2</span><div>Tap <strong>Install app</strong> (or <strong>Add to Home screen</strong>), then <strong>Install</strong>.</div></div>
-      <div class="step"><span class="n">3</span><div>Open <strong>FLR Office</strong> from your home screen and tap <strong>Turn on alerts</strong> on the Home page.</div></div>
+      <div class="step"><span class="n">3</span><div>Open <strong>FLR Office</strong> from your home screen and tap the gear (<strong>Settings</strong>) on the Home page, then <strong>Turn on alerts</strong>.</div></div>
       <p class="small">Samsung Internet: tap <strong>&#8801;</strong> at the bottom right, then <strong>Add page to</strong> &rsaquo; <strong>Home screen</strong>.</p>
     </div>
   </div>

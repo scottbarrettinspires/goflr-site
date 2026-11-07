@@ -124,12 +124,17 @@ if (!$nextGroup && $next) $nextGroup = [$next];
       <h1>Welcome<?= $first !== '' ? ', ' . htmlspecialchars($first) : '' ?></h1>
       <p>What needs your attention today.</p>
     </div>
+    <span class="homeicons">
     <a class="omicon" href="messages.php" title="Messages" aria-label="Messages<?= $omUnread ? ', ' . $omUnread . ' new' : '' ?>">
       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
       <?php if ($omUnread): ?><span class="ombadge"><?= $omUnread > 99 ? '99+' : $omUnread ?></span><?php endif; ?>
     </a>
+    <a class="omicon" href="settings.php" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </a>
+    </span>
   </div>
-<style>.omicon{position:relative;margin-left:auto;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
+<style>.homeicons{margin-left:auto;display:flex;gap:10px;align-items:center}.omicon{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
 .omicon:hover{background:var(--teal-soft)}.ombadge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid var(--white)}</style>
 </section>
 
@@ -208,17 +213,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <?php endif; ?>
 <?php require __DIR__ . "/dashboard_body.php"; ?>
 <?php else: ?>
-  <div class="panel sigbox" id="appcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-    <div style="flex:1;min-width:220px"><strong>&#128242; Put FLR Office on your phone.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Install it from the browser, no app store, and get an alert for every new lead.</span></div>
-    <a class="btn" href="install.php">Install the app</a> <a href="#" id="appx" style="font-size:.85rem">Not now</a>
-  </div>
-<script>(function(){var c=document.getElementById("appcard"),st=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true,dis=false;try{dis=localStorage.getItem("flrAppDismiss")==="1";}catch(e){}
-if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementById("appx").onclick=function(e){e.preventDefault();c.hidden=true;c.style.display="none";try{localStorage.setItem("flrAppDismiss","1");}catch(x){}};})();</script>
-  <div class="panel sigbox" id="pushcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-    <div style="flex:1;min-width:220px" id="pushtext"><strong>&#128276; Get an alert on this phone for every new lead.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Works best in the FLR Office app on your home screen.</span></div>
-    <button class="btn" id="pushon" type="button">Turn on alerts</button>
-  </div>
-  <p id="pushok" hidden style="font-size:.85rem;color:#4b5b5d;margin:0 0 12px">&#128276; New-lead alerts are on for this phone. <a href="#" id="pushtest">Send a test</a> &middot; <a href="#" id="pushoff">Turn off</a></p>
 <?php if ($newLeads):
     usort($newLeads, function ($a, $b) { return strcmp(($b['created'] ?? $b['added'] ?? ''), ($a['created'] ?? $a['added'] ?? '')); });
     $today = ld_today(); ?>
@@ -324,28 +318,12 @@ if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementBy
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only. Having trouble signing in? Contact the office.</footer>
-<?php if (!$isStaff): ?>
 <script>
-(function(){
-var KEY=<?= json_encode(PUSH_PUBLIC) ?>,CSRF=<?= json_encode($_SESSION['csrf']) ?>,card=document.getElementById("pushcard"),ok=document.getElementById("pushok");
-if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window))return;
-function k(s){var p="=".repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/")),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
-function post(o){o.csrf=CSRF;return fetch("push_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}).then(function(r){return r.json();});}
-navigator.serviceWorker.ready.then(function(reg){
-  reg.pushManager.getSubscription().then(function(sub){
-    if(sub&&Notification.permission==="granted"){ok.hidden=false;post({endpoint:sub.endpoint});}else if(Notification.permission!=="denied"){card.hidden=false;card.style.display="flex";}
-  });
-  document.getElementById("pushon").onclick=function(){var b=this;b.disabled=true;b.textContent="Turning on...";
-    Notification.requestPermission().then(function(p){if(p!=="granted")throw new Error("Notifications were not allowed. You can allow them in your phone's settings for this app.");
-      return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:k(KEY)});})
-    .then(function(sub){return post({endpoint:sub.endpoint});}).then(function(j){if(!j.ok)throw new Error(j.msg||"Could not turn on alerts.");card.hidden=true;card.style.display="none";ok.hidden=false;return post({action:"test"});})
-    .catch(function(e){document.getElementById("pushtext").innerHTML="<strong>"+String(e.message).replace(/</g,"&lt;")+"</strong>";b.disabled=false;b.textContent="Try again";});};
-  document.getElementById("pushtest").onclick=function(e){e.preventDefault();post({action:"test"});this.textContent="Sent";};
-  document.getElementById("pushoff").onclick=function(e){e.preventDefault();reg.pushManager.getSubscription().then(function(sub){if(!sub)return;return post({action:"off",endpoint:sub.endpoint}).then(function(){return sub.unsubscribe();});}).then(function(){ok.hidden=true;card.hidden=false;card.style.display="flex";});};
-});
-})();
+// Phone alerts are turned on in Settings; here we just quietly re-confirm this phone's subscription so it stays active.
+(function(){if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)||Notification.permission!=="granted")return;
+navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription();}).then(function(sub){if(!sub)return;
+  fetch("push_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,endpoint:sub.endpoint})}).catch(function(){});}).catch(function(){});})();
 </script>
-<?php endif; ?>
 <script>try{fetch("tx_sync.php",{credentials:"same-origin"}).catch(function(){});}catch(e){}</script>
 </body>
 </html>
