@@ -19,6 +19,13 @@ $csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSIO
 if ($replyTo !== '' && strpos($replyTo, 'staff:') === 0 && $replyTo !== 'staff:*' && !isset($staffPeople[substr($replyTo, 6)])) $staffPeople[substr($replyTo, 6)] = $replyName;
 $fld = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit';
 ?>
+<style>.omreply{margin:10px 0 0;display:flex;flex-direction:column;gap:8px}.omreply[hidden]{display:none}
+.omreply textarea{width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit;resize:vertical;min-height:62px}
+.omsent{margin:8px 0 0;font-size:.88rem;color:#2e7d32;font-weight:600}</style>
+<script>document.addEventListener("click",function(e){var b=e.target.closest(".omrbtn");if(b){e.preventDefault();var f=document.getElementById("omr"+b.dataset.id),open=f.hidden;
+  document.querySelectorAll(".omreply").forEach(function(x){x.hidden=true;});document.querySelectorAll(".omrbtn").forEach(function(x){x.setAttribute("aria-expanded","false");});
+  if(open){f.hidden=false;b.setAttribute("aria-expanded","true");f.querySelector("textarea").focus();}return;}
+  var c=e.target.closest(".omrcancel");if(c){var f2=c.closest(".omreply");f2.hidden=true;f2.querySelector("textarea").value="";}});</script>
 <style>.omcard .btn.sm{padding:6px 14px;font-size:.85rem;font-family:inherit;line-height:1.4;cursor:pointer;vertical-align:middle}.omcard button.btn.sm:not(.ghost){border:0}
 .omcard .om{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}.omcard .om.new{background:linear-gradient(90deg,rgba(3,111,114,.06),transparent)}
 .omcard .omav{position:relative;flex:0 0 48px;width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;display:flex;align-items:center;justify-content:center}
@@ -32,14 +39,21 @@ $fld = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(-
         $office = $m['rkey'] === 'staff:*';
         $canReply = $m['from_key'] !== '' && !in_array($m['from_key'], $myKeys, true);
         $who = om_person($m['from_key'], (string)($m['from_name'] ?: $m['from_email'])); ?>
-    <div class="om<?= $m['seen_at'] ? '' : ' new' ?>">
+    <div class="om<?= $m['seen_at'] ? '' : ' new' ?>" id="om<?= (int)$m['id'] ?>">
       <div class="omav"><span><?= htmlspecialchars($who['ini']) ?></span><?php if ($who['photo']): ?><img src="<?= htmlspecialchars($who['photo']) ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></div>
       <div class="ombody">
       <p style="margin:0 0 4px"><strong><?= htmlspecialchars($m['from_name'] ?: $m['from_email']) ?></strong><?= $m['seen_at'] ? '' : '<span class="omnew">NEW</span>' ?>
         <span style="color:#5a6a6c;font-size:.85rem">&middot; <?= $m['from_staff'] ? 'staff' : 'agent' ?><?= $isStaff ? ' &middot; to ' . htmlspecialchars($office ? 'the office' : 'you') : ($m['to_label'] && strpos($m['to_label'], 'All agents') === 0 ? ' &middot; to all agents' : '') ?> &middot; <?= htmlspecialchars(date('M j, g:ia', strtotime($m['created']))) ?></span></p>
       <p style="white-space:pre-line;margin:0 0 8px"><?= htmlspecialchars($m['body']) ?></p>
       <form method="post" style="display:inline"><?= $csrfIn ?><input type="hidden" name="msgdismiss" value="<?= (int)$m['id'] ?>"><input type="hidden" name="rkey" value="<?= htmlspecialchars($m['rkey']) ?>"><button class="btn sm ghost" type="submit"><?= $office ? 'Mark handled' : 'Got it' ?></button></form>
-      <?php if ($canReply): ?> <a class="btn sm" href="<?= $omPage ?>?reply=<?= (int)$m['id'] ?>#compose">Reply</a><?php endif; ?>
+      <?php if ($canReply): ?> <a class="btn sm omrbtn" href="<?= $omPage ?>?reply=<?= (int)$m['id'] ?>#compose" data-id="<?= (int)$m['id'] ?>" aria-expanded="false">Reply</a><?php endif; ?>
+<?php if ((int)($_GET['replied'] ?? 0) === (int)$m['id']): ?>      <p class="omsent">&#10003; Reply sent to <?= htmlspecialchars($m['from_name'] ?: $m['from_email']) ?></p><?php endif; ?>
+<?php if ($canReply): ?>
+      <form method="post" class="omreply" id="omr<?= (int)$m['id'] ?>" hidden><?= $csrfIn ?><input type="hidden" name="replyto" value="<?= (int)$m['id'] ?>"><input type="hidden" name="rkey" value="<?= htmlspecialchars($m['rkey']) ?>">
+        <textarea name="msgbody" rows="2" placeholder="Reply to <?= htmlspecialchars(explode(' ', trim($m['from_name'] ?: $m['from_email']))[0]) ?>..." required></textarea>
+        <span class="omracts"><button class="btn sm" type="submit">Send reply</button> <button class="btn sm ghost omrcancel" type="button">Cancel</button></span>
+      </form>
+<?php endif; ?>
       </div>
     </div>
 <?php endforeach; endif; ?>

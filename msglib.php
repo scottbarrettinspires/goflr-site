@@ -162,6 +162,17 @@ function om_handle_post($me, $myName, $isStaff) {
         om_dismiss((int)$_POST['msgdismiss'], (string)($_POST['rkey'] ?? ''), $myKeys, $me);
         header('Location: ' . $back . '#messages'); exit;
     }
+    // Inline reply from the Inbox: goes straight back to whoever sent that message -- only for a message that was
+    // actually delivered to one of my keys.
+    if (isset($_POST['replyto'])) {
+        $mid = (int)$_POST['replyto']; $rk = (string)($_POST['rkey'] ?? ''); $orig = om_get($mid);
+        $q = om_db()->prepare('SELECT 1 FROM msg_to WHERE msg_id = ? AND rkey = ?'); $q->execute([$mid, $rk]);
+        if (!$orig || !in_array($rk, $myKeys, true) || !$q->fetchColumn() || $orig['from_key'] === '' || in_array($orig['from_key'], $myKeys, true)) return 'That message can\'t be replied to here.';
+        $body = (string)($_POST['msgbody'] ?? ''); if (trim($body) === '') return 'Type a reply first.';
+        $fromKey = $isStaff ? 'staff:' . strtolower($me) : ($myKeys[0] ?? '');
+        om_send($me, $myName, $fromKey, $isStaff, $body, [$orig['from_key']], om_key_label($orig['from_key']));
+        header('Location: ' . $back . '?replied=' . $mid . '#om' . $mid); exit;
+    }
     if (!isset($_POST['msgbody'])) return '';
     $body = (string)$_POST['msgbody'];
     $fromKey = $isStaff ? 'staff:' . strtolower($me) : ($myKeys[0] ?? '');
