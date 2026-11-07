@@ -24,6 +24,14 @@ $msg = ''; $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
+    elseif (isset($_POST['ar_import'])) {
+        $up = $_FILES['sheetfile'] ?? null;
+        if (!$up || ($up['error'] ?? 1) !== UPLOAD_ERR_OK || ($up['size'] ?? 0) > 5000000) { $err = 'Choose the sheet data file (.json) to import.'; }
+        else {
+            $res = ar_import(json_decode((string)file_get_contents($up['tmp_name']), true), $_SESSION['email']);
+            if (isset($res['error'])) { $err = $res['error']; } else { $_SESSION['ar_import_result'] = $res; header('Location: agentrecords.php?imported=1'); exit; }
+        }
+    }
     elseif (isset($_POST['ar_delete'])) {
         ar_delete((string)$_POST['ar_delete']);
         header('Location: agentrecords.php?deleted=1'); exit;
@@ -54,7 +62,23 @@ sp_head('Agent Records', '');
 <?php if (!empty($_GET['deleted'])): ?><p class="note">Record deleted.</p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
 
+<?php if (!empty($_GET['imported']) && !empty($_SESSION['ar_import_result'])): $s = $_SESSION['ar_import_result']; unset($_SESSION['ar_import_result']); ?>
+  <div class="note"><strong>Import complete.</strong> <?= count($s['added']) ?> added, <?= count($s['changed']) ?> changed, <?= (int)$s['unchanged'] ?> unchanged<?= $s['skipped'] ? ', ' . (int)$s['skipped'] . ' skipped (no Agent ID)' : '' ?>.
+  <?php if ($s['changed']): ?><br>Changed: <?= htmlspecialchars(implode('; ', $s['changed'])) ?><?php endif; ?>
+  <?php if ($s['not_in_pull']): ?><br>On the server but not in this file (kept): <?= htmlspecialchars(implode(', ', $s['not_in_pull'])) ?><?php endif; ?>
+  <?php if ($s['unmatched_columns']): ?><br>Sheet columns ignored: <?= htmlspecialchars(implode(', ', $s['unmatched_columns'])) ?><?php endif; ?>
+  <?php if ($s['missing_columns']): ?><br>Columns missing from the file: <?= htmlspecialchars(implode(', ', $s['missing_columns'])) ?><?php endif; ?></div>
+<?php endif; ?>
 <?php if ($id === ''): ?>
+  <details class="panel sigbox" style="margin-bottom:14px"><summary style="cursor:pointer;font-weight:600">Import sheet data</summary>
+    <p style="font-size:.9rem;color:#455355">Upload the Agent Records data file Claude prepares from the Google Sheet. Each agent is matched by Agent ID and updated; nothing here is ever deleted, and the Google Sheet itself is not changed.</p>
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
+      <input type="hidden" name="ar_import" value="1">
+      <input type="file" name="sheetfile" accept=".json,application/json" required>
+      <button class="btn" type="submit">Import</button>
+    </form>
+  </details>
   <p><a class="btn" href="agentrecords.php?id=new">+ Add agent</a> <input id="q" type="text" placeholder="Search name, email, office..." style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;min-width:260px"></p>
   <div class="panel sigbox">
   <table class="arlist" id="artbl">

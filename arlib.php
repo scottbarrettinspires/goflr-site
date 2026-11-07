@@ -124,3 +124,37 @@ function ar_save($agentId, array $fields, $by = '') {
         ->execute([$agentId, strtolower($clean['email']), $clean['status'], $clean['full_name'], $clean['preferred_name'], json_encode($clean), date('c'), strtolower(trim((string)$by))]);
 }
 function ar_delete($agentId) { ar_db()->prepare('DELETE FROM agent_records WHERE agent_id = ?')->execute([$agentId]); }
+
+// Import a sheet pull shaped {header:[...], keys:[...], records:[{key:value}]}. Columns are matched by header TEXT
+// (not position), every row is an upsert by Agent ID, and nothing is ever deleted. Returns a summary array, or
+// ['error' => '...'] without changing anything if the data isn't the expected shape.
+function ar_import($data, $by = '') {
+    if (!is_array($data) || empty($data['header']) || empty($data['keys']) || !isset($data['records']) || !is_array($data['records'])) return ['error' => 'Not the expected {header, keys, records} shape.'];
+    $header = $data['header']; $jsonKeys = $data['keys'];
+    if (count($header) !== count($jsonKeys)) return ['error' => 'header/keys length mismatch.'];
+    $headerToArKey = array_flip(AR_FIELDS); $posToArKey = []; $unmatched = [];
+    foreach ($header as $i => $h) { $h = trim((string)$h); if (isset($headerToArKey[$h])) $posToArKey[$i] = $headerToArKey[$h]; else $unmatched[] = $h; }
+    $missing = array_values(array_diff(array_keys(AR_FIELDS), array_values($posToArKey)));
+    $before = []; foreach (ar_all() as $r) $before[$r['agent_id']] = $r['fields'];
+    $s = ['added' => [], 'changed' => [], 'unchanged' => 0, 'skipped' => 0, 'unmatched_columns' => $unmatched, 'missing_columns' => $missing, 'not_in_pull' => []];
+    $seen = []; $pdo = ar_db(); $pdo->exec('BEGIN IMMEDIATE');
+    try {
+        foreach ($data['records'] as $rec) {
+            $fields = []; foreach ($posToArKey as $i => $k) $fields[$k] = trim((string)(is_array($rec) ? ($rec[$jsonKeys[$i]] ?? '') : ''));
+            $id = $fields['agent_id'] ?? ''; if ($id === '') { $s['skipped']++; continue; }
+            $seen[$id] = true;
+            $name = ($fields['full_name'] ?? '') !== '' ? $fields['full_name'] : $id;
+            if (!isset($before[$id])) $s['added'][] = $name;
+            else {
+                $cmp = $before[$id]; foreach (AR_FIELDS as $k => $l) { $cmp[$k] = $cmp[$k] ?? ''; $fields[$k] = $fields[$k] ?? ''; }
+                $diff = []; foreach (AR_FIELDS as $k => $l) { if ((string)$cmp[$k] !== (string)$fields[$k]) $diff[] = $l; }
+                if ($diff) $s['changed'][] = $name . ' (' . implode(', ', $diff) . ')'; else { $s['unchanged']++; continue; }
+            }
+            ar_save($id, $fields, $by);
+        }
+        $pdo->exec('COMMIT');
+    } catch (Throwable $e) { $pdo->exec('ROLLBACK'); return ['error' => 'Import failed, nothing changed: ' . $e->getMessage()]; }
+    foreach ($before as $id => $f) if (!isset($seen[$id])) $s['not_in_pull'][] = ($f['full_name'] ?? '') !== '' ? $f['full_name'] : $id;
+    flr_audit('', 'agent_records_import', '', count($s['added']) . ' added, ' . count($s['changed']) . ' changed, ' . $s['unchanged'] . ' unchanged');
+    return $s;
+}
