@@ -32,7 +32,7 @@ $sideSeeAll = basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'collab.php'; // on Ho
 }
 </style>
 <aside class="coside" aria-label="Collaboration: recent and most active posts">
-<?php if ($sideSeeAll): ?>  <h2 class="cotitle"><a href="collab.php">Collaboration</a></h2>
+<?php if ($sideSeeAll): ?>  <h2 class="cotitle"><a href="collab.php">Collaboration Lounge</a></h2>
 <?php endif; ?><?php if ($sideRecent): ?>
   <div class="grp"><h3>Recent posts<?php if ($sideSeeAll): ?><a class="seeall" href="collab.php">See All &rarr;</a><?php endif; ?></h3><div class="list"><?php foreach ($sideRecent as $r) echo co_side_item($r, $sideCurrent === (int)$r['id']); ?></div></div>
 <?php endif; if ($sideActive): ?>

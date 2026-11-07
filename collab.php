@@ -61,7 +61,7 @@ function co_react_button($p) {
         . ' aria-haspopup="true" title="Tap to like. Hold (or hover) for more reactions.">' . $face . '</button><div class="copick" role="group" aria-label="Reactions" hidden>' . $pick . '</div></div>';
 }
 
-sp_head('Collaboration');
+sp_head('Collaboration Lounge');
 ?>
 <style>
 .colayout{display:grid;grid-template-columns:270px minmax(0,680px);gap:22px;justify-content:center;align-items:start}
