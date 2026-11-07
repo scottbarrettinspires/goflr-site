@@ -81,7 +81,6 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
     <a href="home.php">Home</a>
     <a href="leads.php">Leads</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
-    <a href="forms.php">Forms</a>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>

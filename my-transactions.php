@@ -43,7 +43,6 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
-    <a href="forms.php">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
@@ -62,6 +61,7 @@ $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t
     <div class="lside">
       <a class="sb<?= $side === 'buyer' ? ' on' : '' ?>" href="my-transactions.php?side=buyer">Buyers <span class="n"><?= count($buyers) ?></span></a>
       <a class="sb<?= $side === 'seller' ? ' on' : '' ?>" href="my-transactions.php?side=seller">Sellers <span class="n"><?= count($sellers) ?></span></a>
+      <a class="sb" href="forms.php" style="margin-top:10px">Forms <span class="n" aria-hidden="true">&rsaquo;</span></a>
     </div>
     <div>
 <?php if ($side === 'buyer'): ?>

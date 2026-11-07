@@ -23,8 +23,7 @@
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
-    <a href="my-transactions.php">Active Business</a>
-    <a href="forms.php" aria-current="page">Forms</a>
+    <a href="my-transactions.php" aria-current="page">Active Business</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
@@ -34,6 +33,7 @@
 </div></header>
 
 <section class="hero">
+  <p style="margin:0 0 4px"><a href="my-transactions.php">&larr; Active Business</a></p>
   <h1>Forms</h1>
   <p>Choose a category, find your form, and download it. Then open the PDF to fill it in.</p>
 </section>
