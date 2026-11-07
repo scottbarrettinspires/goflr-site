@@ -138,6 +138,13 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <div class="nb">
       <span class="tag">Next up &middot; <?= htmlspecialchars(flr_group_tag($nextGroup)) ?></span>
       <h2><?= htmlspecialchars($next['title']) ?></h2>
+<?php if ($next['desc'] !== ''): ?>
+      <details class="nxmore"><summary>More info</summary><p><?= htmlspecialchars($next['desc']) ?></p></details>
+      <style>.nxmore{margin:2px 0 4px}.nxmore summary{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:var(--teal);font-weight:600;font-size:.88rem;list-style:none;-webkit-tap-highlight-color:transparent}
+.nxmore summary::-webkit-details-marker{display:none}.nxmore summary::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:-3px 0 0 4px}
+.nxmore[open] summary::after{transform:rotate(-135deg);margin-top:3px}.nxmore[open] summary{font-size:0}.nxmore[open] summary::before{content:"Less info";font-size:.88rem}
+.nxmore p{margin:8px 0 2px;font-size:.92rem;line-height:1.55;color:#455355}</style>
+<?php endif; ?>
 <?php if ($next['rsvp']): ?>      <div class="row" style="margin:6px 0 0"><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a></div>
 <?php endif; ?>
       <?= er_sessions($nextGroup, er_for(array_map('flr_event_key', $nextGroup)), false), er_assets() ?>
