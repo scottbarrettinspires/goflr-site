@@ -152,13 +152,17 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 @media(max-width:900px){.hasside{grid-template-columns:minmax(0,1fr)}}
 .homemain .sigbox{max-width:none}
 .nextup.nxside{max-width:none;padding:14px 16px;margin:0 0 16px;gap:14px;box-shadow:0 4px 16px rgba(3,111,114,.07)}
-.nxside .tile{flex-basis:58px;padding:6px 0}.nxside h2{margin:4px 0 2px;font-size:1.08rem}
+.nxleft{flex:0 0 58px;display:flex;flex-direction:column;align-items:center;gap:6px}.nxedu{color:var(--teal);display:flex;line-height:0}
+.nxside .tile{flex-basis:auto;width:58px;padding:6px 0}.nxside h2{margin:4px 0 2px;font-size:1.08rem}
 .nxside .ersess{margin-top:6px}.nxside .ers{padding:7px 0}.nxside .ers .ereg{margin-top:6px}.nxside .nxmore{margin:0 0 2px}</style>
 <div class="homemain">
 <?php if ($next): ?>
   <div class="nextup nxside">
     <?php $nd = flr_group_days($nextGroup); ?>
-    <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
+    <div class="nxleft">
+      <span class="nxedu" title="Training" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/><path d="M22 10v6"/></svg></span>
+      <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
+    </div>
     <div class="nb">
       <h2><?= htmlspecialchars($next['title']) ?></h2>
 <?php if ($next['desc'] !== ''): ?>
