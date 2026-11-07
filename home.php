@@ -26,6 +26,8 @@ $msgErr = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && (isset($_POST['msgbody']) || isset($_POST['msgdismiss']))) {
     $msgErr = om_handle_post($me, trim($_SESSION['name'] ?? ''), $isStaff);
 }
+// Unread count for the envelope badge -- taken before the staff Messages panel below marks anything as seen.
+$omUnread = 0; try { $omUnread = om_unread_count(om_my_keys($me, $isStaff)); } catch (Throwable $e) {}
 $anns = flr_announcements($me);
 $dlUpcoming = []; $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 $signedNotes = []; $needFile = false; $unsent = [];
@@ -115,7 +117,13 @@ foreach ($FLR_EVENTS as $ev) {
       <h1>Welcome<?= $first !== '' ? ', ' . htmlspecialchars($first) : '' ?></h1>
       <p>What needs your attention today.</p>
     </div>
+    <a class="omicon" href="messages.php" title="Messages" aria-label="Messages<?= $omUnread ? ', ' . $omUnread . ' new' : '' ?>">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+      <?php if ($omUnread): ?><span class="ombadge"><?= $omUnread > 99 ? '99+' : $omUnread ?></span><?php endif; ?>
+    </a>
   </div>
+<style>.omicon{position:relative;margin-left:auto;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
+.omicon:hover{background:var(--teal-soft)}.ombadge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid var(--white)}</style>
 <?php if ($next): ?>
   <div class="nextup">
     <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span><?= $dt->format('j') ?></span></div>
@@ -134,7 +142,7 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
-<?php require __DIR__ . "/msg_panel.php"; ?>
+<?php if ($isStaff) require __DIR__ . "/msg_panel.php"; ?>
 <?php if ($isStaff): ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">

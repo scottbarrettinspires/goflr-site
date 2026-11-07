@@ -1,12 +1,15 @@
 <?php
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
+require_once __DIR__ . "/msglib.php";
+$omMine = om_my_keys($_SESSION['email'] ?? '', flr_is_broker());
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $canLoginAs = flr_is_broker();
 $d = flr_directory();
 function dir_phone_digits($p) { $x = preg_replace('/[^0-9+]/', '', (string)$p); return $x; }
 function dir_phone_fmt($p) { $x = preg_replace('/\D/', '', (string)$p); if (strlen($x) === 11 && $x[0] === '1') $x = substr($x, 1); return strlen($x) === 10 ? substr($x, 0, 3) . '-' . substr($x, 3, 3) . '-' . substr($x, 6) : trim((string)$p); }
-function dir_card($p, $sub, $loginAsCsrf = null) {
+// $msgKey: who a Message button addresses ('' = no button, e.g. your own card or someone not in Agent Records).
+function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '') {
     $name = htmlspecialchars($p['name']); $ph = trim((string)($p['phone'] ?? '')); $em = trim((string)($p['email'] ?? ''));
     $ini = ''; foreach (preg_split('/\s+/', trim($p['name'])) as $w) { if ($w !== '' && strlen($ini) < 2) $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
     $img = !empty($p['photo']) ? '<img src="dirphoto.php?k=' . flr_dir_photo_key($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '';
@@ -14,6 +17,7 @@ function dir_card($p, $sub, $loginAsCsrf = null) {
     if ($sub !== '') $h .= '<div class="dsub">' . htmlspecialchars($sub) . '</div>';
     if ($ph !== '') $h .= '<div><a href="tel:' . htmlspecialchars(dir_phone_digits($ph)) . '">' . htmlspecialchars(dir_phone_fmt($ph)) . '</a></div>';
     if ($em !== '') $h .= '<div><a href="mailto:' . htmlspecialchars($em) . '">' . htmlspecialchars($em) . '</a></div>';
+    if ($msgKey !== '') $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="messages.php?to=' . urlencode($msgKey) . '#compose">&#9993; Message</a></div>';
     if ($loginAsCsrf !== null && $em !== '') {
         $h .= '<form method="post" action="login_as.php" style="margin-top:2px"><input type="hidden" name="csrf" value="' . htmlspecialchars($loginAsCsrf) . '"><input type="hidden" name="email" value="' . htmlspecialchars($em) . '">'
             . '<button type="submit" style="background:none;border:none;padding:0;font:inherit;font-size:.82rem;color:var(--teal);text-decoration:underline;cursor:pointer" onclick="return confirm(\'View the back office as \' + ' . json_encode($p['name']) . ' + \'? Use Return to my account to come back.\');">Login As</button></form>';
@@ -46,6 +50,7 @@ function dir_card($p, $sub, $loginAsCsrf = null) {
 .dav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .dtx{min-width:0;font-size:.95rem;line-height:1.45}.dtx a{color:var(--teal);text-decoration:none;overflow-wrap:anywhere}.dtx a:hover{text-decoration:underline}
 .dnm{font-weight:700;font-size:1.05rem}.dsub{color:#5a6a6c;font-size:.85rem}
+.dtx a.dmsg{display:inline-block;background:var(--teal);color:#fff;border-radius:99px;padding:3px 12px;font-size:.82rem;font-weight:600}.dtx a.dmsg:hover{text-decoration:none;background:var(--teal-dark)}
 .dbar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:0 0 18px}.dbar .dtools{margin:0;flex:1}
 #dmap{display:none;height:calc(100vh - 260px);min-height:480px;border:1px solid var(--line);border-radius:14px}
 .pin{width:46px;height:46px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);background:var(--teal-soft) center/cover no-repeat;color:var(--teal);font:700 15px/40px Arial,sans-serif;text-align:center;overflow:hidden}
@@ -86,10 +91,10 @@ function dir_card($p, $sub, $loginAsCsrf = null) {
   <div class="dbar"><div class="dtools"><input type="search" id="q" placeholder="Search by name, phone or email" autocomplete="off"></div><button type="button" class="btn" id="bymap">Show By Location</button></div>
   <div id="dmap"></div>
   <div id="dlist"><section class="dsec"><h2>Staff <span><?= count($d['staff'] ?? []) ?></span></h2><div class="dgrid">
-<?php foreach ((array)($d['staff'] ?? []) as $p) echo dir_card($p, (string)($p['position'] ?? '')), "\n"; ?>
+<?php foreach ((array)($d['staff'] ?? []) as $p) { $k = om_key_for($p['email'] ?? '', true); echo dir_card($p, (string)($p['position'] ?? ''), null, in_array($k, $omMine, true) ? '' : $k), "\n"; } ?>
   </div></section>
   <section class="dsec"><h2>Active agents <span><?= count($d['agents'] ?? []) ?></span></h2><div class="dgrid">
-<?php foreach ((array)($d['agents'] ?? []) as $p) echo dir_card($p, '', $canLoginAs ? $_SESSION['csrf'] : null), "\n"; ?>
+<?php foreach ((array)($d['agents'] ?? []) as $p) { $k = om_key_for($p['email'] ?? '', false); echo dir_card($p, '', $canLoginAs ? $_SESSION['csrf'] : null, in_array($k, $omMine, true) ? '' : $k), "\n"; } ?>
   </div></section>
   </div>
   <p class="note" id="none" hidden>No one matches that search.</p>

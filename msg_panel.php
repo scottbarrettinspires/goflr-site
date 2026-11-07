@@ -1,37 +1,54 @@
 <?php
-// Home page "Messages" panel for both staff and agents (see msglib.php). Expects $me, $isStaff, $msgErr from home.php.
+// "Messages" panel for staff Home and the Messages page (see msglib.php). Expects $me, $isStaff, $msgErr; optional
+// $omPage ('home.php' or 'messages.php', where replies/sends return to).
 if (!isset($isStaff, $me)) { http_response_code(404); exit; }
+$omPage = (isset($omPage) && $omPage === 'messages.php') ? 'messages.php' : 'home.php';
 $myKeys = om_my_keys($me, $isStaff);
-$inbox = om_inbox($myKeys, 30);
-$replyTo = ''; $replyName = '';
-if (!empty($_GET['reply']) && ($rm = om_get((int)$_GET['reply'])) && $rm['from_key'] !== '' && !in_array($rm['from_key'], $myKeys, true)) { $replyTo = $rm['from_key']; $replyName = $rm['from_name'] ?: $rm['from_email']; }
-$agentsAll = $isStaff ? om_active_agents() : [];
+$inbox = om_inbox($myKeys, 50);
+$agentsAll = om_active_agents();
+// Pre-addressed: Reply (?reply=<message id>) or a Directory "Message" button (?to=<key>).
+$replyTo = ''; $replyName = ''; $isReply = false;
+if (!empty($_GET['reply']) && ($rm = om_get((int)$_GET['reply'])) && $rm['from_key'] !== '' && !in_array($rm['from_key'], $myKeys, true)) { $replyTo = $rm['from_key']; $replyName = $rm['from_name'] ?: $rm['from_email']; $isReply = true; }
+elseif (!empty($_GET['to'])) {
+    $t = (string)$_GET['to'];
+    if ((strpos($t, 'agent:') === 0 && isset($agentsAll[substr($t, 6)]) && !in_array($t, $myKeys, true)) || (strpos($t, 'staff:') === 0 && $t !== 'staff:' . strtolower($me))) { $replyTo = $t; $replyName = om_key_label($t); }
+}
 $staffPeople = om_staff_people();
-$csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSION['csrf']) . '">';
+$csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSION['csrf']) . '"><input type="hidden" name="back" value="' . $omPage . '">';
+// A staff person reached from the Directory who isn't in the staff list (rare) still needs to be selectable.
+if ($replyTo !== '' && strpos($replyTo, 'staff:') === 0 && $replyTo !== 'staff:*' && !isset($staffPeople[substr($replyTo, 6)])) $staffPeople[substr($replyTo, 6)] = $replyName;
 $fld = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--line);border-radius:10px;font:inherit';
 ?>
-<style>#messages .btn.sm{padding:6px 14px;font-size:.85rem;font-family:inherit;line-height:1.4;cursor:pointer;vertical-align:middle}#messages button.btn.sm:not(.ghost){border:0}</style>
+<style>#messages .btn.sm{padding:6px 14px;font-size:.85rem;font-family:inherit;line-height:1.4;cursor:pointer;vertical-align:middle}#messages button.btn.sm:not(.ghost){border:0}
+#messages .om{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line)}#messages .om.new{background:linear-gradient(90deg,rgba(3,111,114,.06),transparent)}
+#messages .omav{position:relative;flex:0 0 48px;width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;display:flex;align-items:center;justify-content:center}
+#messages .omav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#messages .ombody{flex:1;min-width:0}
+#messages .omnew{display:inline-block;font-size:.7rem;font-weight:700;letter-spacing:.04em;background:#c0392b;color:#fff;border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle}</style>
   <div class="panel sigbox" id="messages" style="border-left:5px solid #036f72;margin:0 0 16px">
-    <h2 style="margin-top:0">Messages<?php if ($inbox): ?> <span style="font-size:.85rem;color:#5a6a6c;font-weight:400">(<?= count($inbox) ?>)</span><?php endif; ?></h2>
-<?php if (!empty($_GET['msgsent'])): ?><p class="note">Sent. It will show on their Home page the next time they open it.</p><?php endif; ?>
+    <h2 style="margin-top:0"><?= $omPage === 'messages.php' ? 'Inbox' : 'Messages' ?><?php if ($inbox): ?> <span style="font-size:.85rem;color:#5a6a6c;font-weight:400">(<?= count($inbox) ?>)</span><?php endif; ?></h2>
+<?php if (!empty($_GET['msgsent'])): ?><p class="note">Sent. They'll see it the next time they open their Home page.</p><?php endif; ?>
 <?php if (!empty($msgErr)): ?><p class="sigerr"><?= htmlspecialchars($msgErr) ?></p><?php endif; ?>
 <?php if (!$inbox): ?>
     <p style="color:#5a6a6c;margin:0 0 6px">No new messages.</p>
 <?php else: foreach ($inbox as $m):
         $office = $m['rkey'] === 'staff:*';
-        $canReply = $m['from_key'] !== '' && !in_array($m['from_key'], $myKeys, true); ?>
-    <div style="padding:10px 0;border-top:1px solid var(--line)">
-      <p style="margin:0 0 4px"><strong><?= htmlspecialchars($m['from_name'] ?: $m['from_email']) ?></strong>
+        $canReply = $m['from_key'] !== '' && !in_array($m['from_key'], $myKeys, true);
+        $who = om_person($m['from_key'], (string)($m['from_name'] ?: $m['from_email'])); ?>
+    <div class="om<?= $m['seen_at'] ? '' : ' new' ?>">
+      <div class="omav"><span><?= htmlspecialchars($who['ini']) ?></span><?php if ($who['photo']): ?><img src="<?= htmlspecialchars($who['photo']) ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></div>
+      <div class="ombody">
+      <p style="margin:0 0 4px"><strong><?= htmlspecialchars($m['from_name'] ?: $m['from_email']) ?></strong><?= $m['seen_at'] ? '' : '<span class="omnew">NEW</span>' ?>
         <span style="color:#5a6a6c;font-size:.85rem">&middot; <?= $m['from_staff'] ? 'staff' : 'agent' ?><?= $isStaff ? ' &middot; to ' . htmlspecialchars($office ? 'the office' : 'you') : ($m['to_label'] && strpos($m['to_label'], 'All agents') === 0 ? ' &middot; to all agents' : '') ?> &middot; <?= htmlspecialchars(date('M j, g:ia', strtotime($m['created']))) ?></span></p>
       <p style="white-space:pre-line;margin:0 0 8px"><?= htmlspecialchars($m['body']) ?></p>
       <form method="post" style="display:inline"><?= $csrfIn ?><input type="hidden" name="msgdismiss" value="<?= (int)$m['id'] ?>"><input type="hidden" name="rkey" value="<?= htmlspecialchars($m['rkey']) ?>"><button class="btn sm ghost" type="submit"><?= $office ? 'Mark handled' : 'Got it' ?></button></form>
-      <?php if ($canReply): ?> <a class="btn sm" href="home.php?reply=<?= (int)$m['id'] ?>#compose">Reply</a><?php endif; ?>
+      <?php if ($canReply): ?> <a class="btn sm" href="<?= $omPage ?>?reply=<?= (int)$m['id'] ?>#compose">Reply</a><?php endif; ?>
+      </div>
     </div>
 <?php endforeach; endif; ?>
 
     <form method="post" id="compose" style="margin-top:14px;padding-top:12px;border-top:2px solid var(--line)">
       <?= $csrfIn ?>
-      <h3 style="margin:0 0 8px;font-size:1rem"><?= $replyTo ? 'Reply to ' . htmlspecialchars($replyName) : 'New message' ?></h3>
+      <h3 style="margin:0 0 8px;font-size:1rem"><?= $replyTo ? ($isReply ? 'Reply to ' : 'Message ') . htmlspecialchars($replyName) : 'New message' ?></h3>
 <?php if ($isStaff): $mode = $replyTo ? 'one' : (string)($_POST['mode'] ?? 'one'); ?>
       <p style="margin:0 0 8px;display:flex;flex-wrap:wrap;gap:14px">
         <label><input type="radio" name="mode" value="one" <?= $mode === 'one' ? 'checked' : '' ?>> One person</label>
@@ -58,9 +75,10 @@ $fld = 'width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(-
 <?php else: ?>
       <label style="display:block;margin-bottom:8px;font-size:.9rem">To
         <select name="to" style="<?= $fld ?>;margin-top:4px">
-          <option value="staff:*">Anyone in the office</option>
+          <optgroup label="Office"><option value="staff:*">Anyone in the office</option>
 <?php foreach ($staffPeople as $e => $n): ?>          <option value="staff:<?= htmlspecialchars($e) ?>" <?= $replyTo === 'staff:' . $e ? 'selected' : '' ?>><?= htmlspecialchars($n) ?></option>
-<?php endforeach; ?>
+<?php endforeach; ?></optgroup>
+          <optgroup label="Agents"><?php foreach ($agentsAll as $id => $a): if (in_array('agent:' . $id, $myKeys, true)) continue; ?><option value="agent:<?= htmlspecialchars($id) ?>" <?= $replyTo === 'agent:' . $id ? 'selected' : '' ?>><?= htmlspecialchars($a['name']) ?></option><?php endforeach; ?></optgroup>
         </select></label>
 <?php endif; ?>
       <textarea name="msgbody" rows="3" placeholder="Type your message..." style="<?= $fld ?>" required></textarea>

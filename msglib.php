@@ -1,6 +1,6 @@
 <?php
-// Home-page messaging between agents and staff.
-//   Agents -> one staff person, or "Anyone in the office" (every staff account sees it; whoever handles it clears it
+// Messaging between agents and staff, shown on Home (staff), the Messages page (everyone) and from Directory cards.
+//   Agents -> one staff person, another agent, or "Anyone in the office" (every staff account sees it; whoever handles it clears it
 //             for everyone).
 //   Staff  -> one agent, a group of agents, all Active agents, one staff person, or all staff.
 // A message shows on each recipient's Home page the next time they open it, until that recipient dismisses it.
@@ -13,6 +13,7 @@
 //   offered to agents comes from the Staff Directory sheet (flr_directory()).
 // "All agents" is expanded to every Active agent at send time.
 require_once __DIR__ . '/arlib.php';
+date_default_timezone_set('America/New_York'); // message times show in Eastern, like leads and recruiting
 
 function om_db() {
     $pdo = ar_db();
@@ -44,14 +45,17 @@ function om_migrate_old($pdo) {
 
 // ---- Who's who ----
 function om_agent_ids_for($email) {
-    $email = strtolower(trim((string)$email)); if ($email === '') return [];
-    $ids = [];
-    foreach (ar_all() as $r) {
-        // Only real addresses count -- the column sometimes holds notes like "none".
-        $g = array_filter(preg_split('/[\s,;]+/', strtolower((string)($r['fields']['google_account'] ?? '')), -1, PREG_SPLIT_NO_EMPTY), function ($x) { return strpos($x, '@') !== false; });
-        if ($r['email'] === $email || in_array($email, $g, true)) $ids[] = $r['agent_id'];
+    static $map = null;
+    if ($map === null) { // built once per request: every roster Email and Google Account address -> Agent IDs
+        $map = [];
+        foreach (ar_all() as $r) {
+            // Only real addresses count -- the Google Account column sometimes holds notes like "None".
+            $g = array_filter(preg_split('/[\s,;]+/', strtolower((string)($r['fields']['google_account'] ?? '')), -1, PREG_SPLIT_NO_EMPTY), function ($x) { return strpos($x, '@') !== false; });
+            foreach (array_unique(array_merge([$r['email']], $g)) as $e) { if ($e !== '') $map[$e][] = $r['agent_id']; }
+        }
     }
-    return $ids;
+    $email = strtolower(trim((string)$email));
+    return $email === '' ? [] : array_values(array_unique($map[$email] ?? []));
 }
 // The keys whose messages this signed-in person sees.
 function om_my_keys($email, $isStaff) {
@@ -73,6 +77,36 @@ function om_staff_people() {
         $out[$e] = trim(($p['name'] ?? $e) . (!empty($p['position']) ? ' (' . $p['position'] . ')' : ''));
     }
     return $out;
+}
+// The key to address a directory person by (Message button), or '' if they can't be messaged here.
+function om_key_for($email, $isStaffPerson) {
+    $email = strtolower(trim((string)$email)); if ($email === '') return '';
+    if ($isStaffPerson) return 'staff:' . $email;
+    $ids = om_agent_ids_for($email); return $ids ? 'agent:' . $ids[0] : '';
+}
+// Name + headshot for a sender key. Headshots come from the directory (the same photos it shows), served by
+// dirphoto.php to signed-in users only; '' when there's no photo, and the page shows initials instead.
+function om_person($key, $fallbackName = '') {
+    static $byEmail = null;
+    if ($byEmail === null) {
+        $byEmail = []; $d = function_exists('flr_directory') ? flr_directory() : null;
+        foreach (['staff', 'agents'] as $t) foreach ((array)($d[$t] ?? []) as $p) {
+            $e = strtolower(trim((string)($p['email'] ?? ''))); if ($e !== '' && !isset($byEmail[$e])) $byEmail[$e] = $p;
+        }
+    }
+    $email = ''; $name = $fallbackName;
+    if (strpos($key, 'staff:') === 0 && $key !== 'staff:*') { $email = substr($key, 6); }
+    elseif (strpos($key, 'agent:') === 0 && ($r = ar_get(substr($key, 6)))) { $email = $r['email']; $name = $name !== '' ? $name : ($r['preferred_name'] ?: $r['full_name']); }
+    $p = $byEmail[$email] ?? null;
+    if ($p && $name === '') $name = (string)$p['name'];
+    $ini = ''; foreach (preg_split('/\s+/', trim($name)) as $w) { if ($w !== '' && mb_strlen($ini) < 2) $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
+    return ['name' => $name, 'ini' => $ini, 'photo' => ($p && !empty($p['photo'])) ? 'dirphoto.php?k=' . flr_dir_photo_key($p['photo']) : ''];
+}
+// Messages not yet opened, for the Home page badge.
+function om_unread_count(array $keys) {
+    if (!$keys) return 0;
+    $q = om_db()->prepare('SELECT COUNT(*) FROM msg_to WHERE done_at IS NULL AND seen_at IS NULL AND rkey IN (' . implode(',', array_fill(0, count($keys), '?')) . ')');
+    $q->execute($keys); return (int)$q->fetchColumn();
 }
 function om_key_label($key) {
     if ($key === 'staff:*') return 'Anyone in the office';
@@ -120,12 +154,13 @@ function om_sent($fromEmail, $limit = 10) {
 }
 function om_get($id) { $q = om_db()->prepare('SELECT * FROM msgs WHERE id = ?'); $q->execute([(int)$id]); return $q->fetch() ?: null; }
 
-// ---- The Home page POST handler (both kinds of account). Returns an error string, or '' after redirecting. ----
+// ---- POST handler for Home and the Messages page (both kinds of account). Returns an error string, or redirects. ----
 function om_handle_post($me, $myName, $isStaff) {
     $myKeys = om_my_keys($me, $isStaff);
+    $back = (($_POST['back'] ?? '') === 'messages.php') ? 'messages.php' : 'home.php';
     if (isset($_POST['msgdismiss'])) {
         om_dismiss((int)$_POST['msgdismiss'], (string)($_POST['rkey'] ?? ''), $myKeys, $me);
-        header('Location: home.php#messages'); exit;
+        header('Location: ' . $back . '#messages'); exit;
     }
     if (!isset($_POST['msgbody'])) return '';
     $body = (string)$_POST['msgbody'];
@@ -147,12 +182,16 @@ function om_handle_post($me, $myName, $isStaff) {
             $label = om_key_label($to);
         }
     } else {
-        // An agent not yet in the server Agent Records table can still write in; the office just can't reply on-site.
+        // Agents write to one person: the office inbox, a staff person, or another Active agent. Anything else
+        // (a tampered form) falls back to the office inbox. An agent not yet in the server Agent Records table can
+        // still write in; the recipient just can't reply on-site.
         $to = (string)($_POST['to'] ?? 'staff:*');
-        if ($to !== 'staff:*' && !isset(om_staff_people()[substr($to, 6)])) $to = 'staff:*';
+        $ok = $to === 'staff:*' || (strpos($to, 'staff:') === 0 && isset(om_staff_people()[substr($to, 6)]))
+            || (strpos($to, 'agent:') === 0 && isset(om_active_agents()[substr($to, 6)]) && !in_array($to, $myKeys, true));
+        if (!$ok) $to = 'staff:*';
         $keys[] = $to; $label = om_key_label($to);
     }
     if (trim($body) === '') return 'Type a message first.';
     om_send($me, $myName, $fromKey, $isStaff, $body, $keys, $label);
-    header('Location: home.php?msgsent=1#messages'); exit;
+    header('Location: ' . $back . '?msgsent=1#messages'); exit;
 }
