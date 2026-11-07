@@ -7,12 +7,14 @@ if (!function_exists('co_db')) require_once __DIR__ . '/collablib.php';
 try { $sideRecent = co_recent(3); $sideActive = co_active(3, array_column($sideRecent, 'id')); }
 catch (Throwable $e) { $sideRecent = []; $sideActive = []; }
 $sideCurrent = (int)($sideCurrent ?? 0);
+$sideSeeAll = basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'collab.php'; // on Home: a "See All" link beside the Recent posts title
 ?>
 <style>
 .cav{position:relative;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;flex:0 0 auto}
 .cav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .coside{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}
-.coside h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:#5a6a6c;margin:0 0 8px}
+.coside h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:#5a6a6c;margin:0 0 8px;display:flex;align-items:baseline;gap:8px}
+.coside h3 .seeall{margin-left:auto;text-transform:none;letter-spacing:0;font-size:.82rem;font-weight:600;color:var(--teal);text-decoration:none;white-space:nowrap}.coside h3 .seeall:hover{text-decoration:underline}
 .coside .grp{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 14px}
 .coside .all{display:block;text-align:center;font-size:.85rem;font-weight:600;color:var(--teal);text-decoration:none;padding:6px 0 0}
 .coitem{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;text-decoration:none;color:inherit}
@@ -29,12 +31,10 @@ $sideCurrent = (int)($sideCurrent ?? 0);
 </style>
 <aside class="coside" aria-label="Collaboration: recent and most active posts">
 <?php if ($sideRecent): ?>
-  <div class="grp"><h3>Recent posts</h3><div class="list"><?php foreach ($sideRecent as $r) echo co_side_item($r, $sideCurrent === (int)$r['id']); ?></div></div>
+  <div class="grp"><h3>Recent posts<?php if ($sideSeeAll): ?><a class="seeall" href="collab.php">See All &rarr;</a><?php endif; ?></h3><div class="list"><?php foreach ($sideRecent as $r) echo co_side_item($r, $sideCurrent === (int)$r['id']); ?></div></div>
 <?php endif; if ($sideActive): ?>
   <div class="grp"><h3>Most active</h3><div class="list"><?php foreach ($sideActive as $r) echo co_side_item($r, $sideCurrent === (int)$r['id']); ?></div></div>
 <?php endif; if (!$sideRecent): ?>
   <div class="grp"><h3>Collaboration</h3><p style="font-size:.85rem;color:#5a6a6c;margin:0 0 4px">New posts from the team will show here.</p><a class="all" href="collab.php">Share the first post &rarr;</a></div>
-<?php elseif (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'collab.php'): ?>
-  <a class="all" href="collab.php" style="margin:-6px 0 14px">See all of Collaboration &rarr;</a>
 <?php endif; ?>
 </aside>
