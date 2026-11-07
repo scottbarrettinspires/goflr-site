@@ -44,7 +44,7 @@ elseif ($files) {
     <a href="my-transactions.php">Transactions</a>
     <a href="forms.php" aria-current="page">Forms</a>
     <a href="training.php">Training</a>
-    <a href="directory.php">Directory</a>
+    <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>

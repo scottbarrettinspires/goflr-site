@@ -28,6 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 }
 // Unread count for the envelope badge -- taken before the staff Messages panel below marks anything as seen.
 $omUnread = 0; try { $omUnread = om_unread_count(om_my_keys($me, $isStaff)); } catch (Throwable $e) {}
+// New Collaboration posts by others since this person last opened the Collaboration page.
+$coNew = 0; try { require_once __DIR__ . "/collablib.php"; $coNew = co_new_count($me); } catch (Throwable $e) {}
 $anns = flr_announcements($me);
 $dlUpcoming = []; $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 $signedNotes = []; $needFile = false; $unsent = [];
@@ -104,7 +106,7 @@ foreach ($FLR_EVENTS as $ev) {
     <a href="forms.php">Forms</a>
     <?php endif; ?>
     <a href="training.php">Training</a>
-    <a href="directory.php">Directory</a>
+    <a href="directory.php">Directory</a> <a href="collab.php">Collaboration</a>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a> <a href="agentrecords.php">Agent Records</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
@@ -143,6 +145,13 @@ foreach ($FLR_EVENTS as $ev) {
 
 <main class="wrap">
 <?php if ($isStaff) require __DIR__ . "/msg_panel.php"; ?>
+<?php if ($coNew): ?>
+  <a class="panel sigbox" href="collab.php" style="display:flex;align-items:center;gap:12px;border-left:5px solid #2e8b57;margin:0 0 16px;text-decoration:none;color:inherit">
+    <span style="font-size:1.6rem" aria-hidden="true">&#128172;</span>
+    <span style="flex:1"><strong><?= $coNew ?> new post<?= $coNew === 1 ? '' : 's' ?> in Collaboration</strong><br><span style="font-size:.88rem;color:#5a6a6c">See what the team is sharing, then like or comment.</span></span>
+    <span class="btn sm" style="padding:6px 14px;font-size:.85rem">Open</span>
+  </a>
+<?php endif; ?>
 <?php if ($isStaff): ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
