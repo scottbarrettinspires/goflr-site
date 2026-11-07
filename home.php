@@ -82,9 +82,11 @@ foreach ($FLR_EVENTS as $ev) {
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php" aria-current="page">Home</a>
+    <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
     <a href="my-transactions.php">Transactions</a>
     <a href="forms.php">Forms</a>
+    <?php endif; ?>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a><?php endif; ?>

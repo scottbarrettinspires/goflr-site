@@ -1,10 +1,12 @@
 <?php
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$canLoginAs = flr_is_broker();
 $d = flr_directory();
 function dir_phone_digits($p) { $x = preg_replace('/[^0-9+]/', '', (string)$p); return $x; }
 function dir_phone_fmt($p) { $x = preg_replace('/\D/', '', (string)$p); if (strlen($x) === 11 && $x[0] === '1') $x = substr($x, 1); return strlen($x) === 10 ? substr($x, 0, 3) . '-' . substr($x, 3, 3) . '-' . substr($x, 6) : trim((string)$p); }
-function dir_card($p, $sub) {
+function dir_card($p, $sub, $loginAsCsrf = null) {
     $name = htmlspecialchars($p['name']); $ph = trim((string)($p['phone'] ?? '')); $em = trim((string)($p['email'] ?? ''));
     $ini = ''; foreach (preg_split('/\s+/', trim($p['name'])) as $w) { if ($w !== '' && strlen($ini) < 2) $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
     $img = !empty($p['photo']) ? '<img src="dirphoto.php?k=' . flr_dir_photo_key($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '';
@@ -12,6 +14,10 @@ function dir_card($p, $sub) {
     if ($sub !== '') $h .= '<div class="dsub">' . htmlspecialchars($sub) . '</div>';
     if ($ph !== '') $h .= '<div><a href="tel:' . htmlspecialchars(dir_phone_digits($ph)) . '">' . htmlspecialchars(dir_phone_fmt($ph)) . '</a></div>';
     if ($em !== '') $h .= '<div><a href="mailto:' . htmlspecialchars($em) . '">' . htmlspecialchars($em) . '</a></div>';
+    if ($loginAsCsrf !== null && $em !== '') {
+        $h .= '<form method="post" action="login_as.php" style="margin-top:2px"><input type="hidden" name="csrf" value="' . htmlspecialchars($loginAsCsrf) . '"><input type="hidden" name="email" value="' . htmlspecialchars($em) . '">'
+            . '<button type="submit" style="background:none;border:none;padding:0;font:inherit;font-size:.82rem;color:var(--teal);text-decoration:underline;cursor:pointer" onclick="return confirm(\'View the back office as \' + ' . json_encode($p['name']) . ' + \'? Use Return to my account to come back.\');">Login As</button></form>';
+    }
     return $h . '</div></div>';
 }
 ?>
@@ -54,9 +60,11 @@ function dir_card($p, $sub) {
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
+    <?php if (!flr_is_broker()): ?>
     <a href="leads.php">Leads</a>
     <a href="my-transactions.php">Transactions</a>
     <a href="forms.php">Forms</a>
+    <?php endif; ?>
     <a href="training.php">Training</a>
     <a href="directory.php" aria-current="page">Directory</a>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a><?php endif; ?>
@@ -65,6 +73,13 @@ function dir_card($p, $sub) {
 </div></header>
 <section class="hero"><h1>Directory</h1><p>Our staff and active agents. Tap a phone number to call or an email address to write.</p></section>
 <main class="wrap">
+<?php $laErr = (string)($_GET['e'] ?? ''); if ($laErr === 'already'): ?>
+  <p class="note">Return to your own account first before logging in as someone else.</p>
+<?php elseif ($laErr === 'notfound'): ?>
+  <p class="note">That agent could not be found.</p>
+<?php elseif ($laErr === 'expired'): ?>
+  <p class="note">This page expired. Please try again.</p>
+<?php endif; ?>
 <?php if (!$d): ?>
   <p class="note">The directory could not be loaded right now. Please try again in a minute.</p>
 <?php else: ?>
@@ -74,7 +89,7 @@ function dir_card($p, $sub) {
 <?php foreach ((array)($d['staff'] ?? []) as $p) echo dir_card($p, (string)($p['position'] ?? '')), "\n"; ?>
   </div></section>
   <section class="dsec"><h2>Active agents <span><?= count($d['agents'] ?? []) ?></span></h2><div class="dgrid">
-<?php foreach ((array)($d['agents'] ?? []) as $p) echo dir_card($p, ''), "\n"; ?>
+<?php foreach ((array)($d['agents'] ?? []) as $p) echo dir_card($p, '', $canLoginAs ? $_SESSION['csrf'] : null), "\n"; ?>
   </div></section>
   </div>
   <p class="note" id="none" hidden>No one matches that search.</p>
