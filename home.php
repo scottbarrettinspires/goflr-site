@@ -57,7 +57,7 @@ if (!$isStaff) {
     }
     $unsent = sg_draft_unsent($me);
 }
-$rcrDue = []; $officeMsgs = [];
+$rcrDue = []; $officeMsgs = []; $agentDates = [];
 if ($isStaff) {
     require_once __DIR__ . "/rcrlib.php";
     require_once __DIR__ . "/msglib.php";
@@ -65,6 +65,7 @@ if ($isStaff) {
     $rcrDue = array_values(array_filter(rcr_view($rAgent, $rPhone), function ($R) { return isset($R['over']) && $R['over'] >= 0; }));
     usort($rcrDue, function ($a, $b) { return $b['over'] - $a['over']; });
     $officeMsgs = msg_list(true, 20);
+    $agentDates = flr_agent_dates();
 }
 $full = trim($_SESSION['name'] ?? '');
 $first = $full !== '' ? preg_split('/\s+/', $full)[0] : '';
@@ -164,6 +165,19 @@ foreach ($FLR_EVENTS as $ev) {
     </div>
 <?php endforeach; ?>
 <?php if (count($rcrDue) > 6): ?><p style="margin:8px 0 0"><a href="recruiting.php">See all <?= count($rcrDue) ?></a></p><?php endif; ?>
+  </div>
+<?php endif; ?>
+<?php if ($agentDates): ?>
+  <div class="panel sigbox" style="border-left:5px solid #7a4fc9;margin-bottom:16px">
+    <p><span class="tag" style="background:#ece3fb;color:#5b3aa0">Birthdays &amp; anniversaries</span></p>
+<?php foreach ($agentDates as $D):
+        $isToday = (int)($D['daysAway'] ?? 99) === 0;
+        $label = $D['type'] === 'anniversary' ? ((int)($D['years'] ?? 0)) . ' year' . ((int)($D['years'] ?? 0) === 1 ? '' : 's') . ' with FLR' : 'Birthday';
+        $when = $isToday ? 'Today' : (((int)($D['daysAway'] ?? 0) === 1) ? 'Tomorrow' : 'In ' . (int)($D['daysAway'] ?? 0) . ' days'); ?>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
+      <div style="flex:1;min-width:180px"><strong><?= htmlspecialchars($D['name'] ?? '') ?></strong> &middot; <?= htmlspecialchars($label) ?><br><span style="font-size:.85rem;color:#5a6a6c"><?= htmlspecialchars($when) ?><?= empty($D['postOk']) ? ' · not cleared to post' : '' ?></span></div>
+    </div>
+<?php endforeach; ?>
   </div>
 <?php endif; ?>
 <?php require __DIR__ . "/dashboard_body.php"; ?>
