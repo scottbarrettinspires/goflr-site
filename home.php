@@ -131,8 +131,18 @@ if (!$nextGroup && $next) $nextGroup = [$next];
   </div>
 <style>.omicon{position:relative;margin-left:auto;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
 .omicon:hover{background:var(--teal-soft)}.ombadge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid var(--white)}</style>
+</section>
+
+<main class="wrap hasside">
+<style>.hasside{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start}.homemain{min-width:0}
+@media(max-width:900px){.hasside{grid-template-columns:minmax(0,1fr)}}
+.homemain .sigbox{max-width:none}
+.nextup.nxside{max-width:none;padding:14px 16px;margin:0 0 16px;gap:14px;box-shadow:0 4px 16px rgba(3,111,114,.07)}
+.nxside .tile{flex-basis:58px;padding:6px 0}.nxside h2{margin:4px 0 2px;font-size:1.08rem}
+.nxside .ersess{margin-top:6px}.nxside .ers{padding:7px 0}.nxside .ers .ereg{margin-top:6px}.nxside .nxmore{margin:0 0 2px}</style>
+<div class="homemain">
 <?php if ($next): ?>
-  <div class="nextup">
+  <div class="nextup nxside">
     <?php $nd = flr_group_days($nextGroup); ?>
     <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
     <div class="nb">
@@ -151,12 +161,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     </div>
   </div>
 <?php endif; ?>
-</section>
-
-<main class="wrap hasside">
-<style>.hasside{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start}.homemain{min-width:0}
-@media(max-width:900px){.hasside{grid-template-columns:minmax(0,1fr)}}</style>
-<div class="homemain">
 <?php if ($isStaff) require __DIR__ . "/msg_panel.php"; ?>
 <?php if ($coNew): ?>
   <a class="panel sigbox" href="collab.php" style="display:flex;align-items:center;gap:12px;border-left:5px solid #2e8b57;margin:0 0 16px;text-decoration:none;color:inherit">
