@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . "/guard.php";
-require __DIR__ . "/events.php";
+require_once __DIR__ . "/events.php";
+require_once __DIR__ . "/evreglib.php"; // Register + who's going on the Next up card
 require __DIR__ . "/sigtools.php";
 require_once __DIR__ . "/dlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -135,9 +136,10 @@ foreach ($FLR_EVENTS as $ev) {
       <div class="meta"><?= htmlspecialchars($dt->format('l')) ?><?= $next['start'] ? ' &middot; ' . htmlspecialchars($next['start'] . ' – ' . $next['end']) : '' ?><?= $next['where'] ? ' &middot; ' . htmlspecialchars($next['where']) : '' ?></div>
       <div class="row">
         <?php if ($next['zoom']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['zoom']) ?>">Join on Zoom</a><?php endif; ?>
-        <?php if ($next['rsvp']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP</a><?php endif; ?>
+        <?php if ($next['rsvp']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a><?php endif; ?>
         <a class="btn ghost" href="training.php">See all training</a>
       </div>
+      <?php $nk = flr_event_key($next); echo er_widget($next, er_for([$nk])[$nk] ?? []), er_assets(); ?>
     </div>
   </div>
 <?php endif; ?>
