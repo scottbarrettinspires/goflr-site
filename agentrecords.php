@@ -5,6 +5,7 @@
 // are untouched and keep working exactly as they do now. Near launch, Scott will ask for a sheet-vs-server
 // compare before this becomes the thing anyone relies on day to day.
 require __DIR__ . "/guard.php";
+require_once __DIR__ . "/dlib.php"; // flr_is_broker()
 require_once __DIR__ . "/arlib.php";
 if (!flr_is_broker()) { http_response_code(403); exit('Staff only.'); }
 require __DIR__ . "/subpage.php";
