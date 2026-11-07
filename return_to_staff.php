@@ -11,4 +11,4 @@ $_SESSION['email'] = $imp['email'] ?? ''; $_SESSION['name'] = $imp['name'] ?? ''
 if (!empty($imp['staff'])) { $_SESSION['staff'] = $imp['staff']; }
 unset($_SESSION['impersonator']);
 $_SESSION['checked'] = 0; // re-check the roster as the staff account on the next page load
-header('Location: directory.php'); exit;
+header('Location: home.php'); exit;
