@@ -32,19 +32,12 @@ $omUnread = 0; try { $omUnread = om_unread_count(om_my_keys($me, $isStaff)); } c
 // Bell count: the quick local checks now; the page then asks notif_api.php for the full count (record details in Drive).
 $ntCount = 0; try { require_once __DIR__ . "/notiflib.php"; $ntCount = nt_count(nt_sections($me, $isStaff, false)); } catch (Throwable $e) {}
 $anns = flr_announcements($me);
-$dlUpcoming = []; $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 $signedNotes = []; $needFile = false; $unsent = [];
 if (!$isStaff) {
     require_once __DIR__ . "/leadlib.php";
     require_once __DIR__ . "/push_keys.php";
     ld_autosort($me);
-    $dlUpcoming = dl_upcoming($me, 14);
-    foreach (ld_view($me, '', '') as $L) {
-        $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
-        if ($isNew) { $newN++; $newLeads[] = $L; }
-        foreach ($L['view'] as $v) { if ($v['sub'] === 'unid' && isset($v['over']) && $v['over'] >= 0) { $unreached[] = [$L, $v]; break; } }
-        foreach ($L['view'] as $v) { if (isset($v['over']) && $v['over'] >= 0 && $v['sub'] !== 'dnc') { $hotN++; if (count($hotNames) < 4) $hotNames[] = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')); break; } }
-    }
+    // New leads, hot leads and contract deadlines are on the Notifications page (bell) -- see notiflib.php.
     // Fully signed requests the agent has not dismissed. Check anything still open, and file finished documents into the transaction record.
     $myrecs = array_values(array_filter(sg_for_agent($me), function ($x) { return empty($x['seen']); }));
     sg_refresh_many($myrecs, 6);
@@ -216,43 +209,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <?php else: ?>
 <?php require __DIR__ . "/celebrate_panel.php"; ?>
 <?php require __DIR__ . "/oh_panel.php"; ?>
-<?php if ($newLeads):
-    usort($newLeads, function ($a, $b) { return strcmp(($b['created'] ?? $b['added'] ?? ''), ($a['created'] ?? $a['added'] ?? '')); });
-    $today = ld_today(); ?>
-  <div class="panel sigbox" style="border-left:5px solid #b71c1c;margin-bottom:16px">
-    <p><span class="tag" style="background:#fde2e1;color:#b71c1c">New leads</span></p>
-    <p><strong><?= count($newLeads) ?> new lead<?= count($newLeads) === 1 ? '' : 's' ?> waiting.</strong> Call within 5 minutes when you can, then sort each one into Buyers, Sellers or Sphere.</p>
-<?php foreach (array_slice($newLeads, 0, 8) as $L):
-        $nm = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) ?: (($L['phone'] ?? '') ?: ($L['email'] ?? 'New lead'));
-        $d = $L['added'] ?? $today; $when = $d === $today ? 'Today' : ($d === ld_add($today, -1) ? 'Yesterday' : date('M j', strtotime($d)));
-        $tel = preg_replace('/[^0-9+]/', '', (string)($L['phone'] ?? '')); ?>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)">
-      <div style="flex:1;min-width:180px"><strong><?= htmlspecialchars($nm) ?></strong><br><span style="font-size:.85rem;color:#5a6a6c"><?= htmlspecialchars($when . (!empty($L['source']) ? ' · ' . $L['source'] : '')) ?></span></div>
-      <?php if ($tel !== ''): ?><a class="btn" href="tel:<?= htmlspecialchars($tel) ?>">Call</a> <a class="btn ghost" href="sms:<?= htmlspecialchars($tel) ?>">Text</a><?php endif; ?>
-      <?php if (!empty($L['email'])): ?><a class="btn ghost" href="mailto:<?= htmlspecialchars($L['email']) ?>">Email</a><?php endif; ?>
-      <a class="btn ghost" href="leads.php?open=<?= urlencode($L['id']) ?>">Open lead</a>
-    </div>
-<?php endforeach; ?>
-<?php if (count($newLeads) > 8): ?><p style="margin:8px 0 0"><a href="leads.php">See all <?= count($newLeads) ?> new leads</a></p><?php endif; ?>
-  </div>
-<?php endif; ?>
-<?php if ($unreached): usort($unreached, function ($a, $b) { return $b[1]['over'] - $a[1]['over']; }); ?>
-  <div class="panel sigbox" style="border-left:5px solid #e53935;margin-bottom:16px">
-    <p><span class="tag" style="background:#fde2e1;color:#b71c1c">Not reached yet</span></p>
-    <p><strong><?= count($unreached) ?> lead<?= count($unreached) === 1 ? '' : 's' ?> still waiting to hear from you.</strong> Try again today. Once you reach someone, move them to Ready, Soon or Later and work toward a buyer agreement or listing appointment.</p>
-<?php foreach (array_slice($unreached, 0, 6) as $u): $L = $u[0]; $v = $u[1];
-        $nm = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) ?: (($L['phone'] ?? '') ?: ($L['email'] ?? 'Lead'));
-        $tel = preg_replace('/[^0-9+]/', '', (string)($L['phone'] ?? '')); ?>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)">
-      <div style="flex:1;min-width:180px"><strong><?= htmlspecialchars($nm) ?></strong><br><span style="font-size:.85rem;color:#5a6a6c"><?= htmlspecialchars(($v['role'] === 'seller' ? 'Seller' : 'Buyer') . ' · attempt ' . $v['step'] . ' · ' . $v['ch'] . ($v['over'] > 0 ? ' · ' . $v['over'] . ' day' . ($v['over'] === 1 ? '' : 's') . ' overdue' : ' · due today')) ?></span></div>
-      <?php if ($tel !== ''): ?><a class="btn" href="tel:<?= htmlspecialchars($tel) ?>">Call</a> <a class="btn ghost" href="sms:<?= htmlspecialchars($tel) ?>">Text</a><?php endif; ?>
-      <?php if (!empty($L['email'])): ?><a class="btn ghost" href="mailto:<?= htmlspecialchars($L['email']) ?>">Email</a><?php endif; ?>
-      <a class="btn ghost" href="leads.php?open=<?= urlencode($L['id']) ?>">Open lead</a>
-    </div>
-<?php endforeach; ?>
-<?php if (count($unreached) > 6): ?><p style="margin:8px 0 0"><a href="leads.php">See all <?= count($unreached) ?></a></p><?php endif; ?>
-  </div>
-<?php endif; ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
     <p><span class="tag"><?= !empty($a['personal']) ? 'Message for you' : 'Announcement' ?></span></p>
@@ -290,26 +246,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <form method="post" style="display:inline"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="seen" value="<?= htmlspecialchars($n['id']) ?>"> <button class="btn ghost" type="submit">Dismiss</button></form></p>
   </div>
 <?php endforeach; ?>
-  <div class="grid">
-    <a class="card" href="leads.php" style="border-left:5px solid #e53935">
-      <h2>Hot Leads</h2>
-<?php if ($hotN): ?>
-      <p><strong><?= $hotN ?> lead<?= $hotN === 1 ? '' : 's' ?> to contact now</strong><?= $newN ? ' &middot; ' . $newN . ' NEW to sort' : '' ?></p>
-      <p style="margin:0"><?= htmlspecialchars(implode(', ', $hotNames)) ?><?= $hotN > count($hotNames) ? ' and more' : '' ?></p>
-<?php else: ?>
-      <p>Nothing due right now.<?= $newN ? ' ' . $newN . ' NEW lead' . ($newN === 1 ? '' : 's') . ' to sort.' : ' Add leads to start your follow-up plan.' ?></p>
-<?php endif; ?>
-    </a>
-    <a class="card" href="deadlines.php" style="border-left:5px solid #b7791f">
-      <h2>Upcoming Contract Deadlines</h2>
-<?php if ($dlUpcoming): $overdue = 0; foreach ($dlUpcoming as $d) if ($d['left'] < 0) $overdue++; ?>
-      <p><strong><?= count($dlUpcoming) ?> deadline<?= count($dlUpcoming) === 1 ? '' : 's' ?> in the next 14 days</strong><?= $overdue ? ' · ' . $overdue . ' OVERDUE' : '' ?></p>
-      <p style="margin:0"><?php foreach (array_slice($dlUpcoming, 0, 3) as $d): ?><?= htmlspecialchars($d['label']) ?> — <?= htmlspecialchars($d['name'] ?: 'untitled') ?> (<?= htmlspecialchars(dl_when($d['left'])) ?>)<br><?php endforeach; ?></p>
-<?php else: ?>
-      <p>Nothing due in the next 14 days. Enter dates on a buyer or seller record's Contract Deadlines panel.</p>
-<?php endif; ?>
-    </a>
-  </div>
 <?php if ($needFile): ?>
 <script>
 (async function(){try{var r=await fetch("file_pending.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>})});var j=await r.json();if(j.ok&&j.filed>0&&!(j.errors||[]).length)location.reload();}catch(e){}})();

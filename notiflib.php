@@ -1,7 +1,7 @@
 <?php
 // Notifications (bell on Home): what needs attention now, in sections. More sections can be added later -- each is
 // a list of items {title, sub, url, level: 'red'|'amber'}.
-//   Agents: hot leads due/overdue, contract deadlines within 3 days (not marked done, overdue included), and
+//   Agents: new leads, hot leads due/overdue (incl. not reached yet), contract deadlines within 3 days (not marked done, overdue included), and
 //           transaction records missing key information.
 //   Staff:  recruiting touches due, and contract deadlines within 3 days across every agent.
 // Transaction-record details (client name/phone/email etc.) live in Drive behind the office script, so those are
@@ -78,29 +78,40 @@ function nt_sections($email, $isStaff, $remote = true) {
         $S[] = ['key' => 'deadlines', 'title' => 'Contract deadlines (all agents, next ' . NT_DEADLINE_DAYS . ' days)', 'empty' => 'No contract deadlines due in the next ' . NT_DEADLINE_DAYS . ' days.', 'items' => $items];
         return $S;
     }
-    // Hot leads: the same rule as the Home page -- any follow-up due today or overdue (not do-not-contact).
-    $items = [];
+    // New leads (not yet sorted into Buyers / Sellers / Sphere) -- call within 5 minutes; and hot leads: any other lead
+    // with a follow-up due today or overdue (not do-not-contact), which includes leads not reached yet.
+    $newItems = []; $items = [];
     try {
         require_once __DIR__ . '/leadlib.php';
+        $today = ld_today();
+        $acts = function ($L) { $tel = preg_replace('/[^0-9+]/', '', (string)($L['phone'] ?? '')); return ['tel' => $tel, 'email' => trim((string)($L['email'] ?? ''))]; };
         foreach (ld_view($email, '', '') as $L) {
+            $nm = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) ?: (($L['phone'] ?? '') ?: ($L['email'] ?? 'Lead'));
+            $isNew = true; foreach ($L['view'] as $v) { if ($v['role'] !== 'new') $isNew = false; }
+            if ($isNew) {
+                $d = $L['added'] ?? $today; $when = $d === $today ? 'Today' : ($d === ld_add($today, -1) ? 'Yesterday' : date('M j', strtotime($d)));
+                $newItems[] = ['title' => $nm, 'sub' => $when . (!empty($L['source']) ? ' · ' . $L['source'] : ''), 'url' => 'leads.php?open=' . urlencode($L['id']), 'level' => 'red', 'acts' => $acts($L), 'sort' => (string)($L['created'] ?? $L['added'] ?? '')];
+                continue;
+            }
             foreach ($L['view'] as $v) {
                 if (!isset($v['over']) || $v['over'] < 0 || $v['sub'] === 'dnc') continue;
-                $nm = trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) ?: (($L['phone'] ?? '') ?: ($L['email'] ?? 'Lead'));
-                $items[] = ['title' => $nm, 'sub' => (['seller' => 'Seller', 'buyer' => 'Buyer', 'sphere' => 'Sphere'][$v['role']] ?? 'New lead') . ' · attempt ' . $v['step'] . ' · ' . $v['ch'] . ' · ' . ($v['over'] > 0 ? $v['over'] . ' day' . ($v['over'] === 1 ? '' : 's') . ' overdue' : 'due today'),
-                    'url' => 'leads.php?open=' . urlencode($L['id']), 'level' => $v['over'] > 0 ? 'red' : 'amber', 'sort' => -$v['over']];
+                $items[] = ['title' => $nm, 'sub' => (['seller' => 'Seller', 'buyer' => 'Buyer', 'sphere' => 'Sphere'][$v['role']] ?? 'Lead') . ($v['sub'] === 'unid' ? ' · not reached yet' : '') . ' · attempt ' . $v['step'] . ' · ' . $v['ch'] . ' · ' . ($v['over'] > 0 ? $v['over'] . ' day' . ($v['over'] === 1 ? '' : 's') . ' overdue' : 'due today'),
+                    'url' => 'leads.php?open=' . urlencode($L['id']), 'level' => $v['over'] > 0 ? 'red' : 'amber', 'acts' => $acts($L), 'sort' => -$v['over']];
                 break;
             }
         }
     } catch (Throwable $e) {}
+    usort($newItems, function ($a, $b) { return strcmp($b['sort'], $a['sort']); });
     usort($items, function ($a, $b) { return $a['sort'] <=> $b['sort']; });
-    $S[] = ['key' => 'hot', 'title' => 'Hot leads that need attention', 'empty' => 'No lead follow-ups due right now.', 'items' => $items];
+    $S[] = ['key' => 'new', 'title' => 'New leads', 'intro' => $newItems ? 'Call within 5 minutes when you can, then sort each one into Buyers, Sellers or Sphere.' : '', 'empty' => 'No new leads waiting.', 'items' => $newItems];
+    $S[] = ['key' => 'hot', 'title' => 'Hot leads that need attention', 'intro' => $items ? 'Follow-ups due today or overdue, including leads you haven\'t reached yet. Once you reach someone, move them to Ready, Soon or Later.' : '', 'empty' => 'No lead follow-ups due right now.', 'items' => $items];
     // Contract deadlines within 3 days (or overdue), not marked done.
     $items = [];
     foreach (dl_upcoming($email, NT_DEADLINE_DAYS, true) as $d) {
         $items[] = ['title' => $d['label'] . ' — ' . ($d['name'] ?: 'untitled record'), 'sub' => nt_due($d),
             'url' => ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']), 'level' => $d['left'] < 0 ? 'red' : 'amber'];
     }
-    $S[] = ['key' => 'deadlines', 'title' => 'Contract deadlines in the next ' . NT_DEADLINE_DAYS . ' days', 'empty' => 'Nothing due in the next ' . NT_DEADLINE_DAYS . ' days.', 'items' => $items];
+    $S[] = ['key' => 'deadlines', 'title' => 'Contract deadlines in the next ' . NT_DEADLINE_DAYS . ' days', 'empty' => 'Nothing due in the next ' . NT_DEADLINE_DAYS . ' days.', 'items' => $items, 'more' => ['deadlines.php', 'See all upcoming deadlines']];
     // Transaction records missing information.
     $items = [];
     try {
