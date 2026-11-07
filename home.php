@@ -31,8 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 $omUnread = 0; try { $omUnread = om_unread_count(om_my_keys($me, $isStaff)); } catch (Throwable $e) {}
 // Bell count: the quick local checks now; the page then asks notif_api.php for the full count (record details in Drive).
 $ntCount = 0; try { require_once __DIR__ . "/notiflib.php"; $ntCount = nt_count(nt_sections($me, $isStaff, false)); } catch (Throwable $e) {}
-// New Collaboration posts by others since this person last opened the Collaboration page.
-$coNew = 0; try { require_once __DIR__ . "/collablib.php"; $coNew = co_new_count($me); } catch (Throwable $e) {}
 $anns = flr_announcements($me);
 $dlUpcoming = []; $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
 $signedNotes = []; $needFile = false; $unsent = [];
@@ -181,13 +179,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     </div>
   </div>
 <?php endif; ?>
-<?php if ($coNew): ?>
-  <a class="panel sigbox" href="collab.php" style="display:flex;align-items:center;gap:12px;border-left:5px solid #2e8b57;margin:0 0 16px;text-decoration:none;color:inherit">
-    <span style="font-size:1.6rem" aria-hidden="true">&#128172;</span>
-    <span style="flex:1"><strong><?= $coNew ?> new post<?= $coNew === 1 ? '' : 's' ?> in Collaboration</strong><br><span style="font-size:.88rem;color:#5a6a6c">See what the team is sharing, then like or comment.</span></span>
-    <span class="btn sm" style="padding:6px 14px;font-size:.85rem">Open</span>
-  </a>
-<?php endif; ?>
 <?php if ($isStaff): ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
@@ -214,9 +205,11 @@ if (!$nextGroup && $next) $nextGroup = [$next];
   </div>
 <?php endif; ?>
 <?php require __DIR__ . "/celebrate_panel.php"; ?>
+<?php require __DIR__ . "/oh_panel.php"; ?>
 <?php require __DIR__ . "/dashboard_body.php"; ?>
 <?php else: ?>
 <?php require __DIR__ . "/celebrate_panel.php"; ?>
+<?php require __DIR__ . "/oh_panel.php"; ?>
 <?php if ($newLeads):
     usort($newLeads, function ($a, $b) { return strcmp(($b['created'] ?? $b['added'] ?? ''), ($a['created'] ?? $a['added'] ?? '')); });
     $today = ld_today(); ?>
