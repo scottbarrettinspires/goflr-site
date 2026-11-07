@@ -1,11 +1,11 @@
 <?php
-// "Let's Celebrate With Our Agents!" card on Home (staff and agents): upcoming birthdays and work anniversaries
+// "Let's Celebrate With Our Agent Family!" card on Home (staff and agents): upcoming birthdays and work anniversaries
 // (next 14 days, Active agents, from the server Agent Records table), two across, with headshots. Expects $agentDates.
 if (!isset($agentDates)) { http_response_code(404); exit; }
 ?>
 <?php if ($agentDates): ?>
   <div class="panel sigbox celeb">
-    <h2>&#127881; Let's Celebrate With Our Agents! &#127881;</h2>
+    <h2>&#127881; Let's Celebrate With Our Agent Family! &#127881;</h2>
     <div class="celgrid">
 <?php foreach ($agentDates as $D):
         $yrs = (int)($D['years'] ?? 0);
