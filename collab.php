@@ -1,5 +1,5 @@
 <?php
-// Collaboration: FLR's private group feed (see collablib.php). Posts with an optional photo, likes, comments.
+// Collaboration: FLR's private group feed (see collablib.php). Posts with an optional photo, reactions, comments.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php"; // flr_is_broker()
 require_once __DIR__ . "/collablib.php";
@@ -49,15 +49,30 @@ function co_av($p, $px) {
 function co_side_item($r, $current) {
     $au = om_person($r['author_key'], $r['author_name']);
     $th = $r['image'] !== '' ? '<span class="coth"><img src="collab_img.php?f=' . rawurlencode($r['image']) . '" alt="" loading="lazy"></span>' : co_av($au, 52);
-    $meta = htmlspecialchars(co_ago($r['created'])) . ($r['n_likes'] ? ' &middot; &#128077; ' . $r['n_likes'] : '') . ($r['n_comments'] ? ' &middot; &#128172; ' . $r['n_comments'] : '');
+    $meta = htmlspecialchars(co_ago($r['created'])) . ($r['n_likes'] ? ' &middot; ' . CO_REACTIONS[$r['top_kind']][0] . ' ' . $r['n_likes'] : '') . ($r['n_comments'] ? ' &middot; &#128172; ' . $r['n_comments'] : '');
     return '<a class="coitem' . ($current ? ' on' : '') . '" href="collab.php?post=' . (int)$r['id'] . '#p' . (int)$r['id'] . '">' . $th
         . '<span class="cotx"><span class="nm">' . htmlspecialchars($r['author_name'] ?: $r['author_email']) . '</span><span class="pv">' . htmlspecialchars($r['preview']) . '</span><span class="mt">' . $meta . '</span></span></a>';
 }
-function co_likers($p, $myEmail) {
-    $n = count($p['likes']); if (!$n) return '';
-    $names = array_map(function ($l) use ($myEmail) { return $l['email'] === $myEmail ? 'You' : $l['name']; }, $p['likes']);
-    $first = $p['liked'] ? 'You' : $names[0];
-    return $n === 1 ? $first : $first . ' and ' . ($n - 1) . ' other' . ($n - 1 === 1 ? '' : 's');
+// Reaction summary under a post: top 3 reaction icons + "You and 4 others"; tap to see who reacted with what.
+// collab.php's JavaScript redraws the same markup after a reaction (keep the two in step).
+function co_react_summary($p, $myEmail) {
+    $counts = []; $people = [];
+    foreach ($p['likes'] as $l) { $k = co_kind($l['kind']); $counts[$k] = ($counts[$k] ?? 0) + 1; $people[] = [$l['email'] === $myEmail ? 'You' : $l['name'], $k]; }
+    $n = count($people); if (!$n) return '';
+    arsort($counts); $ems = ''; foreach (array_slice(array_keys($counts), 0, 3) as $k) $ems .= CO_REACTIONS[$k][0];
+    $first = $p['mine'] !== '' ? 'You' : $people[0][0];
+    $txt = $n === 1 ? $first : $first . ' and ' . ($n - 1) . ' other' . ($n - 1 === 1 ? '' : 's');
+    $who = ''; foreach ($people as $w) $who .= '<li><span>' . CO_REACTIONS[$w[1]][0] . '</span>' . htmlspecialchars($w[0]) . '</li>';
+    return '<button type="button" class="cosum" aria-expanded="false"><span class="ems">' . $ems . '</span> ' . htmlspecialchars($txt) . '</button><ul class="cowho" hidden>' . $who . '</ul>';
+}
+// The reaction button (shows your reaction if you have one) and its pop-up picker.
+function co_react_button($p) {
+    $m = $p['mine']; $r = $m !== '' ? CO_REACTIONS[$m] : null;
+    $face = $r ? '<span class="em">' . $r[0] . '</span>' . $r[1]
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H3V10zM7 10l4-8a3 3 0 0 1 3 3v4h6a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H7"/></svg>Like';
+    $pick = ''; foreach (CO_REACTIONS as $k => $x) $pick .= '<button type="button" data-k="' . $k . '" title="' . $x[1] . '" aria-label="' . $x[1] . '"><span>' . $x[0] . '</span><em>' . $x[1] . '</em></button>';
+    return '<div class="colikew"><button type="button" class="colike' . ($r ? ' on' : '') . '" data-id="' . (int)$p['id'] . '" data-mine="' . $m . '"' . ($r ? ' style="color:' . $r[2] . '"' : '')
+        . ' aria-haspopup="true" title="Tap to like. Hold (or hover) for more reactions.">' . $face . '</button><div class="copick" role="group" aria-label="Reactions" hidden>' . $pick . '</div></div>';
 }
 
 sp_head('Collaboration');
@@ -90,8 +105,22 @@ sp_head('Collaboration');
 .coimg{display:block;margin:10px -16px 0;background:#f1f4f4}.coimg img{display:block;width:100%;max-height:640px;object-fit:contain}
 .cocount{display:flex;justify-content:space-between;font-size:.85rem;color:#5a6a6c;margin:10px 0 0;min-height:1.2em}
 .coacts{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:8px 0 0}
-.coacts button{flex:1;background:none;border:0;padding:8px 0;font:inherit;font-weight:600;color:#5a6a6c;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px}
-.coacts button:hover{background:#f1f4f4}.coacts button.on{color:var(--teal)}.coacts button.on svg{fill:var(--teal)}
+.coacts>button,.colikew{flex:1}.coacts button.colike,.coacts>button{width:100%;background:none;border:0;padding:8px 0;font:inherit;font-weight:600;color:#5a6a6c;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.coacts button.colike:hover,.coacts>button:hover{background:#f1f4f4}
+.colike,.copick button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.colike .em{font-size:1.15rem;line-height:1}
+.colikew{position:relative}
+.copick{position:absolute;bottom:calc(100% + 6px);left:0;z-index:6;display:flex;gap:2px;background:#fff;border-radius:99px;padding:5px 6px;box-shadow:0 6px 24px rgba(0,0,0,.18);animation:copop .14s ease-out}
+.copick[hidden]{display:none}
+@keyframes copop{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
+.copick button{position:relative;background:none;border:0;padding:2px;cursor:pointer;border-radius:50%;transition:transform .12s}
+.copick button span{display:block;font-size:1.9rem;line-height:1.15}
+.copick button:hover,.copick button:focus-visible{transform:translateY(-6px) scale(1.25);outline:none}
+.copick button em{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font:600 .7rem/1 system-ui,sans-serif;font-style:normal;padding:4px 7px;border-radius:99px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .1s}
+.copick button:hover em,.copick button:focus-visible em{opacity:1}
+.cosum{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}.cosum:hover{text-decoration:underline}.cosum .ems{letter-spacing:-.15em;margin-right:.2em}
+.cowho{position:absolute;z-index:6;list-style:none;margin:4px 0 0;padding:8px 12px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.12);max-height:240px;overflow:auto;min-width:180px}
+.cowho li{display:flex;gap:8px;align-items:center;padding:3px 0;font-size:.88rem;color:#2a3638}.cowho li span{width:1.4em;text-align:center}
+.cocount .likers{position:relative}
 .cocoms{margin:10px 0 0}.cocom{display:flex;gap:8px;margin:0 0 8px}.cobub{background:#f1f4f4;border-radius:14px;padding:7px 12px;max-width:100%;overflow-wrap:anywhere}
 .cobub .nm{font-weight:700;font-size:.85rem}.cobub div{white-space:pre-line;font-size:.92rem}.cocm{font-size:.75rem;color:#5a6a6c;margin:2px 0 0 12px}
 .cocm button{background:none;border:0;padding:0;font:inherit;color:#5a6a6c;cursor:pointer;text-decoration:underline}
@@ -172,9 +201,9 @@ sp_head('Collaboration');
 <?php if ($p['image'] !== ''): $src = 'collab_img.php?f=' . rawurlencode($p['image']); ?>
     <a class="coimg" href="<?= htmlspecialchars($src) ?>" target="_blank" rel="noopener"><img src="<?= htmlspecialchars($src) ?>" alt="Photo shared by <?= htmlspecialchars($p['author_name']) ?>" loading="lazy"></a>
 <?php endif; ?>
-    <div class="cocount"><span class="likers" title="<?= htmlspecialchars(implode(', ', array_column($p['likes'], 'name'))) ?>"><?= $p['likes'] ? '&#128077; ' . htmlspecialchars(co_likers($p, $me['email'])) : '' ?></span><span><?= $nc ? $nc . ' comment' . ($nc === 1 ? '' : 's') : '' ?></span></div>
+    <div class="cocount"><span class="likers"><?= co_react_summary($p, $me['email']) ?></span><span><?= $nc ? $nc . ' comment' . ($nc === 1 ? '' : 's') : '' ?></span></div>
     <div class="coacts">
-      <button type="button" class="colike<?= $p['liked'] ? ' on' : '' ?>" data-id="<?= (int)$p['id'] ?>" aria-pressed="<?= $p['liked'] ? 'true' : 'false' ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H3V10zM7 10l4-8a3 3 0 0 1 3 3v4h6a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H7"/></svg>Like</button>
+      <?= co_react_button($p) ?>
       <button type="button" class="cocmt" data-id="<?= (int)$p['id'] ?>"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12z"/></svg>Comment</button>
     </div>
     <div class="cocoms">
@@ -194,13 +223,38 @@ sp_head('Collaboration');
 <script>
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>,ME=<?= json_encode($me['email']) ?>;
-// Like without reloading.
-document.addEventListener("click",function(e){var b=e.target.closest(".colike");if(!b)return;b.disabled=true;
-  fetch("collab_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:CSRF,like:+b.dataset.id})})
-  .then(function(r){return r.json();}).then(function(j){if(!j.ok)throw 0;b.classList.toggle("on",j.liked);b.setAttribute("aria-pressed",j.liked?"true":"false");
-    var s=b.closest(".cocard").querySelector(".likers"),n=j.count;
-    s.textContent=n?"👍 "+(j.liked?(n===1?"You":"You and "+(n-1)+" other"+(n-1===1?"":"s")):(n+(n===1?" like":" likes"))):"";})
-  .catch(function(){alert("Couldn't save that like. Please try again.");}).then(function(){b.disabled=false;});});
+// Reactions. Quick tap on the button: Like (or remove your reaction). Hover (mouse) or press-and-hold (touch):
+// the picker opens; choosing a reaction sets it, choosing the one you have removes it. Saved without a reload.
+var R=<?= json_encode(array_map(function ($x) { return ['e' => $x[0], 'l' => $x[1], 'c' => $x[2]]; }, CO_REACTIONS), JSON_UNESCAPED_UNICODE) ?>;
+var LIKE_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H3V10zM7 10l4-8a3 3 0 0 1 3 3v4h6a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H7"/></svg>';
+function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function draw(card,st){var b=card.querySelector(".colike"),m=st.mine;
+  b.dataset.mine=m;b.classList.toggle("on",!!m);b.style.color=m?R[m].c:"";b.innerHTML=m?'<span class="em">'+R[m].e+'</span>'+R[m].l:LIKE_SVG+"Like";
+  var s=card.querySelector(".likers"),n=st.total;if(!n){s.innerHTML="";return;}
+  var ems=Object.keys(st.counts).slice(0,3).map(function(k){return R[k].e;}).join(""),first=m?"You":st.people[0].name;
+  var who=st.people.map(function(p){return "<li><span>"+R[p.kind].e+"</span>"+esc(p.name)+"</li>";}).join("");
+  s.innerHTML='<button type="button" class="cosum" aria-expanded="false"><span class="ems">'+ems+'</span> '+esc(n===1?first:first+" and "+(n-1)+" other"+(n-1===1?"":"s"))+'</button><ul class="cowho" hidden>'+who+'</ul>';}
+function send(b,kind){var card=b.closest(".cocard");b.disabled=true;
+  fetch("collab_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:CSRF,like:+b.dataset.id,kind:kind})})
+  .then(function(r){return r.json();}).then(function(j){if(!j.ok)throw 0;draw(card,j);})
+  .catch(function(){alert("Couldn't save that reaction. Please try again.");}).then(function(){b.disabled=false;});}
+var openPick=null,hoverT=null,holdT=null,held=false;
+function show(w){if(openPick&&openPick!==w)hide(openPick);w.querySelector(".copick").hidden=false;openPick=w;}
+function hide(w){if(!w)return;w.querySelector(".copick").hidden=true;if(openPick===w)openPick=null;}
+document.querySelectorAll(".colikew").forEach(function(w){var b=w.querySelector(".colike");
+  w.addEventListener("pointerenter",function(e){if(e.pointerType!=="mouse")return;clearTimeout(hoverT);hoverT=setTimeout(function(){show(w);},450);});
+  w.addEventListener("pointerleave",function(e){if(e.pointerType!=="mouse")return;clearTimeout(hoverT);hoverT=setTimeout(function(){hide(w);},350);});
+  b.addEventListener("pointerdown",function(e){if(e.pointerType==="mouse")return;held=false;clearTimeout(holdT);holdT=setTimeout(function(){held=true;show(w);if(navigator.vibrate)navigator.vibrate(10);},420);});
+  ["pointerup","pointercancel","pointerleave"].forEach(function(ev){b.addEventListener(ev,function(){clearTimeout(holdT);});});
+  b.addEventListener("contextmenu",function(e){e.preventDefault();});
+  b.addEventListener("click",function(){if(held){held=false;return;}clearTimeout(hoverT);hide(w);send(b,b.dataset.mine||"like");});
+  b.addEventListener("keydown",function(e){if(e.key==="ArrowUp"){e.preventDefault();show(w);w.querySelector(".copick button").focus();}});
+  w.querySelector(".copick").addEventListener("click",function(e){var k=e.target.closest("button[data-k]");if(!k)return;hide(w);send(b,k.dataset.k);});
+  w.querySelector(".copick").addEventListener("keydown",function(e){if(e.key==="Escape"){hide(w);b.focus();}});});
+document.addEventListener("pointerdown",function(e){if(openPick&&!openPick.contains(e.target))hide(openPick);});
+// Who reacted: tap the summary.
+document.addEventListener("click",function(e){var s=e.target.closest(".cosum");document.querySelectorAll(".cowho:not([hidden])").forEach(function(u){if(!s||u.previousElementSibling!==s){u.hidden=true;u.previousElementSibling.setAttribute("aria-expanded","false");}});
+  if(s){var u=s.nextElementSibling;u.hidden=!u.hidden;s.setAttribute("aria-expanded",u.hidden?"false":"true");}});
 // Comment button jumps to the comment box; "View more" shows earlier comments.
 document.addEventListener("click",function(e){var b=e.target.closest(".cocmt");if(b){var t=b.closest(".cocard").querySelector(".coform textarea");t.focus();t.scrollIntoView({block:"center",behavior:"smooth"});}
   var m=e.target.closest(".comore");if(m){m.parentNode.querySelectorAll(".cocom[hidden]").forEach(function(c){c.hidden=false;});m.remove();}});

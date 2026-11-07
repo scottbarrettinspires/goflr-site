@@ -1,6 +1,6 @@
 <?php
 // Collaboration: a private, Facebook-group-style feed for FLR agents and staff -- posts (text + optional photo),
-// likes, and comments. Everyone signed in can read, post, like and comment; authors can edit/delete their own
+// reactions (Like, Love, Haha, Congrats, Wow, Sad), and comments. Everyone signed in can read, post, like and comment; authors can edit/delete their own
 // posts and delete their own comments; staff can pin posts and remove any post or comment.
 // Photos are resized on upload and kept outside the web folder (served to signed-in users by collab_img.php).
 require_once __DIR__ . '/msglib.php'; // om_my_keys / om_person: who someone is and their directory headshot
@@ -9,6 +9,15 @@ date_default_timezone_set('America/New_York');
 const CO_MAX_BODY = 5000;
 const CO_MAX_COMMENT = 2000;
 const CO_MAX_UPLOAD = 15000000; // bytes, before resizing
+// Reactions, in picker order: key => [emoji, label, text color when it's yours].
+const CO_REACTIONS = [
+    'like'     => ['👍', 'Like', '#036f72'],
+    'love'     => ['❤️', 'Love', '#e0245e'],
+    'haha'     => ['😂', 'Haha', '#d49a00'],
+    'congrats' => ['🎉', 'Congrats', '#c2570c'],
+    'wow'      => ['😮', 'Wow', '#d49a00'],
+    'sad'      => ['😢', 'Sad', '#d49a00'],
+];
 
 function co_db() {
     $pdo = flr_db();
@@ -17,6 +26,10 @@ function co_db() {
     $pdo->exec('CREATE TABLE IF NOT EXISTS co_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, post_id INTEGER NOT NULL, author_email TEXT, author_key TEXT, author_name TEXT, author_staff INTEGER DEFAULT 0, body TEXT, deleted INTEGER DEFAULT 0, created TEXT)');
     $pdo->exec('CREATE INDEX IF NOT EXISTS co_comments_post ON co_comments(post_id, deleted, id)');
     $pdo->exec('CREATE TABLE IF NOT EXISTS co_likes (post_id INTEGER NOT NULL, email TEXT NOT NULL, name TEXT, created TEXT, PRIMARY KEY (post_id, email))');
+    // Reactions: likes from before reactions existed count as 'like'.
+    static $kindOk = false;
+    if (!$kindOk) { $kindOk = true; $cols = array_column($pdo->query('PRAGMA table_info(co_likes)')->fetchAll(), 'name');
+        if (!in_array('kind', $cols, true)) $pdo->exec("ALTER TABLE co_likes ADD COLUMN kind TEXT NOT NULL DEFAULT 'like'"); }
     return $pdo;
 }
 function co_img_dir() { $d = flr_db_dir() . '/collab'; if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
@@ -60,14 +73,15 @@ function co_feed($limit = 20, $beforeId = 0) {
     $posts = array_merge($pinned, $rest);
     return [co_decorate($posts), $more];
 }
-// Add likes, "liked by me" and comments to a list of post rows.
+// Add reactions, my reaction and comments to a list of post rows.
 function co_decorate(array $posts) {
     if (!$posts) return [];
     $pdo = co_db(); $in = implode(',', array_map('intval', array_column($posts, 'id'))); $me = co_me()['email'];
-    $likes = []; foreach ($pdo->query("SELECT post_id, email, name FROM co_likes WHERE post_id IN ($in) ORDER BY created")->fetchAll() as $l) $likes[$l['post_id']][] = $l;
+    $likes = []; foreach ($pdo->query("SELECT post_id, email, name, kind FROM co_likes WHERE post_id IN ($in) ORDER BY created")->fetchAll() as $l) $likes[$l['post_id']][] = $l;
     $coms = []; foreach ($pdo->query("SELECT * FROM co_comments WHERE post_id IN ($in) AND deleted = 0 ORDER BY id")->fetchAll() as $c) $coms[$c['post_id']][] = $c;
     foreach ($posts as &$p) {
-        $p['likes'] = $likes[$p['id']] ?? []; $p['liked'] = in_array($me, array_column($p['likes'], 'email'), true);
+        $p['likes'] = $likes[$p['id']] ?? []; $p['mine'] = ''; foreach ($p['likes'] as $l) if ($l['email'] === $me) $p['mine'] = co_kind($l['kind']);
+        $p['liked'] = $p['mine'] !== '';
         $p['comments'] = $coms[$p['id']] ?? [];
     }
     return $posts;
@@ -94,9 +108,10 @@ function co_side_rows(array $rows) {
     if (!$rows) return [];
     $pdo = co_db(); $in = implode(',', array_map('intval', array_column($rows, 'id')));
     $lk = $pdo->query("SELECT post_id, COUNT(*) FROM co_likes WHERE post_id IN ($in) GROUP BY post_id")->fetchAll(PDO::FETCH_KEY_PAIR);
+    $top = []; foreach ($pdo->query("SELECT post_id, kind, COUNT(*) n FROM co_likes WHERE post_id IN ($in) GROUP BY post_id, kind ORDER BY n DESC")->fetchAll() as $t) { if (!isset($top[$t['post_id']])) $top[$t['post_id']] = co_kind($t['kind']); }
     $cm = $pdo->query("SELECT post_id, COUNT(*) FROM co_comments WHERE post_id IN ($in) AND deleted = 0 GROUP BY post_id")->fetchAll(PDO::FETCH_KEY_PAIR);
     foreach ($rows as &$r) {
-        $r['n_likes'] = (int)($lk[$r['id']] ?? 0); $r['n_comments'] = (int)($cm[$r['id']] ?? 0);
+        $r['n_likes'] = (int)($lk[$r['id']] ?? 0); $r['n_comments'] = (int)($cm[$r['id']] ?? 0); $r['top_kind'] = $top[$r['id']] ?? 'like';
         $t = trim(preg_replace('/\s+/', ' ', (string)$r['body']));
         $r['preview'] = $t === '' ? 'Shared a photo' : (mb_strlen($t) > 70 ? rtrim(mb_substr($t, 0, 68)) . '…' : $t);
     }
@@ -140,14 +155,25 @@ function co_delete_comment($id) {
     $me = co_me(); $c = co_comment($id); if (!$c || ($c['author_email'] !== $me['email'] && !$me['staff'])) return 'Not allowed.';
     co_db()->prepare('UPDATE co_comments SET deleted = 1 WHERE id = ?')->execute([(int)$id]); return '';
 }
-// Returns [liked now, like count] or null if the post is gone.
-function co_toggle_like($postId) {
+function co_kind($k) { return isset(CO_REACTIONS[$k]) ? $k : 'like'; }
+// Set my reaction on a post. Choosing the reaction I already have (or '') removes it; a different one replaces it.
+// Returns co_reaction_state() for the post, or null if the post is gone.
+function co_react($postId, $kind) {
     $me = co_me(); if (!co_post($postId)) return null; $pdo = co_db();
-    $has = $pdo->prepare('SELECT 1 FROM co_likes WHERE post_id = ? AND email = ?'); $has->execute([(int)$postId, $me['email']]);
-    if ($has->fetchColumn()) { $pdo->prepare('DELETE FROM co_likes WHERE post_id = ? AND email = ?')->execute([(int)$postId, $me['email']]); $on = false; }
-    else { $pdo->prepare('INSERT OR IGNORE INTO co_likes (post_id, email, name, created) VALUES (?,?,?,?)')->execute([(int)$postId, $me['email'], $me['name'], date('c')]); $on = true; }
-    $n = $pdo->prepare('SELECT COUNT(*) FROM co_likes WHERE post_id = ?'); $n->execute([(int)$postId]);
-    return [$on, (int)$n->fetchColumn()];
+    $kind = isset(CO_REACTIONS[$kind]) ? $kind : '';
+    $cur = $pdo->prepare('SELECT kind FROM co_likes WHERE post_id = ? AND email = ?'); $cur->execute([(int)$postId, $me['email']]); $had = $cur->fetchColumn();
+    if ($kind === '' || $had === $kind) { $pdo->prepare('DELETE FROM co_likes WHERE post_id = ? AND email = ?')->execute([(int)$postId, $me['email']]); }
+    else { $pdo->prepare('INSERT INTO co_likes (post_id, email, name, kind, created) VALUES (?,?,?,?,?) ON CONFLICT(post_id, email) DO UPDATE SET kind = excluded.kind, name = excluded.name')->execute([(int)$postId, $me['email'], $me['name'], $kind, date('c')]); }
+    return co_reaction_state($postId);
+}
+// What the page needs to redraw a post's reactions: my reaction, counts by kind (most first), and who reacted.
+function co_reaction_state($postId) {
+    $me = co_me()['email']; $q = co_db()->prepare('SELECT email, name, kind FROM co_likes WHERE post_id = ? ORDER BY created'); $q->execute([(int)$postId]);
+    $mine = ''; $counts = []; $people = [];
+    foreach ($q->fetchAll() as $l) { $k = co_kind($l['kind']); $counts[$k] = ($counts[$k] ?? 0) + 1; if ($l['email'] === $me) $mine = $k;
+        $people[] = ['name' => $l['email'] === $me ? 'You' : $l['name'], 'kind' => $k, 'me' => $l['email'] === $me]; }
+    arsort($counts);
+    return ['mine' => $mine, 'counts' => $counts, 'total' => array_sum($counts), 'people' => $people];
 }
 
 // ---- "New since your last visit" for the Home page ----
