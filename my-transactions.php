@@ -20,6 +20,39 @@ foreach (array_merge($buyers, $sellers) as $t) {
     if ($t['side'] === 'buyer' && in_array($k, ['agreement', 'shopping', 'offer'], true)) $cnt['shopping']++;
 }
 $dlSoon = dl_upcoming($me, 7, true);
+// Buyers / Sellers tabs: one row per client, styled like the Leads & Contacts list.
+$stageF = (string)($_GET['stage'] ?? '');
+$rows = [];
+if ($view !== 'overview') {
+    require_once __DIR__ . '/notiflib.php'; require_once __DIR__ . '/leadlib.php';
+    $list = $view === 'buyer' ? $buyers : $sellers;
+    $infos = []; try { $infos = nt_infos($me, $list, true); } catch (Throwable $e) {} // client contact details from the record (cached 10 min)
+    $leads = []; try { foreach (ld_load($me)['leads'] as $L) foreach (['buyer', 'seller'] as $r) if (!empty($L['roles'][$r]['folder'])) $leads[$L['roles'][$r]['folder']] = $L; } catch (Throwable $e) {}
+    $keys = ps_keys($view); $p = $view === 'buyer' ? 'b' : 's';
+    foreach ($list as $t) {
+        $k = $pk($t); $in = $infos[$t['folder']] ?? []; $L = $leads[$t['folder']] ?? null;
+        $nm = trim((string)($in[$p . '1_name'] ?? '')) ?: ($L ? trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) : '') ?: (string)$t['name'];
+        if (trim((string)($in[$p . '2_name'] ?? '')) !== '') $nm .= ' & ' . trim($in[$p . '2_name']);
+        $ph = trim((string)($in[$p . '1_phone'] ?? '')) ?: (string)($L['phone'] ?? '');
+        $em = trim((string)($in[$p . '1_email'] ?? '')) ?: (string)($L['email'] ?? '');
+        $next = null; $c = dl_get($t['folder']); if ($c) foreach (dl_compute(is_array($c["data"]) ? $c["data"] : (json_decode((string)$c["data"], true) ?: [])) as $d) { if (!$d['done']) { $next = $d; break; } }
+        $rows[] = ['t' => $t, 'k' => $k, 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
+            'addr' => trim((string)($in['property'] ?? '')) ?: ($nm !== $t['name'] ? (string)$t['name'] : '')];
+    }
+    usort($rows, function ($a, $b) { return [$a['i'], $a['nm']] <=> [$b['i'], $b['nm']]; });
+}
+function ab_row($r, $side) {
+    $h = function ($x) { return htmlspecialchars((string)$x); };
+    $url = ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($r['t']['folder']);
+    $meta = [PS_STAGES[$side][$r['k']] ?? '']; if ($r['addr'] !== '') $meta[] = $r['addr']; if ($r['src'] !== '') $meta[] = $r['src']; if ($r['ph'] !== '') $meta[] = $r['ph'];
+    if ($r['k'] === 'closed') $tag = '<span class="due" style="background:#e3f4e8;color:#2e7d32">Closed</span>';
+    elseif ($r['next']) { $d = $r['next']; $cl = $d['left'] < 0 ? 'over' : ($d['left'] <= 3 ? 'today' : 'later'); $tag = '<span class="due ' . $cl . '">' . $h($d['label'] . ' · ' . dl_when($d['left'])) . '</span>'; }
+    else $tag = '<span class="due later">No deadlines entered</span>';
+    $dig = preg_replace('/[^0-9+]/', '', $r['ph']);
+    $qa = '<span class="qa">' . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
+        . ($r['em'] !== '' ? '<a href="mailto:' . $h($r['em']) . '" title="Email">&#9993;</a>' : '') . '</span>';
+    return '<div class="lrow crow" onclick="if(!event.target.closest(\'.qa\'))location.href=\'' . $h($url) . '\'"><span class="dot" style="background:' . $h(ps_color($side, $r['k'])) . '"></span><div class="who"><a class="nm" href="' . $h($url) . '">' . $h($r['nm']) . '</a><div class="meta">' . $h(implode(' · ', $meta)) . '</div></div>' . $tag . $qa . '</div>';
+}
 $dlNow = count(array_filter($dlSoon, function ($d) { return $d['left'] <= 3; }));
 $signedNew = []; $waiting = 0;
 try { require_once __DIR__ . '/signed_panel.php'; $txAll = flr_tx_list($me);
@@ -72,6 +105,13 @@ a.stat:hover{border-color:var(--teal)}
 a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:block}.lrow .nm,.lrow .meta{display:block}.lrow .nm{font-weight:700}.lrow .meta{font-size:.82rem;color:#5a6a6c}
 .lrow .due{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap}
 .empty{color:#6a777a;padding:14px;text-align:center;margin:0}
+.dot{width:12px;height:12px;border-radius:50%;flex:0 0 12px;border:1px solid rgba(0,0,0,.15)}
+.due.over{background:#fde2e1;color:#b71c1c}.due.today{background:#fff1d6;color:#8a5a00}.due.later{background:#eef3f3;color:#4b5b5d}
+.qa{display:flex;flex:0 0 auto}.qa a{display:inline-flex;width:30px;height:30px;border-radius:9px;align-items:center;justify-content:center;background:var(--teal-soft);color:var(--teal);text-decoration:none;font-size:.85rem;margin-left:4px}
+.crow{cursor:pointer}.crow:hover{border-color:var(--teal)}.crow a.nm{color:inherit;text-decoration:none}
+.lrow .meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.spills a{font-weight:700;font-size:.82rem;padding:5px 10px;border-radius:99px;text-decoration:none;border:2px solid transparent}.spills a.on{border-color:#1f2a2c}
+@media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
 </style>
 </head>
 <body>
@@ -128,21 +168,20 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
     <a class="lrow" href="<?= htmlspecialchars($url) ?>"><div class="who"><div class="nm"><?= htmlspecialchars($what) ?></div><div class="meta"><?= htmlspecialchars($x['rec'] ? 'In ' . $x['rec']['name'] . ' › Signed Documents' : (!empty($r['filed']) ? 'Filed in ' . $r['filed']['folder'] : 'Choose which record to file it in')) ?></div></div><span class="due" style="background:#e3f4e8;color:#2e7d32">Signed</span></a>
 <?php endforeach; endif; ?>
   </div>
-<?php elseif ($view === 'buyer'): ?>
+<?php else: $sideNm = $view === 'buyer' ? 'Buyers' : 'Sellers'; $byK = []; foreach ($rows as $r) $byK[$r['k']] = ($byK[$r['k']] ?? 0) + 1; ?>
   <div class="lpanel">
-    <h2>Buyers</h2>
-<?php if (!$buyers): ?><p class="note">No buyer records yet. <a href="buyer.php?new=1">Create one</a> once a buyer signs an agreement.</p>
-<?php else: ?>
-    <?= ps_group_box('buyer', $buyers, function ($t) { return 'buyer.php?tx=' . urlencode($t['folder']); }) ?>
-<?php endif; ?>
-  </div>
-<?php else: ?>
-  <div class="lpanel">
-    <h2>Sellers</h2>
-<?php if (!$sellers): ?><p class="note">No seller records yet. They appear here once the listing folder is created in Active Business &rsaquo; 2 SELLERS.</p>
-<?php else: ?>
-    <?= ps_group_box('seller', $sellers, function ($t) { return 'seller.php?tx=' . urlencode($t['folder']); }) ?>
-<?php endif; ?>
+    <h2><?= $sideNm ?></h2>
+    <div class="spills"><a href="my-transactions.php?side=<?= $view ?>" class="<?= $stageF === '' ? 'on' : '' ?>" style="background:#fff;color:var(--teal);border-color:<?= $stageF === '' ? '#1f2a2c' : 'var(--line)' ?>">All <?= count($rows) ?></a>
+<?php foreach (PS_STAGES[$view] as $k => $lbl): ?>
+      <a href="my-transactions.php?side=<?= $view ?>&amp;stage=<?= urlencode($k) ?>" class="<?= $stageF === $k ? 'on' : '' ?>" style="background:<?= ps_color($view, $k) ?>;color:<?= ps_fg($view, $k) ?>"><?= htmlspecialchars($lbl) ?> <?= $byK[$k] ?? 0 ?></a>
+<?php endforeach; ?>
+    </div>
+<?php $shown = array_filter($rows, function ($r) use ($stageF) { return $stageF === '' || $r['k'] === $stageF; });
+if (!$rows): ?>
+    <p class="empty"><?= $view === 'buyer' ? 'No buyer records yet. <a href="buyer.php?new=1">Create one</a> once a buyer signs an agreement.' : 'No seller records yet. They appear here once the listing folder is created.' ?></p>
+<?php elseif (!$shown): ?>
+    <p class="empty">No <?= strtolower($sideNm) ?> in this stage.</p>
+<?php else: foreach ($shown as $r) echo ab_row($r, $view); endif; ?>
   </div>
 <?php endif; ?>
 </main>
