@@ -309,12 +309,16 @@ function sg_seller_info($email, $folderId) {
     if (is_array($j) && isset($j['active']) && !isset($j['ok'])) return ['ok' => false, 'old' => true, 'note' => 'The office script needs the v26 update to read seller records.'];
     return is_array($j) ? $j : ['ok' => false, 'note' => 'The office script did not answer.'];
 }
+// A saved record's details changed: drop the Notifications cache for it so "missing info" updates right away.
+function sg_info_changed($folderId) { try { require_once __DIR__ . '/flrdb.php'; flr_db()->prepare('DELETE FROM kv WHERE k = ?')->execute(['nt_info_' . $folderId]); } catch (Throwable $e) {} }
 function sg_seller_info_save($email, $folderId, $info) {
+    sg_info_changed($folderId);
     $r = sg_script_post(['op' => 'savesellerinfo', 'email' => $email, 'folderId' => $folderId, 'info' => $info]);
     if (is_array($r) && (!isset($r['ok']) || ($r['note'] ?? '') === 'not allowed')) return ['ok' => false, 'note' => 'The office script needs the v26 update to save seller records.'];
     return is_array($r) ? $r : ['ok' => false, 'note' => 'The office script did not answer.'];
 }
 function sg_buyer_info_save($email, $folderId, $info) {
+    sg_info_changed($folderId);
     $r = sg_script_post(['op' => 'savebuyerinfo', 'email' => $email, 'folderId' => $folderId, 'info' => $info]);
     return is_array($r) ? $r : ['ok' => false, 'note' => 'The office script did not answer (is the newest version deployed?).'];
 }
@@ -333,6 +337,7 @@ function sg_license($email) {
 
 // Merge a few fields (like the property address) into a buyer's saved info. Best effort.
 function sg_buyer_info_merge($email, $folderId, $fields) {
+    sg_info_changed($folderId);
     $r = sg_buyer_info($email, $folderId);
     if (empty($r['ok'])) return false;
     $info = is_array($r['info'] ?? null) ? $r['info'] : [];

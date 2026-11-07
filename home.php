@@ -29,6 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
 }
 // Unread count for the envelope badge -- taken before the staff Messages panel below marks anything as seen.
 $omUnread = 0; try { $omUnread = om_unread_count(om_my_keys($me, $isStaff)); } catch (Throwable $e) {}
+// Bell count: the quick local checks now; the page then asks notif_api.php for the full count (record details in Drive).
+$ntCount = 0; try { require_once __DIR__ . "/notiflib.php"; $ntCount = nt_count(nt_sections($me, $isStaff, false)); } catch (Throwable $e) {}
 // New Collaboration posts by others since this person last opened the Collaboration page.
 $coNew = 0; try { require_once __DIR__ . "/collablib.php"; $coNew = co_new_count($me); } catch (Throwable $e) {}
 $anns = flr_announcements($me);
@@ -125,6 +127,10 @@ if (!$nextGroup && $next) $nextGroup = [$next];
       <p>What needs your attention today.</p>
     </div>
     <span class="homeicons">
+    <a class="omicon" href="notifications.php" title="Notifications" aria-label="Notifications<?= $ntCount ? ', ' . $ntCount . ' need attention' : '' ?>" id="ntbell">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>
+      <span class="ombadge" id="ntbadge"<?= $ntCount ? '' : ' hidden' ?>><?= $ntCount > 99 ? '99+' : $ntCount ?></span>
+    </a>
     <a class="omicon" href="messages.php" title="Messages" aria-label="Messages<?= $omUnread ? ', ' . $omUnread . ' new' : '' ?>">
       <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
       <?php if ($omUnread): ?><span class="ombadge"><?= $omUnread > 99 ? '99+' : $omUnread ?></span><?php endif; ?>
@@ -134,7 +140,9 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     </a>
     </span>
   </div>
-<style>.homeicons{margin-left:auto;display:flex;gap:10px;align-items:center}.omicon{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
+<style>.homeicons{margin-left:auto;display:flex;gap:10px;align-items:center}
+@media(max-width:600px){.who{flex-wrap:wrap}.homeicons{order:-1;width:100%;justify-content:flex-end;gap:8px;margin:-10px 0 -4px}.homeicons .omicon{flex-basis:44px;width:44px;height:44px}.homeicons .omicon svg{width:21px;height:21px}}
+.omicon{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
 .omicon:hover{background:var(--teal-soft)}.ombadge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid var(--white)}</style>
 </section>
 
@@ -318,6 +326,11 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only. Having trouble signing in? Contact the office.</footer>
+<script>
+// Bell: refresh the count with the slower transaction-record checks once the page is up.
+(function(){var b=document.getElementById("ntbadge");if(!b)return;fetch("notif_api.php",{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(j){if(!j.ok)return;var n=+j.count||0;
+  b.textContent=n>99?"99+":n;b.hidden=!n;document.getElementById("ntbell").setAttribute("aria-label","Notifications"+(n?", "+n+" need attention":""));}).catch(function(){});})();
+</script>
 <script>
 // Phone alerts are turned on in Settings; here we just quietly re-confirm this phone's subscription so it stays active.
 (function(){if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)||Notification.permission!=="granted")return;
