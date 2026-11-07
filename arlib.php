@@ -1,0 +1,126 @@
+<?php
+// Agent Records: a server-side mirror of the "Agent Records" Google Sheet (the Agents tab), so this data can be
+// viewed and managed from a staff-only dashboard here instead of only in the Sheet.
+//
+// Parallel system, not a cutover: Lindsay keeps using the Sheet + the existing Apps Script exactly as she does
+// today (sign-in, directory, announcements, agentdates, etc. all still read the Sheet; nothing here changes
+// that). This table is populated and refreshed only by an explicit import (tools/import_agent_records.php),
+// fed by a fresh pull of the Sheet that only Claude can do (no Sheets API access from this server). Near launch,
+// Scott will ask for a sheet-vs-server compare and reconciliation before anything here becomes load-bearing.
+require_once __DIR__ . '/flrdb.php';
+
+// Every Agent Records column, in sheet order, as [snake_case field key => sheet header]. Keeping the exact
+// header text lets the dashboard show real labels and lets a future re-import match columns even if the sheet's
+// column order changes (matched by header text, not position).
+const AR_FIELDS = [
+    'agent_id' => 'Agent ID',
+    'first_name' => 'First name',
+    'last_name' => 'Last name',
+    'full_name' => 'Full name',
+    'preferred_name' => 'Preferred name',
+    'status' => 'Status',
+    'email' => 'Email',
+    'phone' => 'Phone',
+    'street_address' => 'Street address',
+    'city' => 'City',
+    'state' => 'State',
+    'zip' => 'ZIP',
+    'team_and_team_leader' => 'Team and team leader',
+    'date_hired' => 'Date hired',
+    'date_terminated' => 'Date terminated',
+    'license_number' => 'License number',
+    'license_expiration' => 'License expiration',
+    'nrds_number' => 'NRDS number',
+    'birthdate' => 'Birthdate',
+    'agreement_signed' => 'Agreement signed',
+    'birthday_post_ok' => 'Birthday post OK',
+    'anniversary_post_ok' => 'Anniversary post OK',
+    'business_card_ordered' => 'Business card ordered',
+    'name_badge_ordered' => 'Name badge ordered',
+    'headshot' => 'Headshot',
+    'w_9_on_file' => 'W-9 on file',
+    'w_9_date' => 'W-9 date',
+    'where_the_w_9_is_kept' => 'Where the W-9 is kept',
+    'last_updated' => 'Last updated',
+    'notes' => 'Notes',
+    'text_recognition_ok' => 'Text recognition OK',
+    'email_recognition_ok' => 'Email recognition OK',
+    'private_group_post_ok' => 'Private group post OK',
+    'public_social_post_ok' => 'Public social post OK',
+    'social_media_handles' => 'Social media handles',
+    'office' => 'Office',
+    'mls_office_id' => 'MLS office ID',
+    'realtor_board' => 'Realtor board',
+    'realtor_board_name' => 'Realtor board name',
+    'mls_name' => 'MLS name',
+    'home_office_from_mls_office_id' => 'Home office (from MLS office ID)',
+    'dbpr_legal_name' => 'DBPR legal name',
+    'pay_commission_to' => 'Pay commission to',
+    'payee_type' => 'Payee type',
+    'secondary_realtor_board' => 'Secondary Realtor board',
+    'records_folder_link' => 'Records folder link',
+    'records_beta_start' => 'Records beta start',
+    'google_account' => 'Google Account',
+    'referral_fee_split_to_agent' => 'Referral fee split to agent',
+    'commercial_split_to_agent' => 'Commercial split to agent',
+    'commercial_approved' => 'Commercial approved',
+    'property_management_approved' => 'Property management approved',
+    'property_management_split_to_agent' => 'Property management split to agent',
+    'revenue_share_option_in_agreement' => 'Revenue share option in agreement',
+    'driver_s_license_copy_on_file' => "Driver's license copy on file",
+    'driver_s_license_copy_date' => "Driver's license copy date",
+    'auto_insurance_card_on_file' => 'Auto insurance card on file',
+    'auto_insurance_expiration' => 'Auto insurance expiration',
+    'where_the_id_and_insurance_copies_are_kept' => 'Where the ID and insurance copies are kept',
+    'branded_logo' => 'Branded logo',
+    'business_card_qr_code' => 'Business card QR code',
+    'license_last_renewed' => 'License last renewed',
+    'realtor_board_dues_paid' => 'Realtor board dues paid',
+    'mls_dues_paid' => 'MLS dues paid',
+    'agent_directory_ok' => 'Agent directory OK',
+];
+
+// Fields grouped for the dashboard form; every AR_FIELDS key appears in exactly one group.
+const AR_GROUPS = [
+    'Identity' => ['agent_id', 'first_name', 'last_name', 'full_name', 'preferred_name', 'status', 'email', 'phone', 'street_address', 'city', 'state', 'zip', 'google_account', 'team_and_team_leader', 'office'],
+    'Dates' => ['date_hired', 'date_terminated', 'birthdate', 'agreement_signed', 'records_beta_start', 'last_updated'],
+    'License & boards' => ['license_number', 'license_expiration', 'license_last_renewed', 'nrds_number', 'mls_office_id', 'realtor_board', 'realtor_board_name', 'secondary_realtor_board', 'mls_name', 'home_office_from_mls_office_id', 'realtor_board_dues_paid', 'mls_dues_paid'],
+    'Compliance & files' => ['w_9_on_file', 'w_9_date', 'where_the_w_9_is_kept', "driver_s_license_copy_on_file", "driver_s_license_copy_date", 'auto_insurance_card_on_file', 'auto_insurance_expiration', 'where_the_id_and_insurance_copies_are_kept', 'records_folder_link'],
+    'Compensation' => ['pay_commission_to', 'payee_type', 'dbpr_legal_name', 'referral_fee_split_to_agent', 'commercial_split_to_agent', 'commercial_approved', 'property_management_approved', 'property_management_split_to_agent', 'revenue_share_option_in_agreement'],
+    'Marketing & consent' => ['headshot', 'social_media_handles', 'branded_logo', 'business_card_qr_code', 'business_card_ordered', 'name_badge_ordered', 'birthday_post_ok', 'anniversary_post_ok', 'text_recognition_ok', 'email_recognition_ok', 'private_group_post_ok', 'public_social_post_ok', 'agent_directory_ok'],
+    'Notes' => ['notes'],
+];
+
+function ar_db() {
+    $pdo = flr_db();
+    $pdo->exec('CREATE TABLE IF NOT EXISTS agent_records (agent_id TEXT PRIMARY KEY, email TEXT, status TEXT, full_name TEXT, preferred_name TEXT, fields TEXT NOT NULL DEFAULT "{}", updated TEXT, updated_by TEXT)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS agent_records_email ON agent_records(email)');
+    $pdo->exec('CREATE INDEX IF NOT EXISTS agent_records_status ON agent_records(status)');
+    return $pdo;
+}
+
+function ar_yes($v) { return strtolower(trim((string)$v)) === 'yes'; }
+
+// All agents, newest-first by full name. Each row: the indexed columns plus every AR_FIELDS key under 'fields'.
+function ar_all() {
+    $rows = ar_db()->query('SELECT * FROM agent_records ORDER BY (status = "Active") DESC, full_name')->fetchAll();
+    foreach ($rows as &$r) { $f = json_decode($r['fields'], true); $r['fields'] = is_array($f) ? $f : []; }
+    return $rows;
+}
+function ar_get($agentId) {
+    $q = ar_db()->prepare('SELECT * FROM agent_records WHERE agent_id = ?'); $q->execute([$agentId]); $r = $q->fetch();
+    if (!$r) return null;
+    $f = json_decode($r['fields'], true); $r['fields'] = is_array($f) ? $f : [];
+    return $r;
+}
+// Upsert one agent's full field set (an assoc array keyed by AR_FIELDS keys -- unknown keys are dropped, missing
+// keys default to ''). $by is the staff email making the change, for the updated_by column.
+function ar_save($agentId, array $fields, $by = '') {
+    $clean = [];
+    foreach (AR_FIELDS as $k => $label) { $clean[$k] = trim((string)($fields[$k] ?? '')); }
+    $clean['agent_id'] = $agentId;
+    ar_db()->prepare('INSERT INTO agent_records (agent_id, email, status, full_name, preferred_name, fields, updated, updated_by) VALUES (?,?,?,?,?,?,?,?)
+        ON CONFLICT(agent_id) DO UPDATE SET email=excluded.email, status=excluded.status, full_name=excluded.full_name, preferred_name=excluded.preferred_name, fields=excluded.fields, updated=excluded.updated, updated_by=excluded.updated_by')
+        ->execute([$agentId, strtolower($clean['email']), $clean['status'], $clean['full_name'], $clean['preferred_name'], json_encode($clean), date('c'), strtolower(trim((string)$by))]);
+}
+function ar_delete($agentId) { ar_db()->prepare('DELETE FROM agent_records WHERE agent_id = ?')->execute([$agentId]); }

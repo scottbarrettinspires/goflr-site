@@ -111,7 +111,7 @@ foreach ($FLR_EVENTS as $ev) {
     <?php endif; ?>
     <a href="training.php">Training</a>
     <a href="directory.php">Directory</a>
-    <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a><?php endif; ?>
+    <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a> <a href="agentrecords.php">Agent Records</a><?php endif; ?>
     <a href="logout.php">Sign out</a>
   </nav>
 </div></header>
