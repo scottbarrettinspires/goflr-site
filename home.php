@@ -156,7 +156,10 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 @media(prefers-reduced-motion:reduce){.nxedu{animation:none}}.nxside h2{margin:4px 0 2px;font-size:1.08rem}
 .nxtitle{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px}.nxtitle h2{margin:2px 0 0!important}.nxtitle .nxmore{margin:0}.nxtitle .nxmore[open]{flex-basis:100%}
 .nxside .ersess{margin-top:6px}.nxside .ers{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:6px 0}.nxside .erwhen{flex:1 1 260px}
-.nxside .ers .ereg{margin-top:0;flex:0 1 auto;gap:8px 10px}.nxside .ertxt.muted{display:none}</style>
+.nxside .ers .ereg{margin-top:0;flex:0 1 auto;gap:8px 10px}.nxside .ertxt.muted{display:none}
+.nxside .erbtn:not(.on){background:#e07b39;color:#fff}.nxside .erbtn:not(.on):hover{background:#c96a2c}
+.nxside .erzoom{background:#fff;color:var(--teal);border-color:var(--teal)}.nxside .erzoom:hover{background:var(--teal-soft)}
+.nxside .erwho{flex-wrap:nowrap}.nxside .erwho .ertxt{flex:0 1 auto;white-space:nowrap}</style>
 <div class="homemain">
 <?php if ($next): ?>
   <div class="nextup nxside">
