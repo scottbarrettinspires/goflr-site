@@ -195,6 +195,19 @@ function co_ago($iso) {
     if ($d < 7 * 86400) return floor($d / 86400) . 'd';
     return date(date('Y', $t) === date('Y') ? 'M j' : 'M j, Y', $t);
 }
+// Round headshot (directory photo, else initials). $p is om_person()'s result.
+function co_av($p, $px) {
+    return '<span class="cav" style="width:' . $px . 'px;height:' . $px . 'px;flex-basis:' . $px . 'px;font-size:' . round($px * .38) . 'px"><span>' . htmlspecialchars($p['ini']) . '</span>'
+        . ($p['photo'] ? '<img src="' . htmlspecialchars($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '') . '</span>';
+}
+// One side-list entry: thumbnail (the post's photo, else the author's headshot), name, preview, counts.
+function co_side_item($r, $current) {
+    $au = om_person($r['author_key'], $r['author_name']);
+    $th = $r['image'] !== '' ? '<span class="coth"><img src="collab_img.php?f=' . rawurlencode($r['image']) . '" alt=""></span>' : co_av($au, 52);
+    $meta = htmlspecialchars(co_ago($r['created'])) . ($r['n_likes'] ? ' &middot; ' . CO_REACTIONS[$r['top_kind']][0] . ' ' . $r['n_likes'] : '') . ($r['n_comments'] ? ' &middot; &#128172; ' . $r['n_comments'] : '');
+    return '<a class="coitem' . ($current ? ' on' : '') . '" href="collab.php?post=' . (int)$r['id'] . '#p' . (int)$r['id'] . '">' . $th
+        . '<span class="cotx"><span class="nm">' . htmlspecialchars($r['author_name'] ?: $r['author_email']) . '</span><span class="pv">' . htmlspecialchars($r['preview']) . '</span><span class="mt">' . $meta . '</span></span></a>';
+}
 // Escaped text with line breaks kept and web links made clickable.
 function co_text($s) {
     $out = '';

@@ -34,25 +34,11 @@ $before = (int)($_GET['before'] ?? 0);
 $single = (int)($_GET['post'] ?? 0); // one post on its own page, opened from the side lists
 if ($single) { $sp = co_single($single); $posts = $sp ? [$sp] : []; $more = false; }
 else { list($posts, $more) = co_feed(20, $before); }
-$recent = co_recent(3);
-$active = co_active(3, array_column($recent, 'id'));
 co_mark_seen($me['email']);
 $editId = (int)($_GET['edit'] ?? 0);
 $mePerson = om_person($me['key'], $me['name']);
 $csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSION['csrf']) . '">' . ($single ? '<input type="hidden" name="single" value="' . $single . '">' : '');
 
-function co_av($p, $px) {
-    return '<span class="cav" style="width:' . $px . 'px;height:' . $px . 'px;flex-basis:' . $px . 'px;font-size:' . round($px * .38) . 'px"><span>' . htmlspecialchars($p['ini']) . '</span>'
-        . ($p['photo'] ? '<img src="' . htmlspecialchars($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '') . '</span>';
-}
-// One side-list entry: thumbnail (the post's photo, else the author's headshot), name, preview, counts.
-function co_side_item($r, $current) {
-    $au = om_person($r['author_key'], $r['author_name']);
-    $th = $r['image'] !== '' ? '<span class="coth"><img src="collab_img.php?f=' . rawurlencode($r['image']) . '" alt="" loading="lazy"></span>' : co_av($au, 52);
-    $meta = htmlspecialchars(co_ago($r['created'])) . ($r['n_likes'] ? ' &middot; ' . CO_REACTIONS[$r['top_kind']][0] . ' ' . $r['n_likes'] : '') . ($r['n_comments'] ? ' &middot; &#128172; ' . $r['n_comments'] : '');
-    return '<a class="coitem' . ($current ? ' on' : '') . '" href="collab.php?post=' . (int)$r['id'] . '#p' . (int)$r['id'] . '">' . $th
-        . '<span class="cotx"><span class="nm">' . htmlspecialchars($r['author_name'] ?: $r['author_email']) . '</span><span class="pv">' . htmlspecialchars($r['preview']) . '</span><span class="mt">' . $meta . '</span></span></a>';
-}
 // Reaction summary under a post: top 3 reaction icons + "You and 4 others"; tap to see who reacted with what.
 // collab.php's JavaScript redraws the same markup after a reaction (keep the two in step).
 function co_react_summary($p, $myEmail) {
@@ -80,24 +66,8 @@ sp_head('Collaboration');
 <style>
 .colayout{display:grid;grid-template-columns:270px minmax(0,680px);gap:22px;justify-content:center;align-items:start}
 .cofeed{min-width:0}
-.coside{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}
-.coside h3{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:#5a6a6c;margin:0 0 8px}
-.coside .grp{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px;margin:0 0 14px}
-.coitem{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;text-decoration:none;color:inherit}
-.coitem:hover{background:#f1f4f4}.coitem.on{background:var(--teal-soft)}
-.coth{flex:0 0 52px;width:52px;height:52px;border-radius:10px;overflow:hidden;background:#f1f4f4}.coth img{width:100%;height:100%;object-fit:cover;display:block}
-.cotx{min-width:0;display:flex;flex-direction:column;line-height:1.3}.cotx .nm{font-weight:700;font-size:.85rem}
-.cotx .pv{font-size:.85rem;color:#2a3638;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.cotx .mt{font-size:.75rem;color:#5a6a6c;margin-top:2px}
-@media(max-width:900px){
-  .colayout{grid-template-columns:minmax(0,1fr)}
-  .coside{position:static;max-height:none;overflow:visible;margin:0 -16px}
-  .coside .grp{border:0;background:none;padding:0 16px;margin:0 0 12px}
-  .coside .list{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:4px}
-  .coside .coitem{flex:0 0 76%;max-width:300px;background:var(--white);border:1px solid var(--line);scroll-snap-align:start}
-}
+@media(max-width:900px){.colayout{grid-template-columns:minmax(0,1fr)}}
 .cocard{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.cav{position:relative;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;background:var(--teal-soft);color:var(--teal);font-weight:700;flex:0 0 auto}
-.cav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cohead{display:flex;gap:10px;align-items:center}.cohead .who{flex:1;min-width:0;line-height:1.3}.cohead .nm{font-weight:700}.cohead .meta{font-size:.8rem;color:#5a6a6c}
 .cobadge{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--teal-soft);color:var(--teal);border-radius:99px;padding:1px 7px;margin-left:6px;vertical-align:middle}
 .copin{font-size:.78rem;font-weight:600;color:#b7791f;margin:0 0 8px}
@@ -138,15 +108,7 @@ sp_head('Collaboration');
 .comore{display:block;font-size:.85rem;color:#5a6a6c;background:none;border:0;padding:0 0 8px;cursor:pointer;font-weight:600}
 </style>
 <div class="colayout">
-<aside class="coside" aria-label="Recent and most active posts">
-<?php if ($recent): ?>
-  <div class="grp"><h3>Recent posts</h3><div class="list"><?php foreach ($recent as $r) echo co_side_item($r, $single === (int)$r['id']); ?></div></div>
-<?php endif; if ($active): ?>
-  <div class="grp"><h3>Most active</h3><div class="list"><?php foreach ($active as $r) echo co_side_item($r, $single === (int)$r['id']); ?></div></div>
-<?php endif; if (!$recent): ?>
-  <div class="grp"><h3>Recent posts</h3><p style="font-size:.85rem;color:#5a6a6c;margin:0">New posts will show here.</p></div>
-<?php endif; ?>
-</aside>
+<?php $sideCurrent = $single; require __DIR__ . "/collab_side.php"; ?>
 <div class="cofeed">
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
 
