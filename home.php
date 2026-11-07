@@ -170,7 +170,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 .nxmore[open] summary::after{transform:rotate(-135deg);margin-top:3px}.nxmore[open] summary{font-size:0}.nxmore[open] summary::before{content:"Less info";font-size:.88rem}
 .nxmore p{margin:8px 0 2px;font-size:.92rem;line-height:1.55;color:#455355}</style>
 <?php endif; ?>
-      <a class="nxcal" href="training.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Training calendar</a>
+      <a class="nxcal" href="training.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Upcoming Events Schedule</a>
       </div>
 <?php if ($next['rsvp']): ?>      <div class="row" style="margin:6px 0 0"><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a></div>
 <?php endif; ?>
@@ -178,7 +178,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     </div>
   </div>
 <?php else: ?>
-  <p style="margin:0 0 14px"><a class="nxcal" href="training.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Training calendar</a></p>
+  <p style="margin:0 0 14px"><a class="nxcal" href="training.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Upcoming Events Schedule</a></p>
 <?php endif; ?>
 <?php if ($isStaff): ?>
 <?php foreach ($anns as $a): ?>
