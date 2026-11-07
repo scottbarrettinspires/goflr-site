@@ -134,11 +134,12 @@ foreach ($FLR_EVENTS as $ev) {
       <span class="tag">Next up &middot; <?= htmlspecialchars($next['type']) ?></span>
       <h2><?= htmlspecialchars($next['title']) ?></h2>
       <div class="meta"><?= htmlspecialchars($dt->format('l')) ?><?= $next['start'] ? ' &middot; ' . htmlspecialchars($next['start'] . ' – ' . $next['end']) : '' ?><?= $next['where'] ? ' &middot; ' . htmlspecialchars($next['where']) : '' ?></div>
+<?php if ($next['zoom'] || $next['rsvp']): ?>
       <div class="row">
         <?php if ($next['zoom']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['zoom']) ?>">Join on Zoom</a><?php endif; ?>
         <?php if ($next['rsvp']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a><?php endif; ?>
-        <a class="btn ghost" href="training.php">See all training</a>
       </div>
+<?php endif; ?>
       <?php $nk = flr_event_key($next); echo er_widget($next, er_for([$nk])[$nk] ?? []), er_assets(); ?>
     </div>
   </div>

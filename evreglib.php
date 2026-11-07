@@ -74,7 +74,7 @@ function er_assets() {
     return <<<HTML
 <style>
 .ereg{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px;position:relative}
-.erbtn{border:0;cursor:pointer;font:inherit;font-weight:600}.erbtn.on{color:#2e7d32;border:1px solid #2e7d32;background:#eef7ef}
+.erbtn{border:0;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600;padding:6px 14px;line-height:1.4}.erbtn.on{color:#2e7d32;border:1px solid #2e7d32;background:#eef7ef}
 .erwho{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;max-width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
 .erwho:hover .ertxt{text-decoration:underline}
 .erstack{display:flex;padding-left:6px}
