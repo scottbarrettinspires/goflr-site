@@ -24,8 +24,17 @@ foreach ($dlAll as $d) { $k = flr_akey($d['email']); $dlByAgent[$k] = ($dlByAgen
 $totalLeads = array_sum($leadCounts);
 $totalActive = 0; foreach ($txByAgent as $t) $totalActive += $t['total'] ?? 0;
 $totalPending = 0; foreach ($txByAgent as $t) $totalPending += $t['pending'] ?? 0;
+// Closed sales month-to-date: each closed sale is logged on the lead record itself (leadlib.php's "closeclient"
+// action, with the real close date) when an agent moves a buyer/seller client to Sphere after closing -- the only
+// place a close date is recorded today, so this counts exactly what's been logged in the app, nothing estimated.
+$monthStart = date('Y-m-01'); $closedMTD = 0;
+foreach ($pdo->query("SELECT data FROM leads")->fetchAll(PDO::FETCH_COLUMN) as $raw) {
+    $L = json_decode($raw, true); if (!is_array($L)) continue;
+    foreach ((array)($L['closed'] ?? []) as $c) { if (($c['date'] ?? '') >= $monthStart) $closedMTD++; }
+}
 ?>
   <div class="grid">
+    <div class="card" style="border-left:5px solid #2e8b57"><h2><?= $closedMTD ?></h2><p>Closed sales, month to date</p></div>
     <div class="card"><h2><?= $totalLeads ?></h2><p>Total leads in the system</p></div>
     <div class="card"><h2><?= $totalActive ?></h2><p>Open buyer / seller records</p></div>
     <div class="card" style="border-left:5px solid #b7791f"><h2><?= $totalPending ?></h2><p>Records in a Pending / Closing stage</p></div>
