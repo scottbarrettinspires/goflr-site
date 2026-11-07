@@ -7,7 +7,7 @@ require_once __DIR__ . "/flrdb.php";
 if (empty($_SESSION['impersonator'])) { header('Location: home.php'); exit; }
 $imp = $_SESSION['impersonator'];
 flr_audit(flr_akey((string)($_SESSION['email'] ?? '')), 'impersonate_end', '', 'Returned to ' . ($imp['email'] ?? ''));
-$_SESSION['email'] = $imp['email'] ?? ''; $_SESSION['name'] = $imp['name'] ?? '';
+$_SESSION['email'] = $imp['email'] ?? ''; $_SESSION['name'] = $imp['name'] ?? ''; $_SESSION['pic'] = $imp['pic'] ?? '';
 if (!empty($imp['staff'])) { $_SESSION['staff'] = $imp['staff']; }
 unset($_SESSION['impersonator']);
 $_SESSION['checked'] = 0; // re-check the roster as the staff account on the next page load

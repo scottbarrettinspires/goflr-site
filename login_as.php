@@ -13,8 +13,9 @@ $d = flr_directory(); $name = ''; $found = false;
 if ($d && $target !== '') { foreach ((array)($d['agents'] ?? []) as $p) { if (strtolower(trim((string)($p['email'] ?? ''))) === $target) { $name = (string)($p['name'] ?? ''); $found = true; break; } } }
 if (!$found) { header('Location: directory.php?e=notfound'); exit; }
 
-$_SESSION['impersonator'] = ['email' => (string)($_SESSION['email'] ?? ''), 'name' => (string)($_SESSION['name'] ?? ''), 'staff' => (string)($_SESSION['staff'] ?? '')];
+$_SESSION['impersonator'] = ['email' => (string)($_SESSION['email'] ?? ''), 'name' => (string)($_SESSION['name'] ?? ''), 'staff' => (string)($_SESSION['staff'] ?? ''), 'pic' => (string)($_SESSION['pic'] ?? '')];
 flr_audit(flr_akey($target), 'impersonate_start', '', 'Logged in as this agent by ' . $_SESSION['impersonator']['email']);
 $_SESSION['email'] = $target; $_SESSION['name'] = $name; unset($_SESSION['staff']);
+$_SESSION['pic'] = ''; // the staff photo format doesn't apply to the agent; let the forced recheck below fetch theirs
 $_SESSION['checked'] = 0; // forces guard.php to re-check the roster as this agent on the very next page load
 header('Location: home.php'); exit;
