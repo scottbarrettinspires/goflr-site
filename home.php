@@ -173,7 +173,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     </div>
   </div>
 <?php endif; ?>
-<?php if ($isStaff) require __DIR__ . "/msg_panel.php"; ?>
 <?php if ($coNew): ?>
   <a class="panel sigbox" href="collab.php" style="display:flex;align-items:center;gap:12px;border-left:5px solid #2e8b57;margin:0 0 16px;text-decoration:none;color:inherit">
     <span style="font-size:1.6rem" aria-hidden="true">&#128172;</span>
