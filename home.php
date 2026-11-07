@@ -20,17 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (str
     if ($aid !== '') { flr_ann_dismiss($me, $aid); sg_script_post(['op' => 'dismissann', 'email' => $me, 'id' => $aid]); }
     header('Location: home.php'); exit;
 }
-// A note to the office (from an agent) or to the team (from staff) -- anyone signed in can send one.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && isset($_POST['officemsg'])) {
-    require_once __DIR__ . "/msglib.php";
-    msg_add($me, trim($_SESSION['name'] ?? ''), $isStaff, (string)$_POST['officemsg']);
-    header('Location: home.php' . ($isStaff ? '#messages' : '')); exit;
-}
-// Staff marked a message handled.
-if ($isStaff && $_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && isset($_POST['msgdone'])) {
-    require_once __DIR__ . "/msglib.php";
-    msg_done((int)$_POST['msgdone'], $me);
-    header('Location: home.php#messages'); exit;
+// Messages: send (agent -> staff; staff -> one / group / all agents or staff) and dismiss. See msglib.php.
+require_once __DIR__ . "/msglib.php";
+$msgErr = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && (isset($_POST['msgbody']) || isset($_POST['msgdismiss']))) {
+    $msgErr = om_handle_post($me, trim($_SESSION['name'] ?? ''), $isStaff);
 }
 $anns = flr_announcements($me);
 $dlUpcoming = []; $hotN = 0; $newN = 0; $hotNames = []; $newLeads = []; $unreached = [];
@@ -57,14 +51,12 @@ if (!$isStaff) {
     }
     $unsent = sg_draft_unsent($me);
 }
-$rcrDue = []; $officeMsgs = []; $agentDates = [];
+$rcrDue = []; $agentDates = [];
 if ($isStaff) {
     require_once __DIR__ . "/rcrlib.php";
-    require_once __DIR__ . "/msglib.php";
     list($rAgent, $rPhone) = rcr_me();
     $rcrDue = array_values(array_filter(rcr_view($rAgent, $rPhone), function ($R) { return isset($R['over']) && $R['over'] >= 0; }));
     usort($rcrDue, function ($a, $b) { return $b['over'] - $a['over']; });
-    $officeMsgs = msg_list(true, 20);
     $agentDates = flr_agent_dates();
 }
 $full = trim($_SESSION['name'] ?? '');
@@ -142,6 +134,7 @@ foreach ($FLR_EVENTS as $ev) {
 </section>
 
 <main class="wrap">
+<?php require __DIR__ . "/msg_panel.php"; ?>
 <?php if ($isStaff): ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
@@ -181,23 +174,6 @@ foreach ($FLR_EVENTS as $ev) {
   </div>
 <?php endif; ?>
 <?php require __DIR__ . "/dashboard_body.php"; ?>
-  <div class="panel sigbox" id="messages" style="margin:16px 0">
-    <h2 style="margin-top:0">Messages <?php if ($officeMsgs): ?><span style="font-size:.85rem;color:#5a6a6c;font-weight:400">(<?= count($officeMsgs) ?> open)</span><?php endif; ?></h2>
-<?php if (!$officeMsgs): ?>
-    <p class="note">Nothing open. Agents can send a note from their Home page, and it shows up here for any staff account.</p>
-<?php else: foreach ($officeMsgs as $m): ?>
-    <div style="padding:10px 0;border-top:1px solid var(--line)">
-      <p style="margin:0 0 4px"><strong><?= htmlspecialchars($m['from_name'] ?: $m['from_email']) ?></strong> <span style="color:#5a6a6c;font-size:.85rem"><?= !empty($m['from_staff']) ? '· staff' : '· agent' ?> · <?= htmlspecialchars(date('M j, g:ia', strtotime($m['created']))) ?></span></p>
-      <p style="white-space:pre-line;margin:0 0 6px"><?= htmlspecialchars($m['body']) ?></p>
-      <form method="post"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="msgdone" value="<?= (int)$m['id'] ?>"><button class="btn sm ghost" type="submit">Mark handled</button></form>
-    </div>
-<?php endforeach; endif; ?>
-    <form method="post" style="margin-top:14px">
-      <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-      <textarea name="officemsg" rows="2" placeholder="Post a note for the team..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit"></textarea>
-      <p style="margin:8px 0 0"><button class="btn sm" type="submit">Post</button></p>
-    </form>
-  </div>
 <?php else: ?>
   <div class="panel sigbox" id="appcard" hidden style="border-left:5px solid #036f72;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <div style="flex:1;min-width:220px"><strong>&#128242; Put FLR Office on your phone.</strong><br><span style="font-size:.88rem;color:#5a6a6c">Install it from the browser, no app store, and get an alert for every new lead.</span></div>
@@ -303,15 +279,6 @@ if(!st&&!dis){c.hidden=false;}else{c.style.display="none";}document.getElementBy
       <p>Nothing due in the next 14 days. Enter dates on a buyer or seller record's Contract Deadlines panel.</p>
 <?php endif; ?>
     </a>
-  </div>
-  <div class="panel sigbox" style="margin:16px 0">
-    <h2 style="margin-top:0">Message the office</h2>
-    <p class="note">Need something from Scott or Lindsay? Send a note and it shows up on their Home page.</p>
-    <form method="post">
-      <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
-      <textarea name="officemsg" rows="2" placeholder="Type your message..." style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit"></textarea>
-      <p style="margin:8px 0 0"><button class="btn sm" type="submit">Send</button></p>
-    </form>
   </div>
 <?php if ($needFile): ?>
 <script>
