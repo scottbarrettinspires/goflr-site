@@ -78,6 +78,10 @@ foreach ($FLR_EVENTS as $ev) {
     $end = DateTime::createFromFormat('Y-m-d g:i A', $ev['date'] . ' ' . ($ev['end'] ?: '11:59 PM'), $tz);
     if ($end && $end >= $now) { $next = $ev; $dt = new DateTime($ev['date'], $tz); break; }
 }
+// If the next event is one of a pair (same training in person and on Zoom), show both remaining sessions together.
+$nextGroup = [];
+if ($next) { foreach (flr_event_groups(array_values(array_filter($FLR_EVENTS, function ($e) { return !flr_event_past($e); }))) as $g) { if (in_array($next, $g, true)) { $nextGroup = $g; break; } } }
+if (!$nextGroup && $next) $nextGroup = [$next];
 ?>
 <!doctype html>
 <html lang="en">
@@ -129,18 +133,14 @@ foreach ($FLR_EVENTS as $ev) {
 .omicon:hover{background:var(--teal-soft)}.ombadge{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid var(--white)}</style>
 <?php if ($next): ?>
   <div class="nextup">
-    <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span><?= $dt->format('j') ?></span></div>
+    <?php $nd = flr_group_days($nextGroup); ?>
+    <div class="tile"><b><?= strtoupper($dt->format('M')) ?></b><span<?= strpos($nd, '–') !== false ? ' class="range"' : '' ?>><?= $nd ?></span></div>
     <div class="nb">
-      <span class="tag">Next up &middot; <?= htmlspecialchars($next['type']) ?></span>
+      <span class="tag">Next up &middot; <?= htmlspecialchars(flr_group_tag($nextGroup)) ?></span>
       <h2><?= htmlspecialchars($next['title']) ?></h2>
-      <div class="meta"><?= htmlspecialchars($dt->format('l')) ?><?= $next['start'] ? ' &middot; ' . htmlspecialchars($next['start'] . ' – ' . $next['end']) : '' ?><?= $next['where'] ? ' &middot; ' . htmlspecialchars($next['where']) : '' ?></div>
-<?php if ($next['zoom'] || $next['rsvp']): ?>
-      <div class="row">
-        <?php if ($next['zoom']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['zoom']) ?>">Join on Zoom</a><?php endif; ?>
-        <?php if ($next['rsvp']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a><?php endif; ?>
-      </div>
+<?php if ($next['rsvp']): ?>      <div class="row" style="margin:6px 0 0"><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($next['rsvp']) ?>">RSVP form</a></div>
 <?php endif; ?>
-      <?php $nk = flr_event_key($next); echo er_widget($next, er_for([$nk])[$nk] ?? []), er_assets(); ?>
+      <?= er_sessions($nextGroup, er_for(array_map('flr_event_key', $nextGroup)), false), er_assets() ?>
     </div>
   </div>
 <?php endif; ?>

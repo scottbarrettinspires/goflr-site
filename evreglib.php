@@ -33,6 +33,22 @@ function er_set($evKey, $on) {
     return '';
 }
 
+const ER_ZOOM_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m22 8-6 4 6 4z"/></svg>';
+const ER_PLACE_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+
+// Each session of a card on its own line -- day, time, place -- with that session's Zoom / Register / who's going.
+// $full: true = full address (Training page), false = short place (Home card).
+function er_sessions(array $group, array $regs, $full = true) {
+    $h = '<div class="ersess">';
+    foreach ($group as $e) {
+        $place = $full ? $e['address'] : $e['where'];
+        $h .= '<div class="ers"><div class="erwhen">' . ($e['zoom'] !== '' ? ER_ZOOM_ICON : ER_PLACE_ICON) . '<span><b>' . htmlspecialchars(date('l, M j', strtotime($e['date']))) . '</b>'
+            . htmlspecialchars(($e['start'] !== '' ? ' · ' . $e['start'] . ' – ' . $e['end'] : '') . ($place !== '' ? ' · ' . $place : '')) . '</span></div>'
+            . er_widget($e, $regs[flr_event_key($e)] ?? []) . '</div>';
+    }
+    return $h . '</div>';
+}
+
 // The Register button + "who's going" headshots for one event. $regs = that event's rows from er_for().
 function er_widget($e, array $regs) {
     if ($e['status'] !== '') return '';
@@ -45,6 +61,8 @@ function er_widget($e, array $regs) {
     usort($people, function ($a, $b) { return $b['me'] <=> $a['me']; }); // you first
     $n = count($people);
     $h = '<div class="ereg" data-key="' . htmlspecialchars($key) . '">';
+    // Zoom sessions: the join link sits right beside Register, same size.
+    if ($e['zoom'] !== '' && !flr_event_past($e)) $h .= '<a class="btn erzoom" target="_blank" rel="noopener" href="' . htmlspecialchars($e['zoom']) . '">' . ER_ZOOM_ICON . 'Join on Zoom</a>';
     if ($open) {
         $h .= $mine ? '<button type="button" class="btn ghost erbtn on" data-on="0" title="Tap to cancel your registration">&#10003; You\'re registered</button>'
                     : '<button type="button" class="btn erbtn" data-on="1">Register</button>';
@@ -74,7 +92,13 @@ function er_assets() {
     return <<<HTML
 <style>
 .ereg{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px;position:relative}
-.erbtn{border:0;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600;padding:6px 14px;line-height:1.4}.erbtn.on{color:#2e7d32;border:1px solid #2e7d32;background:#eef7ef}
+.erbtn,.erzoom{border:1px solid transparent;box-sizing:border-box;cursor:pointer;font:inherit;font-size:.88rem;font-weight:600;padding:6px 14px;line-height:1.4}
+.erzoom{display:inline-flex;align-items:center;gap:6px;text-decoration:none}.erzoom svg{flex:0 0 auto}
+.ersess{margin-top:10px;border-top:1px solid var(--line,#d7e2e2)}
+.ers{padding:10px 0;border-bottom:1px solid var(--line,#d7e2e2)}.ers:last-child{border-bottom:0;padding-bottom:0}
+.erwhen{display:flex;gap:8px;align-items:flex-start;font-size:.9rem;color:#455355}.erwhen svg{flex:0 0 auto;margin-top:3px;color:var(--teal,#036f72)}
+.ers .ereg{margin-top:8px}
+.tile span.range{font-size:1.25rem;letter-spacing:-.02em}.erbtn.on{color:#2e7d32;border:1px solid #2e7d32;background:#eef7ef}
 .erwho{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;max-width:100%;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
 .erwho:hover .ertxt{text-decoration:underline}
 .erstack{display:flex;padding-left:6px}

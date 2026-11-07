@@ -158,5 +158,30 @@ function flr_event_past($e) { return flr_event_end($e) < new DateTime('now', new
 function flr_event_open($e) { return $e['status'] === '' && !flr_event_past($e); }
 function flr_event_by_key($key) { global $FLR_SCHEDULE; foreach ($FLR_SCHEDULE as $e) { if (flr_event_key($e) === $key) return $e; } return null; }
 
+// Paired sessions: the same training taught twice (Wednesday 11 AM in person, Thursday 5 PM on Zoom) shows as one card
+// with both sessions. Events group when they have the same title and fall within 3 days of each other; holidays and
+// cancellations always stand alone. Each session keeps its own registration.
+function flr_event_groups(array $events) {
+    $groups = [];
+    foreach ($events as $e) {
+        $last = count($groups) - 1;
+        if ($e['status'] === '' && $last >= 0 && $groups[$last][0]['status'] === '' && $groups[$last][0]['title'] === $e['title']
+            && (strtotime($e['date']) - strtotime($groups[$last][0]['date'])) <= 3 * 86400) { $groups[$last][] = $e; continue; }
+        $groups[] = [$e];
+    }
+    return $groups;
+}
+// Tag for a card: a pair taught in person and on Zoom says so; otherwise the event's own type.
+function flr_group_tag(array $g) {
+    if (count($g) < 2) return $g[0]['type'];
+    $zoom = count(array_filter($g, function ($e) { return $e['zoom'] !== ''; }));
+    return ($zoom && $zoom < count($g)) ? preg_replace('/ on Zoom$/', '', $g[0]['type']) . ' · In person & on Zoom' : $g[0]['type'];
+}
+// The day number(s) on a card's date tile: "11" or "11–12" (or "30–2" across a month end; the month shown is the first).
+function flr_group_days(array $g) {
+    $a = (int)date('j', strtotime($g[0]['date'])); $b = (int)date('j', strtotime(end($g)['date']));
+    return $a === $b ? (string)$a : $a . '–' . $b;
+}
+
 // Real events only (no holidays or cancellations), in date order -- what the Home "Next up" card picks from.
 $FLR_EVENTS = array_values(array_filter($FLR_SCHEDULE, function ($e) { return $e['status'] === ''; }));

@@ -46,14 +46,19 @@ $regs = er_for(array_map('flr_event_key', $upcoming));
 
 <main class="wrap">
   <div class="events">
-<?php foreach ($upcoming as $e): $d = new DateTime($e['date']); $cls = $e['status'] === 'cancelled' ? ' cx' : ($e['status'] === 'holiday' ? ' hol' : ''); ?>
-<article class="card ev<?= $cls ?>" data-date="<?= htmlspecialchars($e['date']) ?>">
-  <div class="tile"><b><?= strtoupper($d->format('M')) ?></b><span><?= $d->format('j') ?></span></div>
-  <div class="body"><span class="tag"><?= htmlspecialchars($e['status'] === 'cancelled' ? 'Cancelled' : $e['type']) ?></span><h2><?= htmlspecialchars($e['title']) ?></h2>
+<?php foreach (flr_event_groups($upcoming) as $g): $e = $g[0]; $d = new DateTime($e['date']); $days = flr_group_days($g);
+      $cls = $e['status'] === 'cancelled' ? ' cx' : ($e['status'] === 'holiday' ? ' hol' : ''); ?>
+<article class="card ev<?= $cls ?>" data-date="<?= htmlspecialchars(end($g)['date']) ?>">
+  <div class="tile"><b><?= strtoupper($d->format('M')) ?></b><span<?= strpos($days, '–') !== false ? ' class="range"' : '' ?>><?= $days ?></span></div>
+  <div class="body"><span class="tag"><?= htmlspecialchars($e['status'] === 'cancelled' ? 'Cancelled' : flr_group_tag($g)) ?></span><h2><?= htmlspecialchars($e['title']) ?></h2>
+<?php if ($e['status'] !== ''): ?>
     <div class="meta"><?= htmlspecialchars(implode(' · ', array_filter([$d->format('l'), $e['start'] !== '' ? $e['start'] . ' – ' . $e['end'] : '', $e['address']]))) ?></div>
+<?php endif; ?>
     <p><?= htmlspecialchars($e['desc']) ?></p>
-    <div class="row"><?php if ($e['status'] === ''): ?><?php if ($e['zoom']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($e['zoom']) ?>">Join on Zoom</a><?php endif; ?><?php if ($e['rsvp']): ?><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($e['rsvp']) ?>">RSVP form</a><?php endif; ?><?php endif; ?></div>
-    <?= er_widget($e, $regs[flr_event_key($e)] ?? []) ?>
+<?php if ($e['status'] === ''): ?>
+    <?php if ($e['rsvp']): ?><div class="row"><a class="btn" target="_blank" rel="noopener" href="<?= htmlspecialchars($e['rsvp']) ?>">RSVP form</a></div><?php endif; ?>
+    <?= er_sessions($g, $regs, true) ?>
+<?php endif; ?>
   </div>
 </article>
 <?php endforeach; ?>
