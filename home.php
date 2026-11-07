@@ -206,17 +206,24 @@ if (!$nextGroup && $next) $nextGroup = [$next];
   </div>
 <?php endif; ?>
 <?php if ($agentDates): ?>
-  <div class="panel sigbox" style="border-left:5px solid #7a4fc9;margin-bottom:16px">
-    <p><span class="tag" style="background:#ece3fb;color:#5b3aa0">Birthdays &amp; anniversaries</span></p>
+  <div class="panel sigbox celeb">
+    <h2>&#127881; Let's Celebrate With Our Agents! &#127881;</h2>
 <?php foreach ($agentDates as $D):
-        $isToday = (int)($D['daysAway'] ?? 99) === 0;
-        $label = $D['type'] === 'anniversary' ? ((int)($D['years'] ?? 0)) . ' year' . ((int)($D['years'] ?? 0) === 1 ? '' : 's') . ' with FLR' : 'Birthday';
-        $when = $isToday ? 'Today' : (((int)($D['daysAway'] ?? 0) === 1) ? 'Tomorrow' : 'In ' . (int)($D['daysAway'] ?? 0) . ' days'); ?>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)">
-      <div style="flex:1;min-width:180px"><strong><?= htmlspecialchars($D['name'] ?? '') ?></strong> &middot; <?= htmlspecialchars($label) ?><br><span style="font-size:.85rem;color:#5a6a6c"><?= htmlspecialchars($when) ?><?= empty($D['postOk']) ? ' · not cleared to post' : '' ?></span></div>
+        $yrs = (int)($D['years'] ?? 0);
+        $what = $D['type'] === 'anniversary' ? '&#127882; ' . $yrs . ' year' . ($yrs === 1 ? '' : 's') . ' with FLR' : '&#127874; Birthday';
+        $who = om_person('agent:' . ($D['agent_id'] ?? ''), (string)($D['name'] ?? ''));
+        $day = !empty($D['date']) ? date('l, F j', strtotime($D['date'])) : ''; ?>
+    <div class="celrow">
+      <span class="celav"><span><?= htmlspecialchars($who['ini']) ?></span><?php if ($who['photo']): ?><img src="<?= htmlspecialchars($who['photo']) ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></span>
+      <div class="celtx"><strong><?= htmlspecialchars($D['name'] ?? '') ?></strong><span class="celwhat"><?= $what ?></span><span class="celday"><?= htmlspecialchars($day) ?></span></div>
     </div>
 <?php endforeach; ?>
   </div>
+<style>.celeb{border-left:5px solid #7a4fc9;margin-bottom:16px;padding:16px 20px}.celeb h2{margin:0 0 6px;font-size:1.12rem;color:#5b3aa0}
+.celrow{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.celav{position:relative;flex:0 0 48px;width:48px;height:48px;border-radius:50%;overflow:hidden;background:#ece3fb;color:#5b3aa0;font-weight:700;display:flex;align-items:center;justify-content:center}
+.celav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.celtx{display:flex;flex-direction:column;line-height:1.35}.celwhat{font-size:.92rem}.celday{font-size:.85rem;color:#5a6a6c}</style>
 <?php endif; ?>
 <?php require __DIR__ . "/dashboard_body.php"; ?>
 <?php else: ?>

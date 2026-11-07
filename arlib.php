@@ -147,11 +147,11 @@ function ar_upcoming_dates($days = 14, $today = null) {
         $f = $r['fields']; $name = $r['preferred_name'] !== '' ? $r['preferred_name'] : $r['full_name']; if ($name === '') continue;
         if (preg_match('/^(\d{1,2})-(\d{1,2})$/', $f['birthdate'] ?? '', $m) && ($c = $next((int)$m[1], (int)$m[2]))) {
             $da = (int)$t->diff($c)->days;
-            if ($da <= $days) $out[] = ['type' => 'birthday', 'name' => $name, 'email' => $r['email'], 'monthDay' => $c->format('m-d'), 'daysAway' => $da, 'postOk' => ar_yes($f['birthday_post_ok'] ?? '')];
+            if ($da <= $days) $out[] = ['type' => 'birthday', 'name' => $name, 'email' => $r['email'], 'agent_id' => $r['agent_id'], 'date' => $c->format('Y-m-d'), 'monthDay' => $c->format('m-d'), 'daysAway' => $da, 'postOk' => ar_yes($f['birthday_post_ok'] ?? '')];
         }
         if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $f['date_hired'] ?? '', $m) && ($c = $next((int)$m[2], (int)$m[3]))) {
             $da = (int)$t->diff($c)->days; $yrs = (int)$c->format('Y') - (int)$m[1];
-            if ($da <= $days && $yrs >= 1) $out[] = ['type' => 'anniversary', 'name' => $name, 'email' => $r['email'], 'monthDay' => $c->format('m-d'), 'daysAway' => $da, 'years' => $yrs, 'postOk' => ar_yes($f['anniversary_post_ok'] ?? '')];
+            if ($da <= $days && $yrs >= 1) $out[] = ['type' => 'anniversary', 'name' => $name, 'email' => $r['email'], 'agent_id' => $r['agent_id'], 'date' => $c->format('Y-m-d'), 'monthDay' => $c->format('m-d'), 'daysAway' => $da, 'years' => $yrs, 'postOk' => ar_yes($f['anniversary_post_ok'] ?? '')];
         }
     }
     usort($out, function ($a, $b) { return [$a['daysAway'], $a['name']] <=> [$b['daysAway'], $b['name']]; });
