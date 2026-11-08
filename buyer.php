@@ -143,16 +143,11 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <p style="margin-top:14px"><a class="btn ghost" href="my-transactions.php">Create a new buyer record in Active Business</a></p>
   </div>
 <?php else: ?>
-<?php if ($buyer || $pastStage1) echo lb_box($me, 'buyer', $tx, $info); ?>
-<?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info); ?>
+<?php if ($buyer || $pastStage1) { require_once __DIR__ . '/recview.php'; echo rv_css(); echo '<p class="rvback"><a href="my-transactions.php">&larr; Back to Active Business</a></p>'; echo rv_header($me, 'buyer', $tx, (array)($recAny ?? $buyer ?? []), $info); } ?>
+<?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info, false); ?>
 <?php if ($buyer || $pastStage1) { require_once __DIR__ . '/signed_panel.php'; echo sg_panel($me, $tx, (string)($buyer['name'] ?? $recAny['name'] ?? '')); } ?>
 <?php if ($buyer || $pastStage1): ?>
-  <div class="panel sigbox">
-    <h2 style="margin-top:0"><?= htmlspecialchars($recAny['name'] ?? $buyer['name'] ?? '') ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($recAny['stage_name'] ?: 'Buyer') ?></span></h2>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
-    <p class="note">Use the pencil next to the buyer's name above to edit contact info, mailing address, or payment/lender details. Use the Pipeline Stage ladder to move the deal forward (including Make An Offer) and the Contract Deadlines panel to keep tracking it.</p>
-    <p style="margin-top:10px"><a class="btn ghost" href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a> <a class="btn ghost" href="buyer.php">All buyer records</a></p>
-  </div>
 <?php else: ?>
   <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
     <h2><?= htmlspecialchars($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer') ?></h2>

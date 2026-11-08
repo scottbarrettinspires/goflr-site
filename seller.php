@@ -90,12 +90,14 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php endif; ?>
   </div>
 <?php else: ?>
-<?= lb_box($me, 'seller', $tx, $info) ?>
-<?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0), (string)($rec['name'] ?? ''), $info) ?>
+<?php require_once __DIR__ . '/recview.php'; echo rv_css(); ?>
+  <p class="rvback"><a href="my-transactions.php">&larr; Back to Active Business</a></p>
+<?= rv_header($me, 'seller', $tx, $rec, $info) ?>
+<?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0), (string)($rec['name'] ?? ''), $info, false) ?>
 <?= dl_box($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx)) ?>
 <?php require_once __DIR__ . '/signed_panel.php'; echo sg_panel($me, $tx, (string)($rec['name'] ?? '')); ?>
-  <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
-    <h2><?= htmlspecialchars($rec['name']) ?> <span style="font-size:.85rem;font-weight:600;color:#036f72;background:#e1f3f2;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars($rec['stage_name'] ?: 'Seller') ?></span> <span style="font-size:.85rem;font-weight:600;color:<?= htmlspecialchars(ps_fg('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;background:<?= htmlspecialchars(ps_color('seller', ps_get($tx, 'seller', (int)($rec['stage'] ?? 0)))) ?>;border-radius:99px;padding:3px 10px;vertical-align:middle"><?= htmlspecialchars(PS_STAGES['seller'][ps_get($tx, 'seller', (int)($rec['stage'] ?? 0))] ?? '') ?></span></h2>
+  <details class="panel sigbox"<?= ($msg || $err) ? ' open' : '' ?>><summary style="cursor:pointer;font-weight:700;font-size:1.05rem">Seller details, property and mailing address</summary>
+  <form method="post" class="bi" style="margin-top:12px" autocomplete="off" data-lpignore="true" data-form-type="other">
 <?php if ($old): ?><p class="note">Seller details can be viewed and saved here after the office script is updated to v26. The lead box above works now.</p><?php endif; ?>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
@@ -116,6 +118,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     </fieldset>
     <p><?php if (!$old): ?><button type="submit" class="btn">Save seller info</button> <?php endif; ?><a class="btn ghost" href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the listing folder</a> <a class="btn ghost" href="seller.php">All seller records</a></p>
   </form>
+  </details>
 <?php endif; ?>
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>

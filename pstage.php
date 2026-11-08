@@ -162,11 +162,11 @@ function ps_contact_bar($side, $tx, array $info) {
 // first stage at the bottom and Closing Completed at the top), the buyer/seller's name and contact info above it with
 // an edit pencil, and — for buyer records — the selected stage's screen in a panel beside the ladder, so clicking a
 // stage shows its content right there instead of leaving the page or opening a new window.
-function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = []) {
+function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $contact = true) {
     $h = function ($s) { return htmlspecialchars((string)$s); };
     $cur = ps_get($tx, $side, $driveStage);
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
-    $o .= ps_contact_bar($side, $tx, $info);
+    $o .= $contact ? ps_contact_bar($side, $tx, $info) : '<h2 style="margin:0 0 12px;font-size:1.15rem">Pipeline stage</h2>';
     $o .= '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">';
     // Left: the stage ladder, acting as a menu.
     $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;width:260px">';
