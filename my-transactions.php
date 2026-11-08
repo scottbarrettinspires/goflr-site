@@ -201,15 +201,17 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
       <h3 class="mh"><?= date('M j', $mStart) ?> &ndash; <?= date('M j', $mEnd) ?> <span>(<?= $mCount ?> due<?= $mOver ? ', ' . count($mOver) . ' overdue' : '' ?>)</span></h3>
 <?php if ($mOver): ?>      <div class="mover"><span class="mol">Overdue</span><?php foreach ($mOver as $d) echo $item($d, 'red'); ?></div>
 <?php endif; ?>
-      <div class="mcal">
+      <div class="mcal<?= $mCount ? "" : " mempty" ?>">
 <?php foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $wd): ?>        <div class="mwd"><?= $wd ?></div>
 <?php endforeach; foreach ($mCells as $day => $items): $t = strtotime($day); $past = $day < $todayD; $off = dl_offday($day); ?>
-        <div class="mc<?= $day === $todayD ? ' today' : '' ?><?= $past ? ' past' : '' ?><?= $off !== '' ? ' off' : '' ?>">
-          <div class="mdh"><span class="mwn"><?= date('D', $t) ?></span><span class="md"><?= date('j', $t) === '1' || $day === date('Y-m-d', $mStart) ? date('M j', $t) : date('j', $t) ?></span><?= ($off !== '' && $off !== 'Saturday' && $off !== 'Sunday') ? '<span class="mhol">' . htmlspecialchars($off) . '</span>' : '' ?></div>
+        <div class="mc<?= $day === $todayD ? ' today' : '' ?><?= $past ? ' past' : '' ?><?= $off !== '' ? ' off' : '' ?><?= $items ? '' : ' none' ?>">
+          <div class="mdh"><span class="mwn"><?= date('D', $t) ?></span><span class="md"><?= date('j', $t) === '1' || $day === date('Y-m-d', $mStart) ? date('M j', $t) : date('j', $t) ?></span><span class="mmo"><?= date('M', $t) ?></span><?= ($off !== '' && $off !== 'Saturday' && $off !== 'Sunday') ? '<span class="mhol">' . htmlspecialchars($off) . '</span>' : '' ?></div>
           <div class="wki"><?php foreach ($items as $d) echo $item($d, $d['left'] <= 0 ? 'red' : ($d['left'] <= 3 ? 'amber' : '')); ?></div>
         </div>
 <?php endforeach; ?>
       </div>
+<?php if (!$mCount): ?>      <p class="empty mnone0">Nothing due in the next 4 weeks.</p>
+<?php endif; ?>
       <p style="margin:10px 0 0;font-size:.85rem;color:#5a6a6c">A deadline that falls on a weekend or holiday shows on the next business day. <a href="deadlines.php">Open the full deadlines list</a></p>
     </div>
     <p style="margin:10px 0 0;text-align:right;font-size:.88rem"><a href="deadlines.php" id="dlmore" role="button" aria-expanded="false" aria-controls="dlmonth" style="font-weight:600">See all upcoming deadlines &darr;</a></p>
@@ -241,8 +243,8 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 .mwd{background:#f3f6f6;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5a6a6c;padding:6px 0}
 .mc{background:#fff;min-height:96px;padding:6px;display:flex;flex-direction:column;gap:5px;min-width:0}.mc.off{background:#f8fafa}.mc.past{background:#fafbfb}.mc.past .mdh{opacity:.45}
 .mdh{display:flex;align-items:center;gap:6px;font-size:.8rem;color:#1f2a2c}.mdh .mwn{display:none}.mdh .md{font-weight:600;min-width:24px;height:24px;padding:0 4px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center}
-.mc.today .md{background:var(--teal);color:#fff}.mhol{font-size:.66rem;color:#8a9a9c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.past:not(.today){display:none}.mc:has(.wki:empty):not(.today){display:none}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
+.mdh .mmo{display:none}.mc.today .md{background:var(--teal);color:#fff}.mhol{font-size:.66rem;color:#8a9a9c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.none,.mc.past{display:none}.mcal{background:#fff}.mc+.mc{border-top:1px solid var(--line)}.mcal.mempty{display:none}.mdh .mmo{display:block;font-size:.7rem;color:#8a9a9c;padding-left:4px}.mdh .md{font-size:.95rem}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
 </style>
   <div class="lpanel" id="clients"><h2>Your clients</h2>
     <div class="ovsub"><span>Buyers (<?= count($ovB) ?>)</span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
