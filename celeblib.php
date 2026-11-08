@@ -32,6 +32,7 @@ function cb_run($force = false) {
         if (time() - (int)$q->fetchColumn() < 60) return 0;
         $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute([$flag, (string)time()]);
     }
+    cb_log('run');
     $n = cb_examples();
     foreach (ar_upcoming_dates(0) as $D) {
         if ((int)$D['daysAway'] !== 0 || empty($D['postOk'])) continue;

@@ -3,7 +3,7 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php"; // flr_is_broker()
 require_once __DIR__ . "/collablib.php";
-require_once __DIR__ . "/celeblib.php"; try { cb_run(); } catch (Throwable $e) {} // birthday / workiversary posts for today
+require_once __DIR__ . "/celeblib.php"; try { cb_run(); } catch (Throwable $e) { @file_put_contents(__DIR__ . '/logs/celebrate.log', date('c') . ' cb_run failed: ' . get_class($e) . ': ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine() . "\n", FILE_APPEND); } // birthday / workiversary posts for today
 require __DIR__ . "/subpage.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = co_me();

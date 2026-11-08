@@ -2,7 +2,7 @@
 // "Let's Celebrate With Our Agent Family!" card on Home (staff and agents): upcoming birthdays and work anniversaries
 // (next 14 days, Active agents, from the server Agent Records table), two across, with headshots. Expects $agentDates.
 if (!isset($agentDates)) { http_response_code(404); exit; }
-require_once __DIR__ . '/celeblib.php'; try { cb_run(); } catch (Throwable $e) {} // today's celebration posts go up on the first visit of the day
+require_once __DIR__ . '/celeblib.php'; try { cb_run(); } catch (Throwable $e) { @file_put_contents(__DIR__ . '/logs/celebrate.log', date('c') . ' cb_run failed: ' . get_class($e) . ': ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine() . "\n", FILE_APPEND); } // today's celebration posts go up on the first visit of the day
 ?>
 <?php if ($agentDates): ?>
   <div class="panel sigbox celeb">
