@@ -36,7 +36,7 @@ $findL = function ($id) use ($me) { foreach (ld_load($me)['leads'] as $x) { if (
 if ($act === 'startseller') {
     $L0 = $findL((string)($j['id'] ?? '')); if (!$L0) out(['ok' => false, 'msg' => 'That lead was not found.']);
     $addr = trim(preg_replace('/\s+/', ' ', (string)($j['address'] ?? '')));
-    if ($addr === '' || strlen($addr) > 100 || preg_match('/[\\\/:*?"<>|]/', $addr)) out(['ok' => false, 'msg' => 'Enter the property address (no slashes or special characters).']);
+    if ($addr === '' || strlen($addr) > 100 || preg_match('~[\\\\/:*?"<>|]~', $addr)) out(['ok' => false, 'msg' => 'Enter the property address (no slashes or special characters).']);
     $root = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=mytxroot&email=' . urlencode($me));
     if (!is_array($root) || empty($root['ok'])) out(['ok' => false, 'msg' => 'Could not find your Active Business folder.']);
     $nm = trim(($L0['first'] ?? '') . ' ' . ($L0['last'] ?? ''));

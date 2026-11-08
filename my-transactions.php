@@ -3,6 +3,7 @@ require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
 require_once __DIR__ . "/pstage.php";
 $me = $_SESSION['email'];
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $side = (($_GET['side'] ?? '') === 'seller') ? 'seller' : 'buyer';
 $buyers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'buyer'; }));
 $sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'seller'; }));
@@ -94,6 +95,16 @@ try { require_once __DIR__ . '/signed_panel.php'; $txAll = flr_tx_list($me);
 .ltabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
 .ltabs a .n{font-size:.72rem;font-weight:700;background:rgba(0,0,0,.08);border-radius:99px;padding:1px 7px}.ltabs a.on .n{background:rgba(255,255,255,.25)}
 .ltabs .srcbtn{margin-left:auto;font-weight:600;color:#4b5b5d}
+.ltabs a.addtab{background:#e07b39;border-color:#e07b39;color:#fff;font-weight:800}.ltabs a.addtab:hover{background:#c96a2c}
+dialog.nc{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}dialog.nc::backdrop{background:rgba(15,30,32,.45)}
+.nc form{padding:20px 22px}.nc h2{margin:0 0 4px;font-size:1.2rem}.nc .sub{color:#5a6a6c;font-size:.9rem;margin:0 0 14px}
+.ncpick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}.ncpick button{font:inherit;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:#fff;cursor:pointer}
+.ncpick button b{display:block;color:#1f2a2c}.ncpick button span{font-size:.82rem;color:#5a6a6c}.ncpick button.on{border-color:var(--teal);background:var(--teal-soft)}
+.ncg{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ncg label,.nc .full{display:block;font-size:.85rem;color:#455355}.nc .full{margin-top:10px}
+.nc input,.nc select{display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+.nc .acts{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}.nc .acts button{font:inherit;font-weight:600;border-radius:10px;padding:9px 18px;cursor:pointer}
+.nc .go{background:var(--teal);color:#fff;border:0}.nc .cancel{background:#fff;border:1px solid var(--line);color:#3c4646}.nc .err{color:#b71c1c;font-size:.88rem;margin:10px 0 0}
+@media(max-width:520px){.ncg,.ncpick{grid-template-columns:1fr}}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0 0 18px}
 .stat{display:block;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:inherit;text-decoration:none}.stat b{display:block;font-size:1.6rem;line-height:1.1}.stat span{font-size:.82rem;color:#5a6a6c}
 a.stat:hover{border-color:var(--teal)}
@@ -137,10 +148,13 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <main class="wrap">
   <div class="ltabs">
     <a href="my-transactions.php" class="<?= $view === 'overview' ? 'on' : '' ?>" style="<?= $view === 'overview' ? '' : 'color:#5a6a6c;font-weight:600' ?>">Overview</a>
+    <a href="#" class="addtab" id="addclient" role="button">+ ADD</a>
     <a href="my-transactions.php?side=buyer" class="<?= $view === 'buyer' ? 'on' : '' ?>">Buyers <span class="n"><?= count($buyers) ?></span></a>
     <a href="my-transactions.php?side=seller" class="<?= $view === 'seller' ? 'on' : '' ?>">Sellers <span class="n"><?= count($sellers) ?></span></a>
     <a href="forms.php" class="srcbtn">&#128196; Forms</a>
   </div>
+<?php if (!empty($_GET['added'])): ?>  <p class="note">The Pre Listing record is created. It can take a minute to show here.</p>
+<?php endif; ?>
 <?php if ($view === 'overview'): ?>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
 <?php
@@ -212,6 +226,41 @@ if (!$rows): ?>
 <?php else: foreach ($shown as $r) echo ab_row($r, $view); endif; ?>
   </div>
 <?php endif; ?>
+<dialog class="nc" id="ncd"><form method="dialog" id="ncf">
+  <h2>Add a new client</h2>
+  <p class="sub">For a client you're about to sign a buyer agreement with, or a seller you're preparing to list. They're added to Leads &amp; Contacts too, so their history stays in one place.</p>
+  <div class="ncpick"><button type="button" data-k="buyer" class="on"><b>Buyer</b><span>Buyer agreement: starts the buyer record</span></button><button type="button" data-k="seller"><b>Seller</b><span>Prelisting: starts the Pre Listing record</span></button></div>
+  <div class="ncg"><label>First name<input id="nc_first" autocomplete="off"></label><label>Last name<input id="nc_last" autocomplete="off"></label>
+    <label>Phone<input id="nc_phone" inputmode="tel" autocomplete="off"></label><label>Email<input id="nc_email" type="email" autocomplete="off"></label></div>
+  <label class="full" id="nc_addrw" hidden>Property address<input id="nc_addr" placeholder="e.g. 123 Palm Ave, Trinity FL" autocomplete="off"></label>
+  <label class="full">How you got this client<select id="nc_src"><option value="">Choose&hellip;</option><?php require_once __DIR__ . '/leadlib.php'; foreach (LD_SOURCES as $src): ?><option><?= htmlspecialchars($src) ?></option><?php endforeach; ?></select></label>
+  <p class="err" id="nc_err" hidden></p>
+  <div class="acts"><button type="button" class="cancel" id="nc_x">Cancel</button><button type="submit" class="go" id="nc_go">Continue to buyer record</button></div>
+</form></dialog>
+<script>
+(function(){var d=document.getElementById("ncd"),f=document.getElementById("ncf"),kind="buyer",go=document.getElementById("nc_go"),er=document.getElementById("nc_err"),CSRF=<?= json_encode($_SESSION['csrf']) ?>;
+function v(id){return document.getElementById(id).value.trim();}
+function setKind(k){kind=k;f.querySelectorAll(".ncpick button").forEach(function(b){b.classList.toggle("on",b.dataset.k===k);});document.getElementById("nc_addrw").hidden=k!=="seller";go.textContent=k==="seller"?"Create Pre Listing record":"Continue to buyer record";}
+document.getElementById("addclient").addEventListener("click",function(e){e.preventDefault();f.reset();er.hidden=true;setKind("buyer");d.showModal();document.getElementById("nc_first").focus();});
+f.querySelectorAll(".ncpick button").forEach(function(b){b.addEventListener("click",function(){setKind(b.dataset.k);});});
+document.getElementById("nc_x").addEventListener("click",function(){d.close();});
+function api(o){o.csrf=CSRF;return fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw new Error(j.msg||"Something went wrong.");return j;});}
+function fail(m){er.textContent=m;er.hidden=false;go.disabled=false;setKind(kind);}
+f.addEventListener("submit",function(e){e.preventDefault();er.hidden=true;
+  var first=v("nc_first"),last=v("nc_last"),phone=v("nc_phone"),email=v("nc_email"),addr=v("nc_addr"),src=v("nc_src");
+  if(!first&&!last)return fail("Enter the client's name.");if(!phone&&!email)return fail("Enter a phone number or email.");
+  if(kind==="seller"&&!addr)return fail("Enter the property address for the listing.");
+  go.disabled=true;go.textContent=kind==="seller"?"Creating the Pre Listing record...":"Starting the buyer record...";
+  var roles={};roles[kind]="ready";
+  api({action:"save",id:"",lead:{first:first,last:last,phone:phone,email:email,source:src,notes:""},roles:roles,tags:src?[src]:[]}).then(function(j){
+    var L=(j.leads||[]).filter(function(x){return (x.first||"")===first&&(x.last||"")===last&&(x.phone||"")===phone;})[0];if(!L)throw new Error("The client was added, but couldn't be opened. Find them in Leads & Contacts.");
+    if(kind==="buyer"){location.href="buyer.php?new=1&lead="+encodeURIComponent(L.id);return;}
+    return api({action:"startseller",id:L.id,address:addr}).then(function(){location.href="my-transactions.php?side=seller&added=1";},function(e3){
+      go.disabled=true;er.innerHTML="";er.append((first+" "+last).trim()+" was added to Leads & Contacts, but the Pre Listing record couldn't be created: "+e3.message+" ");
+      var a=document.createElement("a");a.href="leads.php?open="+encodeURIComponent(L.id);a.textContent="Open them in Leads & Contacts to try again";er.append(a);er.hidden=false;go.textContent="Not created";});
+  }).catch(function(e2){fail(e2.message);});});
+})();
+</script>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
