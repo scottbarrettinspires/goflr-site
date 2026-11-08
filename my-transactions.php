@@ -156,12 +156,52 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
     <div class="stat green"><b><?= $cnt['closed'] ?></b><span>Closed</span></div>
   </div>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
-<?php if (!$dlSoon): ?>    <p class="empty">Nothing due in the next 7 days.</p>
-<?php else: foreach ($dlSoon as $d): $red = $d['left'] <= 0; ?>
-    <a class="lrow" href="<?= ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']) ?>"><div class="who"><div class="nm"><?= htmlspecialchars($d['label']) ?> &mdash; <?= htmlspecialchars($d['name'] ?: 'untitled record') ?></div><div class="meta"><?= htmlspecialchars(date('D, M j', strtotime($d['date'])) . ($d['offday'] !== '' ? ' (' . $d['offday'] . ' — next business day ' . date('D, M j', strtotime($d['nextbiz'])) . ')' : '')) ?></div></div><span class="due" style="background:<?= $red ? '#fde2e1;color:#b71c1c' : ($d['left'] <= 3 ? '#fdf3dc;color:#8a5a0e' : '#e1f3f2;color:#036f72') ?>"><?= htmlspecialchars(dl_when($d['left'])) ?></span></a>
-<?php endforeach; endif; ?>
-    <p style="margin:6px 0 0;text-align:right;font-size:.88rem"><a href="deadlines.php" style="font-weight:600">See all upcoming deadlines &rarr;</a></p>
+<?php
+    // A week strip like a calendar row: today plus 6 days, each item under the day it's actually due (a deadline on
+    // a weekend or holiday moves to the next business day, and says so). Anything overdue sits in its own first column.
+    require_once __DIR__ . '/notiflib.php';
+    $cols = []; $over = [];
+    for ($k = 0; $k < 7; $k++) $cols[date('Y-m-d', strtotime("+$k days"))] = [];
+    foreach ($dlSoon as $d) { $eff = $d['nextbiz'] ?: $d['date']; if ($d['left'] < 0) $over[] = $d; elseif (isset($cols[$eff])) $cols[$eff][] = $d; }
+    $who = function ($d) { $in = nt_info_cached($d['folder']) ?: []; $p = $d['side'] === 'seller' ? 's' : 'b';
+        $nm = trim((string)($in[$p . '1_name'] ?? '')); $ad = trim((string)($in['property'] ?? ''));
+        if ($nm === '') { $nm = $d['name'] ?: 'Untitled record'; if ($ad === $nm) $ad = ''; } elseif ($ad === '' && $d['name'] !== $nm) $ad = (string)$d['name'];
+        return [$nm, $ad]; };
+    $item = function ($d, $cls) use ($who) { list($nm, $ad) = $who($d);
+        return '<a class="wkit ' . $cls . '" href="' . ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']) . '"><span class="wd">' . htmlspecialchars($d['label']) . '</span><span class="wn">' . htmlspecialchars($nm) . '</span>'
+            . ($ad !== '' ? '<span class="wa">' . htmlspecialchars($ad) . '</span>' : '') . ($d['offday'] !== '' ? '<span class="wo">' . htmlspecialchars('Falls on ' . date('D, M j', strtotime($d['date'])) . (in_array($d['offday'], ['Saturday', 'Sunday'], true) ? '' : ' (' . $d['offday'] . ')') . ', so due the next business day') . '</span>' : '') . '</a>'; };
+?>
+    <div class="wk<?= $over ? ' hasover' : '' ?>">
+<?php if ($over): ?>
+      <div class="wkd over"><div class="wkh"><span class="dn">Overdue</span><span class="dd">!</span></div><div class="wki"><?php foreach ($over as $d) echo $item($d, 'red'); ?></div></div>
+<?php endif; foreach ($cols as $day => $items): $t = strtotime($day); $isToday = $day === date('Y-m-d'); $off = dl_offday($day); ?>
+      <div class="wkd<?= $isToday ? ' today' : '' ?><?= $off !== '' ? ' off' : '' ?>"><div class="wkh"><span class="dn"><?= $isToday ? 'Today' : date('D', $t) ?></span><span class="dd"><?= date('j', $t) ?></span><span class="dm"><?= date('M', $t) ?><?= ($off !== '' && $off !== 'Saturday' && $off !== 'Sunday') ? '<br>' . htmlspecialchars($off) : '' ?></span></div>
+        <div class="wki"><?php if (!$items): ?><span class="wnone">&mdash;</span><?php else: foreach ($items as $d) echo $item($d, $d['left'] <= 0 ? 'red' : ($d['left'] <= 3 ? 'amber' : '')); endif; ?></div>
+      </div>
+<?php endforeach; ?>
+    </div>
+<?php if (!$dlSoon): ?>    <p class="empty" style="padding:10px 0 0">Nothing due in the next 7 days.</p><?php endif; ?>
+    <p style="margin:10px 0 0;text-align:right;font-size:.88rem"><a href="deadlines.php" style="font-weight:600">See all upcoming deadlines &rarr;</a></p>
   </div>
+<style>
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.wk.hasover{grid-template-columns:minmax(0,1fr) repeat(7,minmax(0,1fr))}
+.wkd{border-left:1px solid var(--line);min-height:150px;padding:8px 6px;display:flex;flex-direction:column;gap:6px;min-width:0;background:#fff}.wkd:first-child{border-left:0}
+.wkd.off{background:#f6f8f8}.wkd.today{background:#f0f8f8}.wkd.over{background:#fff6f5}
+.wkh{display:flex;flex-direction:column;align-items:center;padding:0 0 6px;border-bottom:1px solid #edf1f1;margin-bottom:2px}
+.wkh .dn{font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5a6a6c}
+.wkh .dd{font-size:1.45rem;font-weight:500;line-height:1.25;color:#1f2a2c;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.wkh .dm{font-size:.7rem;color:#8a9a9c;text-align:center}
+.wkd.today .wkh .dn{color:var(--teal)}.wkd.today .wkh .dd{background:var(--teal);color:#fff}
+.wkd.over .wkh .dn{color:#b71c1c}.wkd.over .wkh .dd{background:#d32f2f;color:#fff;font-weight:700}
+.wkit{display:flex;flex-direction:column;gap:1px;padding:6px 7px;border-radius:7px;background:#e1f3f2;border-left:3px solid #036f72;text-decoration:none;color:#1f2a2c;font-size:.78rem;line-height:1.3;overflow-wrap:anywhere}
+.wkit:hover{filter:brightness(.96)}.wkit.amber{background:#fdf3dc;border-left-color:#d49a00}.wkit.red{background:#fde2e1;border-left-color:#c0392b}
+.wkit .wd{font-weight:700}.wkit .wn{font-weight:600;color:#2a3638}.wkit .wa{color:#5a6a6c}.wkit .wo{color:#8a5a0e;font-size:.72rem;font-style:italic}
+.wnone{color:#c4cfd0;text-align:center;margin-top:8px}
+.wki{display:flex;flex-direction:column;gap:6px;min-width:0}
+@media(max-width:760px){.wk,.wk.hasover{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
+  .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
+</style>
   <div class="lpanel" id="signed"><h2>Newly signed documents</h2>
 <?php if (!$signedNew): ?>    <p class="empty">No newly signed documents.</p>
 <?php else: foreach ($signedNew as $x): $r = $x['r']; $what = ($r['offer_address'] ?? '') ?: preg_replace('/^[^-]*-\s*/', '', (string)($r['form'] ?? 'Document'));
