@@ -3,6 +3,7 @@
 // GET ?action=closed[&period=month|quarter|ytd|YYYY] -> {ok, period, from, to, buyers:[...], sellers:[...]},
 // each item {folder, name, stage, closed (YYYY-MM-DD or ''), price, address, phone, email, source, url}, plus totals (sides and
 // $ volume; each side counts its full sold price). No period = every closed file. POST action=setprice saves a sold price.
+// &compare=1 adds previous_year: the same period a year earlier, with its totals.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/ablib.php";
 header('Content-Type: application/json'); header('Cache-Control: no-store');
@@ -19,5 +20,12 @@ if ($per !== '' && !in_array($per, ['month', 'quarter', 'ytd'], true) && !preg_m
 $c = ab_closed($_SESSION['email'], $per === '' ? null : $per); $rg = $per === '' ? ['', ''] : ab_period_range($per);
 $map = function ($r, $side) { return ['folder' => $r['t']['folder'], 'name' => $r['nm'], 'stage' => PS_STAGES[$side][$r['k']] ?? $r['k'], 'closed' => $r['closed'], 'price' => $r['price'],
     'address' => $r['addr'], 'phone' => $r['ph'], 'email' => $r['em'], 'source' => $r['src'], 'url' => ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])]; };
-echo json_encode(['ok' => true, 'period' => $per ?: 'all', 'from' => $rg[0], 'to' => $rg[1], 'totals' => ab_totals($c['buyer'], $c['seller']), 'buyers' => array_map(function ($r) use ($map) { return $map($r, 'buyer'); }, $c['buyer']),
+$prevTot = null;
+if (!empty($_GET['compare']) && $per !== '') { // same period a year earlier (ytd: Jan 1 to the same date last year)
+    $lyd = function ($d) { $t = strtotime($d); $y = (int)date('Y', $t) - 1; $m = (int)date('n', $t); return sprintf('%04d-%02d-%02d', $y, $m, min((int)date('j', $t), (int)date('t', mktime(0, 0, 0, $m, 1, $y)))); };
+    $pr = [$lyd($rg[0]), $per === 'ytd' ? $lyd(date('Y-m-d')) : $lyd($rg[1])]; if ($per === 'month' || $per === 'quarter') $pr[1] = date('Y-m-t', strtotime($pr[1]));
+    $allc = ab_closed($_SESSION['email']); $in = function ($r) use ($pr) { return $r['closed'] !== '' && $r['closed'] >= $pr[0] && $r['closed'] <= $pr[1]; };
+    $prevTot = ['from' => $pr[0], 'to' => $pr[1]] + ab_totals(array_values(array_filter($allc['buyer'], $in)), array_values(array_filter($allc['seller'], $in)));
+}
+echo json_encode(['ok' => true, 'period' => $per ?: 'all', 'from' => $rg[0], 'to' => $rg[1], 'totals' => ab_totals($c['buyer'], $c['seller']), 'previous_year' => $prevTot, 'buyers' => array_map(function ($r) use ($map) { return $map($r, 'buyer'); }, $c['buyer']),
     'sellers' => array_map(function ($r) use ($map) { return $map($r, 'seller'); }, $c['seller'])]);

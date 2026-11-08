@@ -10,7 +10,7 @@ $perr = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'setprice') { // sold price for one closed file
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) $perr = 'This page expired. Please reload and try again.';
     else $perr = ab_set_price($me, (string)($_POST['tx'] ?? ''), (string)($_POST['price'] ?? ''));
-    if ($perr === '') { header('Location: performance.php?' . http_build_query(array_filter(['p' => $_GET['p'] ?? '', 'y' => $_GET['y'] ?? ''])) . '#closed'); exit; }
+    if ($perr === '') { header('Location: performance.php?' . http_build_query(array_filter(['p' => $_GET['p'] ?? '', 'y' => $_GET['y'] ?? '', 'cmp' => $_GET['cmp'] ?? ''])) . '#closed'); exit; }
 }
 $all = ab_closed($me); // every closed file, with its closing date
 $thisY = (int)date('Y');
@@ -26,6 +26,19 @@ $pick = function ($rows) use ($p, $rg, $yr) { return array_values(array_filter($
     return $r['closed'] !== '' && $r['closed'] >= $rg[0] && $r['closed'] <= $rg[1]; })); };
 $cb = $pick($all['buyer']); $cs = $pick($all['seller']);
 $tot = ab_totals($cb, $cs);
+// Compare with the same period a year earlier (Year To Date compares with Jan 1 to the same date last year).
+$cmp = !empty($_GET['cmp']) && $rg && $p !== 'nodate' && !($p === 'prev' && !$yr);
+$ly = function ($d) { $t = strtotime($d); $y = (int)date('Y', $t) - 1; $m = (int)date('n', $t); $dd = min((int)date('j', $t), (int)date('t', mktime(0, 0, 0, $m, 1, $y))); return sprintf('%04d-%02d-%02d', $y, $m, $dd); };
+$rgL = null; $cbL = $csL = []; $totL = null;
+if ($cmp) {
+    $rgL = [$ly($rg[0]), $p === 'ytd' ? $ly(date('Y-m-d')) : $ly($rg[1])];
+    if ($p === 'month' || $p === 'quarter') $rgL[1] = date('Y-m-t', strtotime($rgL[1]));
+    $inL = function ($r) use ($rgL) { return $r['closed'] !== '' && $r['closed'] >= $rgL[0] && $r['closed'] <= $rgL[1]; };
+    $cbL = array_values(array_filter($all['buyer'], $inL)); $csL = array_values(array_filter($all['seller'], $inL)); $totL = ab_totals($cbL, $csL);
+}
+$yNow = $rg ? (int)substr($rg[0], 0, 4) : $thisY; $yLast = $yNow - 1;
+$delta = function ($now, $was, $fmt = null) { $d = $now - $was; $f = $fmt ?: function ($x) { return (string)$x; };
+    return $d === 0 ? 'no change' : ($d > 0 ? '▲ ' . $f($d) : '▼ ' . $f(-$d)); };
 // Chart buckets: weeks of the month for Current Month, otherwise months of the period.
 $buckets = [];
 if ($rg && $p !== 'nodate' && !($p === 'prev' && !$yr)) {
@@ -34,7 +47,11 @@ if ($rg && $p !== 'nodate' && !($p === 'prev' && !$yr)) {
     else { for ($t = strtotime($rg[0]); $t <= strtotime($rg[1]); $t = strtotime('+1 month', $t)) $buckets[] = ['lbl' => date('M', $t), 'from' => date('Y-m-01', $t), 'to' => date('Y-m-t', $t)]; }
     foreach ($buckets as &$bk) { $in = function ($r) use ($bk) { return $r['closed'] >= $bk['from'] && $r['closed'] <= $bk['to']; };
         $bk['b'] = count(array_filter($cb, $in)); $bk['s'] = count(array_filter($cs, $in));
-        $bk['bv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cb, $in))); $bk['sv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cs, $in))); }
+        $bk['bv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cb, $in))); $bk['sv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cs, $in)));
+        if ($cmp) { $f = $ly($bk['from']); $t2 = $ly($bk['to']); if ((int)date('j', strtotime($bk['to'])) === (int)date('t', strtotime($bk['to']))) $t2 = date('Y-m-t', strtotime($t2));
+            $inl = function ($r) use ($f, $t2, $rgL) { return $r['closed'] >= $f && $r['closed'] <= $t2 && $r['closed'] >= $rgL[0] && $r['closed'] <= $rgL[1]; };
+            $bk['lb'] = count(array_filter($cbL, $inl)); $bk['ls'] = count(array_filter($csL, $inl));
+            $bk['lbv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cbL, $inl))); $bk['lsv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($csL, $inl))); } }
     unset($bk);
 }
 $money = function ($n) { return '$' . number_format((int)$n); };
@@ -99,6 +116,12 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .prx .pre{font:inherit;font-size:.78rem;border:1px solid var(--line);background:#fff;color:var(--teal);border-radius:8px;padding:4px 8px;cursor:pointer}.prx .pre.add{font-weight:700}
 .prf{display:inline-flex;gap:4px}.prf input{width:110px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.85rem}.prf button{font:inherit;font-size:.8rem;font-weight:700;border:0;background:var(--teal);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer}
 @media(max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:1.25rem;overflow-wrap:anywhere}.chart.many .bar em{display:none}.chart.many .bar{width:45%}.chart.many .bars{gap:1px}.plot{height:150px}.xl{font-size:.64rem}.crow .prx{order:5;margin-left:24px}}
+.sw.bl{background:#8fcfd1}.sw.sl{background:#efb48f}.bar.bl{background:#8fcfd1}.bar.sl{background:#efb48f}.chart.cmp .bar{width:min(16px,22%)}.chart.cmp .bar em{display:none}
+.tc{display:block;font-size:.76rem;color:#4b5b5d;margin-top:4px;padding-top:4px;border-top:1px dashed #dfe7e7}.vs{color:#5a6a6c}
+.cmpbtn{margin-left:auto;display:inline-flex!important;align-items:center;gap:8px;font-weight:600!important;color:#3c4a4c!important}
+.cmpbtn .ck{width:30px;height:18px;border-radius:99px;background:#cfd8d8;position:relative;flex:none}.cmpbtn .ck::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.cmpbtn.on{background:#fff!important;color:var(--teal)!important;border-color:var(--teal)!important}.cmpbtn.on .ck{background:var(--teal)}.cmpbtn.on .ck::after{left:14px}
+@media(max-width:700px){.cmpbtn{margin-left:0}.chart.cmp .bar{width:22%}}
 .pmenu{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}.pmenu a{font-weight:700;padding:8px 14px;font-size:.9rem;border-radius:10px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none}
 .pmenu a.on{background:var(--teal);color:#fff;border-color:var(--teal)}.cbc{font-size:.85rem;font-weight:600;color:#5a6a6c;margin-left:6px}
 .pp{display:flex;flex-wrap:wrap;gap:6px}.pp a{font-weight:700;font-size:.82rem;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--teal);text-decoration:none}
@@ -129,12 +152,14 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 
 <main class="wrap">
   <nav class="pmenu" aria-label="Time period">
-<?php foreach (['month' => 'Current Month', 'quarter' => 'Current Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?>" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
+<?php foreach (['month' => 'Current Month', 'quarter' => 'Current Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
 <?php endforeach; ?>
-  </nav>
-<?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?>" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
+<?php if ($p !== 'nodate'): $q = array_filter(['p' => $p, 'y' => $p === 'prev' ? $yr : '', 'cmp' => empty($_GET['cmp']) ? 1 : '']); ?>      <a href="performance.php?<?= htmlspecialchars(http_build_query($q)) ?>" class="cmpbtn<?= !empty($_GET['cmp']) ? ' on' : '' ?>" role="switch" aria-checked="<?= !empty($_GET['cmp']) ? 'true' : 'false' ?>"><span class="ck"></span>Compare to last year</a>
 <?php endif; ?>
-<?php if ($p !== 'prev'): ?>  <p class="cbl"><?= htmlspecialchars($label) ?></p>
+  </nav>
+<?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
+<?php endif; ?>
+<?php if ($p !== 'prev' || $cmp): ?>  <p class="cbl"><?= htmlspecialchars($p === 'prev' ? (string)$yr : $label) ?><?php if ($cmp): ?> <span class="vs">compared with <?= htmlspecialchars(date('M j, Y', strtotime($rgL[0])) . ' – ' . date('M j, Y', strtotime($rgL[1]))) ?></span><?php endif; ?></p>
 <?php endif; ?>
   <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
 <?php if ($p === 'prev' && !$years): ?>    <p class="empty">No closed files from previous years.</p>
@@ -142,20 +167,22 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($perr): ?>    <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
 <?php endif; ?>
     <div class="tiles">
-      <div class="tile"><span class="tl"><i class="sw b"></i>Buyer sides</span><b><?= $tot['buyer_sides'] ?></b><span class="ts"><?= $money($tot['buyer_volume']) ?></span></div>
-      <div class="tile"><span class="tl"><i class="sw s"></i>Seller sides</span><b><?= $tot['seller_sides'] ?></b><span class="ts"><?= $money($tot['seller_volume']) ?></span></div>
-      <div class="tile"><span class="tl">Total sides</span><b><?= $tot['sides'] ?></b><span class="ts">closed transactions</span></div>
-      <div class="tile vol"><span class="tl">$ Volume</span><b><?= $money($tot['volume']) ?></b><span class="ts">credit for every side you closed</span></div>
+      <div class="tile"><span class="tl"><i class="sw b"></i>Buyer sides</span><b><?= $tot['buyer_sides'] ?></b><span class="ts"><?= $money($tot['buyer_volume']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['buyer_sides'] ?> (<?= $money($totL['buyer_volume']) ?>) &middot; <?= $delta($tot['buyer_sides'], $totL['buyer_sides']) ?></span><?php endif; ?></div>
+      <div class="tile"><span class="tl"><i class="sw s"></i>Seller sides</span><b><?= $tot['seller_sides'] ?></b><span class="ts"><?= $money($tot['seller_volume']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['seller_sides'] ?> (<?= $money($totL['seller_volume']) ?>) &middot; <?= $delta($tot['seller_sides'], $totL['seller_sides']) ?></span><?php endif; ?></div>
+      <div class="tile"><span class="tl">Total sides</span><b><?= $tot['sides'] ?></b><span class="ts">closed transactions</span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['sides'] ?> &middot; <?= $delta($tot['sides'], $totL['sides']) ?></span><?php endif; ?></div>
+      <div class="tile vol"><span class="tl">$ Volume</span><b><?= $money($tot['volume']) ?></b><span class="ts">credit for every side you closed</span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $money($totL['volume']) ?> &middot; <?= $delta($tot['volume'], $totL['volume'], function ($x) use ($money) { return $money($x); }) ?></span><?php endif; ?></div>
     </div>
-<?php if ($buckets): $mx = max(1, max(array_map(function ($b) { return max($b['b'], $b['s']); }, $buckets))); $ticks = $mx <= 4 ? range(0, $mx) : [0, (int)ceil($mx / 2), $mx]; ?>
-    <div class="chart<?= count($buckets) > 6 ? ' many' : '' ?>" role="img" aria-label="Closed sides by <?= $p === 'month' ? 'week' : 'month' ?>, buyer and seller">
-      <div class="lg"><span><i class="sw b"></i>Buyer side</span><span><i class="sw s"></i>Seller side</span></div>
+<?php if ($buckets): $mx = max(1, max(array_map(function ($b) { return max($b['b'], $b['s'], $b['lb'] ?? 0, $b['ls'] ?? 0); }, $buckets))); $ticks = $mx <= 4 ? range(0, $mx) : [0, (int)ceil($mx / 2), $mx]; ?>
+    <div class="chart<?= $cmp ? ' cmp' : '' ?><?= count($buckets) > 6 ? ' many' : '' ?>" role="img" aria-label="Closed sides by <?= $p === 'month' ? 'week' : 'month' ?>, buyer and seller">
+      <?php if ($cmp): ?>      <div class="lg"><span><i class="sw bl"></i>Buyer <?= $yLast ?></span><span><i class="sw b"></i>Buyer <?= $yNow ?></span><span><i class="sw sl"></i>Seller <?= $yLast ?></span><span><i class="sw s"></i>Seller <?= $yNow ?></span></div>
+<?php else: ?>      <div class="lg"><span><i class="sw b"></i>Buyer side</span><span><i class="sw s"></i>Seller side</span></div>
+<?php endif; ?>
       <div class="plot">
         <div class="yax"><?php foreach (array_reverse($ticks) as $tk): ?><span style="bottom:<?= round($tk / $mx * 100, 2) ?>%"><?= $tk ?></span><?php endforeach; ?></div>
         <div class="grid"><?php foreach ($ticks as $tk): ?><i style="bottom:<?= round($tk / $mx * 100, 2) ?>%"></i><?php endforeach; ?>
 <?php foreach ($buckets as $bk): ?>
-          <div class="grp" tabindex="0" data-tip="<?= htmlspecialchars($bk['lbl'] . ' — Buyer sides: ' . $bk['b'] . ' (' . $money($bk['bv']) . ') · Seller sides: ' . $bk['s'] . ' (' . $money($bk['sv']) . ')') ?>">
-            <div class="bars"><span class="bar b" style="height:<?= round($bk['b'] / $mx * 100, 2) ?>%"><?= $bk['b'] ? '<em>' . $bk['b'] . '</em>' : '' ?></span><span class="bar s" style="height:<?= round($bk['s'] / $mx * 100, 2) ?>%"><?= $bk['s'] ? '<em>' . $bk['s'] . '</em>' : '' ?></span></div>
+          <div class="grp" tabindex="0" data-tip="<?= htmlspecialchars($cmp ? $bk['lbl'] . ' — ' . $yNow . ': ' . $bk['b'] . ' buyer, ' . $bk['s'] . ' seller (' . $money($bk['bv'] + $bk['sv']) . ') · ' . $yLast . ': ' . $bk['lb'] . ' buyer, ' . $bk['ls'] . ' seller (' . $money($bk['lbv'] + $bk['lsv']) . ')' : $bk['lbl'] . ' — Buyer sides: ' . $bk['b'] . ' (' . $money($bk['bv']) . ') · Seller sides: ' . $bk['s'] . ' (' . $money($bk['sv']) . ')') ?>">
+            <div class="bars"><?php if ($cmp): ?><span class="bar bl" style="height:<?= round($bk['lb'] / $mx * 100, 2) ?>%"></span><?php endif; ?><span class="bar b" style="height:<?= round($bk['b'] / $mx * 100, 2) ?>%"><?= $bk['b'] ? '<em>' . $bk['b'] . '</em>' : '' ?></span><?php if ($cmp): ?><span class="bar sl" style="height:<?= round($bk['ls'] / $mx * 100, 2) ?>%"></span><?php endif; ?><span class="bar s" style="height:<?= round($bk['s'] / $mx * 100, 2) ?>%"><?= $bk['s'] ? '<em>' . $bk['s'] . '</em>' : '' ?></span></div>
             <span class="xl"><?= htmlspecialchars($bk['lbl']) ?></span>
           </div>
 <?php endforeach; ?>
