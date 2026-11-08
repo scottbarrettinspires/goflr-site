@@ -27,7 +27,7 @@ function ab_row($r, $side) {
     $h = function ($x) { return htmlspecialchars((string)$x); };
     $url = ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($r['t']['folder']);
     $meta = [PS_STAGES[$side][$r['k']] ?? '']; if ($r['addr'] !== '') $meta[] = $r['addr']; if ($r['src'] !== '') $meta[] = $r['src']; if ($r['ph'] !== '') $meta[] = $r['ph'];
-    if ($r['k'] === 'closed') $tag = '<span class="due" style="background:#e3f4e8;color:#2e7d32">Closed</span>';
+    if ($r['k'] === 'closed') $tag = '<span class="due" style="background:#e3f4e8;color:#2e7d32">' . (!empty($r['closed']) ? $h('Closed ' . date('M j, Y', strtotime($r['closed']))) : 'Closed') . '</span>';
     elseif ($r['next']) { $d = $r['next']; $cl = $d['left'] < 0 ? 'over' : ($d['left'] <= 3 ? 'today' : 'later'); $tag = '<span class="due ' . $cl . '">' . $h($d['label'] . ' · ' . dl_when($d['left'])) . '</span>'; }
     else $tag = '<span class="due later">No deadlines entered</span>';
     $dig = preg_replace('/[^0-9+]/', '', $r['ph']);
@@ -38,11 +38,36 @@ function ab_row($r, $side) {
 // Stage key for a record (the pipeline stage saved on the site, else the Drive folder's stage).
 function ab_pk($t) { return ps_get($t['folder'], $t['side'], (int)$t['stage']); }
 // Closed records for one agent, both sides: ['buyer' => rows, 'seller' => rows], newest first by name order of stage.
-function ab_closed($me) {
+// The date a closed file closed: the Closing date from its Contract Deadlines, else the day its pipeline stage was set
+// to the closed stage (from the audit log). '' when neither is known.
+function ab_closed_date($folder, $side) {
+    $c = dl_get($folder);
+    if ($c) foreach (dl_compute(is_array($c['data']) ? $c['data'] : (json_decode((string)$c['data'], true) ?: [])) as $d) { if ($d['key'] === 'closing') return $d['nextbiz'] ?: $d['date']; }
+    try { $q = flr_db()->prepare("SELECT at FROM audit WHERE action = 'pstage' AND ref = ? AND detail = ? ORDER BY at DESC LIMIT 1");
+        $q->execute([$folder, 'Pipeline stage set to ' . (PS_STAGES[$side]['closed'] ?? '')]); $at = $q->fetchColumn();
+        if ($at) return date('Y-m-d', strtotime($at)); } catch (Throwable $e) {}
+    return '';
+}
+// Date range for a Performance period: month | quarter | ytd | a 4-digit year (whole calendar periods). Returns [from, to] as YYYY-MM-DD.
+function ab_period_range($period, $today = null) {
+    $t = $today ?: date('Y-m-d'); $y = (int)substr($t, 0, 4); $m = (int)substr($t, 5, 2);
+    if ($period === 'month') return [sprintf('%04d-%02d-01', $y, $m), date('Y-m-t', strtotime($t))];
+    if ($period === 'quarter') { $qm = intdiv($m - 1, 3) * 3 + 1; return [sprintf('%04d-%02d-01', $y, $qm), date('Y-m-t', strtotime(sprintf('%04d-%02d-01', $y, $qm + 2)))]; }
+    if (preg_match('/^\d{4}$/', (string)$period)) return [$period . '-01-01', $period . '-12-31'];
+    return [$y . '-01-01', $y . '-12-31']; // ytd: the whole current year, so a file marked closed ahead of its closing date still counts
+}
+// Closed records for one agent, both sides, each row with its 'closed' date, newest first:
+// ['buyer' => rows, 'seller' => rows]. With $period set, only files that closed in that period (undated files are left out).
+function ab_closed($me, $period = null) {
     $all = flr_tx_list($me); $out = [];
+    $rg = $period === null ? null : ab_period_range($period);
     foreach (['buyer', 'seller'] as $side) {
         $list = array_values(array_filter($all, function ($t) use ($side) { return $t['side'] === $side && ab_pk($t) === 'closed'; }));
-        $out[$side] = ab_rows($me, $side, $list, 'ab_pk');
+        $rows = ab_rows($me, $side, $list, 'ab_pk');
+        foreach ($rows as &$r) $r['closed'] = ab_closed_date($r['t']['folder'], $side); unset($r);
+        if ($rg) $rows = array_values(array_filter($rows, function ($r) use ($rg) { return $r['closed'] !== '' && $r['closed'] >= $rg[0] && $r['closed'] <= $rg[1]; }));
+        usort($rows, function ($a, $b) { return strcmp($b['closed'], $a['closed']) ?: strcmp($a['nm'], $b['nm']); });
+        $out[$side] = $rows;
     }
     return $out;
 }

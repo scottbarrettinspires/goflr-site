@@ -5,8 +5,21 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/ablib.php";
 $me = $_SESSION['email'];
-$closed = ab_closed($me);
-$cb = $closed['buyer']; $cs = $closed['seller'];
+$all = ab_closed($me); // every closed file, with its closing date
+$thisY = (int)date('Y');
+$years = []; $undated = 0;
+foreach (['buyer', 'seller'] as $sd) foreach ($all[$sd] as $r) { if ($r['closed'] === '') $undated++; elseif ((int)substr($r['closed'], 0, 4) < $thisY) $years[(int)substr($r['closed'], 0, 4)] = true; }
+krsort($years); $years = array_keys($years);
+$p = (string)($_GET['p'] ?? 'ytd'); if (!in_array($p, ['month', 'quarter', 'ytd', 'prev', 'nodate'], true)) $p = 'ytd';
+$yr = (int)($_GET['y'] ?? 0); if ($p === 'prev' && !in_array($yr, $years, true)) $yr = $years[0] ?? 0;
+if ($p === 'nodate') $rg = null; else $rg = ab_period_range($p === 'prev' ? (string)$yr : $p);
+$pick = function ($rows) use ($p, $rg, $yr) { return array_values(array_filter($rows, function ($r) use ($p, $rg, $yr) {
+    if ($p === 'nodate') return $r['closed'] === '';
+    if ($p === 'prev' && !$yr) return false;
+    return $r['closed'] !== '' && $r['closed'] >= $rg[0] && $r['closed'] <= $rg[1]; })); };
+$cb = $pick($all['buyer']); $cs = $pick($all['seller']);
+$qn = intdiv((int)date('n') - 1, 3) + 1;
+$label = ['month' => date('F Y'), 'quarter' => 'Q' . $qn . ' ' . $thisY, 'ytd' => $thisY . ' year to date', 'prev' => $yr ? (string)$yr : 'Previous years', 'nodate' => 'No closing date entered'][$p];
 ?>
 <!doctype html>
 <html lang="en">
@@ -40,6 +53,10 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}
 .ovsub span{display:inline-flex;align-items:center;gap:8px}
+.cbh{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:0 0 10px}.cbh h2{margin:0!important}
+.pp{display:flex;flex-wrap:wrap;gap:6px}.pp a{font-weight:700;font-size:.82rem;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--teal);text-decoration:none}
+.pp a.on{background:var(--teal);color:#fff;border-color:var(--teal)}.pp.yrs{margin:0 0 10px}.pp.yrs a{font-size:.78rem;padding:4px 10px}
+.cbl{margin:0 0 12px;font-size:.88rem;color:#5a6a6c}.cbn{margin:12px 0 0;font-size:.85rem;color:#5a6a6c}
 </style>
 </head>
 <body>
@@ -64,13 +81,25 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 </section>
 
 <main class="wrap">
-  <div class="lpanel" id="closed"><h2>Closed Business</h2>
+  <div class="lpanel" id="closed"><div class="cbh"><h2>Closed Business</h2>
+    <div class="pp">
+<?php foreach (['month' => 'Current Month', 'quarter' => 'Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?>#closed" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
+<?php endforeach; ?>
+    </div></div>
+<?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?>#closed" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
+<?php endif; ?>
+    <p class="cbl"><?= htmlspecialchars($label) ?> &middot; <?= count($cb) + count($cs) ?> closed</p>
+<?php if ($p === 'prev' && !$years): ?>    <p class="empty">No closed files from previous years.</p>
+<?php else: ?>
     <div class="ovsub"><span>Buyers (<?= count($cb) ?>)</span></div>
-<?php if (!$cb): ?>    <p class="empty">No closed buyer transactions yet.</p>
+<?php if (!$cb): ?>    <p class="empty">No closed buyer transactions in this period.</p>
 <?php else: foreach ($cb as $r) echo ab_row($r, 'buyer'); endif; ?>
     <div class="ovsub"><span>Sellers (<?= count($cs) ?>)</span></div>
-<?php if (!$cs): ?>    <p class="empty">No closed seller transactions yet.</p>
+<?php if (!$cs): ?>    <p class="empty">No closed seller transactions in this period.</p>
 <?php else: foreach ($cs as $r) echo ab_row($r, 'seller'); endif; ?>
+<?php endif; ?>
+<?php if ($undated && $p !== 'nodate'): ?>    <p class="cbn"><?= $undated ?> closed file<?= $undated === 1 ? ' has' : 's have' ?> no closing date, so <?= $undated === 1 ? 'it isn\'t' : 'they aren\'t' ?> counted in a period. <a href="performance.php?p=nodate#closed">See <?= $undated === 1 ? 'it' : 'them' ?></a></p>
+<?php endif; ?>
   </div>
 </main>
 
