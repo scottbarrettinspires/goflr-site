@@ -59,7 +59,7 @@ html,body{height:100%}
 <div class="shade"></div>
 <div class="cap" id="cap"></div>
 <main class="box">
-  <div class="logo"><img src="logo.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></div>
+  <div class="logo"><img src="logo.png" alt="Florida Luxury Realty"><span>Virtual Office</span></div>
   <h1>Serving. Growing. Succeeding.</h1>
   <p>Serving customers made easy.</p>
   <div id="g_id_onload" data-client_id="635313816169-b0ibgp7e6056ohnali4oq6kq42cv9kd4.apps.googleusercontent.com" data-callback="onCred" data-auto_prompt="false" data-use_fedcm_for_prompt="true"></div>

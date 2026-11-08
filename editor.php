@@ -37,7 +37,7 @@ elseif ($files) {
 </head>
 <body>
 <header class="top"><div class="in">
-  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
+  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Virtual Office</span></a>
   <nav>
     <a href="home.php">Home</a>
     <a href="prospecting.php">Prospecting</a>
