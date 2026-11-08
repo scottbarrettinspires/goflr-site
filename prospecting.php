@@ -186,6 +186,18 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0}.lrow .nm{di
     </div>
   </div>
 
+<?php list($ikAgent, $ikPhone) = ld_me(); $ik = ld_intake($me, $ikAgent, $ikPhone); $ikUrl = 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''); ?>
+  <div class="lpanel" id="leadlink"><h2>Your lead link</h2><p style="color:#5a6a6c;margin:-4px 0 10px">Share this link anywhere people find you. Every person who fills it in lands in your NEW tab in Leads &amp; Contacts and on your home page.</p>
+<?php foreach ([['Your contact form', ''], ['Your FLR agent app', 'Agent App'], ['Facebook', 'Facebook'], ['Instagram', 'Instagram'], ['Landing page', 'Landing page'], ['Email signature', 'Email signature']] as $x): $u = $ikUrl . ($x[1] !== '' ? '&src=' . rawurlencode($x[1]) : ''); ?>
+    <div class="lrow" style="cursor:default"><span class="who"><span class="nm"><?= $h($x[0]) ?></span><span class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= $h($u) ?></span></span><button type="button" class="btn sm ghost cp" data-u="<?= $h($u) ?>">Copy</button> <a class="btn sm ghost" href="<?= $h($u) ?>" target="_blank" rel="noopener">Open</a></div>
+<?php endforeach; ?>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">For website builders, landing pages and Zapier</summary><p style="font-size:.88rem;color:#4b5b5d;margin:8px 0">Send a POST (form fields or JSON) to the link above. Fields: <code>first_name</code>, <code>last_name</code> (or <code>name</code>), <code>phone</code>, <code>email</code>, <code>message</code>, <code>interest</code>, <code>source</code>. A phone or email is required. The form on that tool must collect the person's consent to be contacted.</p></details>
+    <p style="margin:10px 0 0"><button type="button" class="btn sm ghost" id="ikreset">Make a new link</button> <span style="font-size:.82rem;color:#5a6a6c">Use this if your link is getting spam. The old link stops working.</span></p>
+  </div>
+<style>#leadlink .btn.ghost{border:1.5px solid var(--teal);border-radius:8px;padding:5px 12px;background:#fff;color:var(--teal);font-weight:700;font-size:.85rem;margin-left:6px;text-decoration:none;cursor:pointer;white-space:nowrap}#leadlink .lrow{gap:8px}@media(max-width:640px){#leadlink .meta{display:none!important}#leadlink .who{flex:1;min-width:0}}</style>
+<script>(function(){document.querySelectorAll("#leadlink .cp").forEach(function(b){b.onclick=function(){var u=b.dataset.u;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy this link:",u);});};});
+var rk=document.getElementById("ikreset");rk.onclick=function(){if(!rk.dataset.sure){rk.dataset.sure="1";rk.textContent="Tap again: the old link stops working";return;}rk.disabled=true;
+  fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,action:"intake_reset"})}).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw new Error(j.msg||"Could not make a new link.");location.hash="leadlink";location.reload();}).catch(function(e){rk.disabled=false;rk.textContent=e.message;});};})();</script>
 <?php else: $x = PR_METHODS[$m]; $list = $byM[$m]; $g = (int)($goals[$m] ?? 0); $a = (int)($actWk[$m] ?? 0); ?>
   <div class="stats">
     <div class="stat" style="border-left:5px solid <?= $x[1] ?>"><b><?= count($list) ?></b><span><?= $h($x[0]) ?> leads, all time</span></div>

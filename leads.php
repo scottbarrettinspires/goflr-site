@@ -220,16 +220,9 @@ function renderOverview(){
    +'<div class="stat cold"><b>'+cold+'</b><span>Cold (D Maybe Not, Do Not Contact)</span></div></div>';
   h+=weekStrip();
   h+='<div class="lpanel" style="margin-top:14px"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
-  h+='<div class="lpanel" style="margin-top:14px"><h2>Your lead link</h2><p style="color:#5a6a6c;margin:-4px 0 10px">Share this link anywhere people find you. Every person who fills it in lands in your NEW tab and on your home page.</p>'
-    +[["Your contact form",""],["Your FLR agent app","Agent App"],["Facebook","Facebook"],["Instagram","Instagram"],["Landing page","Landing page"],["Email signature","Email signature"]].map(function(x){var u=INTAKE+(x[1]?"&src="+encodeURIComponent(x[1]):"");
-      return '<div class="lrow" style="cursor:default"><div class="who"><div class="nm">'+esc(x[0])+'</div><div class="meta">'+esc(u)+'</div></div><button class="btn sm ghost cp" data-u="'+esc(u)+'">Copy</button><a class="btn sm ghost" href="'+esc(u)+'" target="_blank" rel="noopener">Open</a></div>';}).join("")
-    +'<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">For website builders, landing pages and Zapier</summary><p style="font-size:.88rem;color:#4b5b5d;margin:8px 0">Send a POST (form fields or JSON) to the link above. Fields: <code>first_name</code>, <code>last_name</code> (or <code>name</code>), <code>phone</code>, <code>email</code>, <code>message</code>, <code>interest</code>, <code>source</code>. A phone or email is required. The form on that tool must collect the person\'s consent to be contacted.</p></details>'
-    +'<p style="margin:10px 0 0"><button class="btn sm ghost" id="ikreset">Make a new link</button> <span class="goal" style="font-size:.82rem;color:#5a6a6c">Use this if your link is getting spam. The old link stops working.</span></p></div>';
   body.innerHTML=h;
   var sd=document.getElementById("st_due");if(sd)sd.onclick=function(){var hp=body.querySelector(".lpanel");if(hp)hp.scrollIntoView({behavior:"smooth",block:"start"});};
   var sn=document.getElementById("st_new");if(sn)sn.onclick=function(){view.tab="new";view.sub=null;render();};
-  body.querySelectorAll(".cp").forEach(function(b){b.onclick=function(){var u=b.dataset.u;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy this link:",u);});};});
-  var rk=document.getElementById("ikreset");rk.onclick=async function(){if(!rk.dataset.sure){rk.dataset.sure="1";rk.textContent="Tap again: the old link stops working";return;}rk.disabled=true;try{var j=await api({action:"intake_reset"});INTAKE=j.intake;render();}catch(e){rk.textContent=e.message;}};
 }
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
