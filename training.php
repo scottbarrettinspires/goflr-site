@@ -31,6 +31,7 @@ $regs = er_for(array_map('flr_event_key', $upcoming));
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
+    <a href="performance.php">Performance</a>
     <?php endif; ?>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a><?php endif; ?>
     <a href="logout.php">Sign Out</a>

@@ -144,6 +144,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
+    <a href="performance.php">Performance</a>
     <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>

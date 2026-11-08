@@ -58,6 +58,7 @@ function sp_head($title, $backTx = '') {
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
+    <a href="performance.php">Performance</a>
     <?php endif; ?>
 <?php if (function_exists('flr_is_broker') && flr_is_broker()): ?>    <a href="recruiting.php">Recruiting</a>
 <?php endif; ?>
