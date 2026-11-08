@@ -167,6 +167,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 .nxside .erwho{flex-wrap:nowrap}.nxside .erwho .ertxt{flex:0 1 auto;white-space:nowrap}
 .nxcal{display:inline-flex;align-items:center;gap:6px;margin-left:auto;color:var(--teal);font-weight:600;font-size:.88rem;text-decoration:none;white-space:nowrap}.nxcal:hover{text-decoration:underline}.nxtitle .nxcal{align-self:center;order:1}.nxtitle .nxmore{order:2;flex-basis:100%;margin-top:2px}</style>
 <div class="homemain">
+<?php if (!$showStaff): // staff Dashboard leaves out the training, celebration and open house cards (Agent View shows them) ?>
 <?php if ($next): ?>
   <div class="nextup nxside">
     <?php $nd = flr_group_days($nextGroup); ?>
@@ -194,6 +195,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <?php else: ?>
   <p style="margin:0 0 14px"><a class="nxcal" href="training.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Events Schedule</a></p>
 <?php endif; ?>
+<?php endif; ?>
 <?php if ($showStaff): ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
@@ -219,8 +221,6 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <?php if (count($rcrDue) > 6): ?><p style="margin:8px 0 0"><a href="recruiting.php">See all <?= count($rcrDue) ?></a></p><?php endif; ?>
   </div>
 <?php endif; ?>
-<?php require __DIR__ . "/celebrate_panel.php"; ?>
-<?php require __DIR__ . "/oh_panel.php"; ?>
 <?php require __DIR__ . "/dashboard_body.php"; ?>
 <?php else: ?>
 <?php require __DIR__ . "/celebrate_panel.php"; ?>
