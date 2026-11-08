@@ -153,6 +153,44 @@ function om_sent($fromEmail, $limit = 10) {
     $q = om_db()->prepare('SELECT m.*, COUNT(t.rkey) n, SUM(t.seen_at IS NOT NULL) seen, SUM(t.done_at IS NOT NULL) done FROM msgs m JOIN msg_to t ON t.msg_id = m.id WHERE m.from_email = ? GROUP BY m.id ORDER BY m.id DESC LIMIT ' . (int)$limit);
     $q->execute([strtolower(trim((string)$fromEmail))]); return $q->fetchAll();
 }
+// ---- Mailbox (the Messages page) ----
+// One folder for my keys: 'inbox' (not done) or 'done'. Newest first, NOT marked read (that happens when opened).
+// $q searches the sender and the text.
+function om_box(array $keys, $folder = 'inbox', $q = '', $limit = 100) {
+    if (!$keys) return [];
+    $in = implode(',', array_fill(0, count($keys), '?')); $args = $keys;
+    $sql = "SELECT m.*, t.rkey, t.seen_at, t.done_at FROM msg_to t JOIN msgs m ON m.id = t.msg_id WHERE t.rkey IN ($in) AND t.done_at IS " . ($folder === 'done' ? 'NOT NULL' : 'NULL');
+    if (trim($q) !== '') { $sql .= ' AND (m.body LIKE ? OR m.from_name LIKE ? OR m.from_email LIKE ?)'; $l = '%' . trim($q) . '%'; array_push($args, $l, $l, $l); }
+    $st = om_db()->prepare($sql . ' ORDER BY m.id DESC LIMIT ' . (int)$limit); $st->execute($args); return $st->fetchAll();
+}
+function om_sent_box($fromEmail, $q = '', $limit = 100) {
+    $args = [strtolower(trim((string)$fromEmail))]; $w = '';
+    if (trim($q) !== '') { $w = ' AND (m.body LIKE ? OR m.to_label LIKE ?)'; $l = '%' . trim($q) . '%'; array_push($args, $l, $l); }
+    $st = om_db()->prepare('SELECT m.*, COUNT(t.rkey) n, SUM(t.seen_at IS NOT NULL) seen FROM msgs m JOIN msg_to t ON t.msg_id = m.id WHERE m.from_email = ?' . $w . ' GROUP BY m.id ORDER BY m.id DESC LIMIT ' . (int)$limit);
+    $st->execute($args); return $st->fetchAll();
+}
+// A message delivered to one of my keys (with that delivery's rkey / seen / done), marked read; or null.
+function om_open($id, array $keys) {
+    if (!$keys) return null;
+    $in = implode(',', array_fill(0, count($keys), '?'));
+    $st = om_db()->prepare("SELECT m.*, t.rkey, t.seen_at, t.done_at FROM msg_to t JOIN msgs m ON m.id = t.msg_id WHERE m.id = ? AND t.rkey IN ($in) ORDER BY t.done_at IS NOT NULL LIMIT 1");
+    $st->execute(array_merge([(int)$id], $keys)); $r = $st->fetch(); if (!$r) return null;
+    if (!$r['seen_at']) om_db()->prepare('UPDATE msg_to SET seen_at = ? WHERE msg_id = ? AND rkey = ? AND seen_at IS NULL')->execute([date('c'), $r['id'], $r['rkey']]);
+    return $r;
+}
+// The conversation with one other person (their key): what they sent me and what I sent them, oldest first.
+function om_thread($meEmail, array $myKeys, $otherKey, $limit = 30) {
+    if ($otherKey === '' || !$myKeys) return [];
+    $in = implode(',', array_fill(0, count($myKeys), '?'));
+    $st = om_db()->prepare("SELECT DISTINCT m.* FROM msgs m JOIN msg_to t ON t.msg_id = m.id WHERE (m.from_key = ? AND t.rkey IN ($in)) OR (m.from_email = ? AND t.rkey = ?) ORDER BY m.id DESC LIMIT " . (int)$limit);
+    $st->execute(array_merge([$otherKey], $myKeys, [strtolower(trim((string)$meEmail)), $otherKey])); return array_reverse($st->fetchAll());
+}
+function om_recipients($id) { $st = om_db()->prepare('SELECT * FROM msg_to WHERE msg_id = ?'); $st->execute([(int)$id]); return $st->fetchAll(); }
+// Move a done message back to the Inbox (only my own delivery).
+function om_undone($msgId, $rkey, array $myKeys) {
+    if (!in_array($rkey, $myKeys, true)) return false;
+    om_db()->prepare('UPDATE msg_to SET done_at = NULL, done_by = NULL WHERE msg_id = ? AND rkey = ?')->execute([(int)$msgId, $rkey]); return true;
+}
 function om_get($id) { $q = om_db()->prepare('SELECT * FROM msgs WHERE id = ?'); $q->execute([(int)$id]); return $q->fetch() ?: null; }
 
 // ---- POST handler for Home and the Messages page (both kinds of account). Returns an error string, or redirects. ----
