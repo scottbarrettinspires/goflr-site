@@ -23,7 +23,7 @@ function pf_handle_post($me, $self) {
     return $err;
 }
 
-function pf_active_html($me, $note = 'right now', $showList = true, $title = 'Active Business') {
+function pf_active_html($me, $note = 'right now', $showList = true, $title = 'Active Business', $listBase = 'my-transactions.php') {
     $money = 'pf_money';
 // Active Business snapshot (today's pipeline; the period menu doesn't change it).
 $act = ab_active($me); $at = ab_active_totals($act);
@@ -37,8 +37,8 @@ foreach ($pend as $r) { if ($r['close'] === '') { $pNoDate++; continue; } $hit =
     ob_start(); ?>
   <div class="lpanel" id="active"><h2><?= htmlspecialchars($title) ?><?php if ($note !== ''): ?> <span class="cbc"><?= htmlspecialchars($note) ?></span><?php endif; ?></h2>
     <div class="tiles">
-      <div class="tile"><span class="tl"><i class="sw b"></i>Active buyers</span><b><?= $at['active_buyers'] ?></b><span class="ts"><?= $at['pending_buyer_sides'] ?> under contract</span></div>
-      <div class="tile"><span class="tl"><i class="sw s"></i>Active sellers</span><b><?= $at['active_sellers'] ?></b><span class="ts"><?= $at['pending_seller_sides'] ?> under contract</span></div>
+      <a class="tile tlink" href="<?= htmlspecialchars($listBase) ?>#acbuyers"><span class="tl"><i class="sw b"></i>Active buyers</span><b><?= $at['active_buyers'] ?></b><span class="ts"><?= $at['pending_buyer_sides'] ?> under contract &middot; <u>See list</u></span></a>
+      <a class="tile tlink" href="<?= htmlspecialchars($listBase) ?>#acsellers"><span class="tl"><i class="sw s"></i>Active sellers</span><b><?= $at['active_sellers'] ?></b><span class="ts"><?= $at['pending_seller_sides'] ?> under contract &middot; <u>See list</u></span></a>
       <div class="tile"><span class="tl">Pending sales</span><b><?= $at['pending'] ?></b><span class="ts">sides under contract</span></div>
       <div class="tile gci"><span class="tl">Anticipated gross commission</span><b><?= $money($at['anticipated_gci']) ?></b><span class="ts">on pending sales</span></div>
       <div class="tile vol"><span class="tl">Anticipated $ volume</span><b><?= $money($at['anticipated_volume']) ?></b><span class="ts">credit for every pending side</span></div>
@@ -81,6 +81,7 @@ function pf_css() { return '<style>
 .tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 14px}
 .tile{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff}.tile b{display:block;font-size:1.6rem;line-height:1.15;color:#1f2a2c}
 .tl{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:#4b5b5d}.ts{display:block;font-size:.8rem;color:#5a6a6c;margin-top:2px}
+.tile.tlink{display:block;text-decoration:none;color:inherit;cursor:pointer}.tile.tlink:hover,.tile.tlink:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(3,111,114,.12)}.tile.tlink u{color:var(--teal);font-weight:700;text-decoration:none}
 .tile.vol{background:#f0f8f8;border-color:#cfe5e5}.tile.gci{background:#fbf6ef;border-color:#efe1cc}
 @media(max-width:1100px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px}.sw.b{background:#008f94}.sw.s{background:#d9692a}

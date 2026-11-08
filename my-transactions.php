@@ -101,6 +101,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .lrow .meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.spills a{font-weight:700;font-size:.82rem;padding:5px 10px;border-radius:99px;text-decoration:none;border:2px solid transparent}.spills a.on{border-color:#1f2a2c}
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
+#acbuyers,#acsellers{scroll-margin-top:16px}
 </style>
 </head>
 <body>
@@ -132,7 +133,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($view === 'overview'): ?>
 <?php if ($perr): ?>  <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
 <?php endif; ?>
-<div class="deskonly"><?= pf_active_html($me, '', false, 'Your Current Clients Right Now') ?></div>
+<div class="deskonly"><?= pf_active_html($me, '', false, 'Your Current Clients Right Now', '') ?></div>
 <style>@media(max-width:760px){.deskonly{display:none}}</style>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
 <?php
@@ -223,10 +224,10 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 @media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.none,.mc.past{display:none}.mcal{background:#fff}.mc+.mc{border-top:1px solid var(--line)}.mcal.mempty{display:none}.mdh .mmo{display:block;font-size:.7rem;color:#8a9a9c;padding-left:4px}.mdh .md{font-size:.95rem}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
 </style>
   <div class="lpanel" id="clients"><h2>Active Clients</h2>
-    <div class="ovsub"><span>Buyers (<?= count($ovB) ?>) <a href="#" class="addmini" data-k="buyer" role="button">+ ADD</a></span></div>
+    <div class="ovsub" id="acbuyers"><span>Buyers (<?= count($ovB) ?>) <a href="#" class="addmini" data-k="buyer" role="button">+ ADD</a></span></div>
 <?php if (!$ovB): ?>    <p class="empty">No active buyers.</p>
 <?php else: foreach ($ovB as $r) echo ab_row($r, 'buyer'); endif; ?>
-    <div class="ovsub"><span>Sellers (<?= count($ovS) ?>) <a href="#" class="addmini" data-k="seller" role="button">+ ADD</a></span></div>
+    <div class="ovsub" id="acsellers"><span>Sellers (<?= count($ovS) ?>) <a href="#" class="addmini" data-k="seller" role="button">+ ADD</a></span></div>
 <?php if (!$ovS): ?>    <p class="empty">No active sellers.</p>
 <?php else: foreach ($ovS as $r) echo ab_row($r, 'seller'); endif; ?>
   </div>
@@ -289,6 +290,9 @@ f.addEventListener("submit",function(e){e.preventDefault();er.hidden=true;
 })();
 </script>
 <?php if ($view === 'overview') echo pf_js(); ?>
+<script>(function(){function go(id){var e=document.getElementById(id);if(e)e.scrollIntoView({behavior:"smooth",block:"start"});}
+document.querySelectorAll('a.tlink[href^="#"]').forEach(function(a){a.addEventListener("click",function(ev){ev.preventDefault();var id=a.getAttribute("href").slice(1);history.replaceState(null,"","#"+id);go(id);});});
+if(/^#ac(buyers|sellers)$/.test(location.hash))window.addEventListener("load",function(){setTimeout(function(){go(location.hash.slice(1));},50);});})();</script>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
