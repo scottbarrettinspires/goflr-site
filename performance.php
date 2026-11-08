@@ -128,7 +128,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php endif; ?>
 <?= pf_active_html($me, 'right now · not affected by the time period', false) ?>
   <div class="lpanel" id="closed"><div class="cbhd"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
-    <div class="csw"><label class="csl" for="csq">View a closed transaction</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <div class="csw"><label class="csl" for="csq">View a closed transaction record</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="csq" type="search" placeholder="Search closed by client or address" autocomplete="off" aria-label="Search all closed transactions by client name or property address" aria-controls="csres">
       <div id="csres" class="csres" role="listbox" hidden></div></div></div></div>
 <?php $srch = []; foreach (['buyer', 'seller'] as $sd) foreach ($all[$sd] as $r) $srch[] = ['n' => $r['nm'], 'a' => $r['addr'], 's' => $sd === 'buyer' ? 'Buyer' : 'Seller', 'd' => $r['closed'] !== '' ? 'Closed ' . date('M j, Y', strtotime($r['closed'])) : 'No closing date', 'u' => ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])]; ?>
@@ -184,7 +184,7 @@ document.addEventListener("click",function(e){if(!e.target.closest(".csrch"))box
   </div>
 <?php $canc = ab_cancelled($me); $cc = ['contract' => 0, 'listing' => 0, 'expired' => 0]; foreach ($canc as $r) if (isset($cc[$r['outcome']])) $cc[$r['outcome']]++; ?>
   <div class="lpanel" id="cancelled"><div class="cbhd"><h2>Cancelled &amp; Expired Business <span class="cbc"><?= count($canc) ?> total</span></h2>
-    <div class="csw"><label class="csl" for="cxq">View a cancelled or expired file</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <div class="csw"><label class="csl" for="cxq">View a cancelled or expired record</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="cxq" type="search" placeholder="Search by client or address" autocomplete="off" aria-label="Search cancelled and expired business by client name or property address"></div></div></div>
     <p class="cbl">All time &middot; not affected by the time period. Mark a file from its record page with <b>Mark cancelled or expired</b>.</p>
     <div class="pp cxf" role="tablist">
