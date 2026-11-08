@@ -5,6 +5,13 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/ablib.php";
 $me = $_SESSION['email'];
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$perr = '';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'setprice') { // sold price for one closed file
+    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) $perr = 'This page expired. Please reload and try again.';
+    else $perr = ab_set_price($me, (string)($_POST['tx'] ?? ''), (string)($_POST['price'] ?? ''));
+    if ($perr === '') { header('Location: performance.php?' . http_build_query(array_filter(['p' => $_GET['p'] ?? '', 'y' => $_GET['y'] ?? ''])) . '#closed'); exit; }
+}
 $all = ab_closed($me); // every closed file, with its closing date
 $thisY = (int)date('Y');
 $years = []; $undated = 0;
@@ -18,6 +25,23 @@ $pick = function ($rows) use ($p, $rg, $yr) { return array_values(array_filter($
     if ($p === 'prev' && !$yr) return false;
     return $r['closed'] !== '' && $r['closed'] >= $rg[0] && $r['closed'] <= $rg[1]; })); };
 $cb = $pick($all['buyer']); $cs = $pick($all['seller']);
+$tot = ab_totals($cb, $cs);
+// Chart buckets: weeks of the month for Current Month, otherwise months of the period.
+$buckets = [];
+if ($rg && $p !== 'nodate' && !($p === 'prev' && !$yr)) {
+    if ($p === 'month') { $last = (int)date('t', strtotime($rg[0]));
+        foreach ([[1, 7], [8, 14], [15, 21], [22, $last]] as $w) $buckets[] = ['lbl' => date('M', strtotime($rg[0])) . ' ' . $w[0] . '–' . $w[1], 'from' => substr($rg[0], 0, 8) . sprintf('%02d', $w[0]), 'to' => substr($rg[0], 0, 8) . sprintf('%02d', $w[1])]; }
+    else { for ($t = strtotime($rg[0]); $t <= strtotime($rg[1]); $t = strtotime('+1 month', $t)) $buckets[] = ['lbl' => date('M', $t), 'from' => date('Y-m-01', $t), 'to' => date('Y-m-t', $t)]; }
+    foreach ($buckets as &$bk) { $in = function ($r) use ($bk) { return $r['closed'] >= $bk['from'] && $r['closed'] <= $bk['to']; };
+        $bk['b'] = count(array_filter($cb, $in)); $bk['s'] = count(array_filter($cs, $in));
+        $bk['bv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cb, $in))); $bk['sv'] = array_sum(array_map(function ($r) { return (int)$r['price']; }, array_filter($cs, $in))); }
+    unset($bk);
+}
+$money = function ($n) { return '$' . number_format((int)$n); };
+$priceUI = function ($r) use ($money) { $h = function ($x) { return htmlspecialchars((string)$x); };
+    return '<form method="post" class="qa prx" onclick="event.stopPropagation()"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="op" value="setprice"><input type="hidden" name="tx" value="' . $h($r['t']['folder']) . '">'
+        . ($r['price'] ? '<span class="prv">' . $money($r['price']) . '</span><button type="button" class="pre" title="Edit sold price" aria-label="Edit sold price">&#9998;</button>' : '<button type="button" class="pre add">+ Sold price</button>')
+        . '<span class="prf" hidden><input name="price" inputmode="numeric" placeholder="Sold price" value="' . ($r['price'] ?: '') . '" aria-label="Sold price"><button type="submit">Save</button></span></form>'; };
 $qn = intdiv((int)date('n') - 1, 3) + 1;
 $label = ['month' => date('F Y'), 'quarter' => 'Q' . $qn . ' ' . $thisY, 'ytd' => $thisY . ' year to date', 'prev' => $yr ? (string)$yr : 'Previous years', 'nodate' => 'No closing date entered'][$p];
 ?>
@@ -53,6 +77,28 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}
 .ovsub span{display:inline-flex;align-items:center;gap:8px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff}.tile b{display:block;font-size:1.6rem;line-height:1.15;color:#1f2a2c}
+.tl{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:#4b5b5d}.ts{display:block;font-size:.8rem;color:#5a6a6c;margin-top:2px}
+.tile.vol{background:#f0f8f8;border-color:#cfe5e5}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px}.sw.b{background:#008f94}.sw.s{background:#d9692a}
+.chart{position:relative;border:1px solid var(--line);border-radius:12px;padding:12px 14px 8px;margin:0 0 14px}
+.lg{display:flex;gap:16px;font-size:.82rem;color:#4b5b5d;margin:0 0 10px}.lg span{display:inline-flex;align-items:center;gap:6px}
+.plot{display:flex;gap:8px;height:180px;padding-bottom:22px}
+.yax{position:relative;width:18px;flex:none}.yax span{position:absolute;right:0;transform:translateY(50%);font-size:.72rem;color:#8a9a9c}
+.grid{position:relative;flex:1;display:flex;align-items:stretch;border-bottom:1px solid #c9d4d4}
+.grid>i{position:absolute;left:0;right:0;border-top:1px solid #eef2f2}
+.grp{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;outline:none;cursor:default;border-radius:6px}
+.grp:hover,.grp:focus{background:rgba(3,111,114,.05)}
+.bars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:2px}
+.bar{position:relative;width:min(22px,38%);border-radius:4px 4px 0 0;min-height:0}.bar.b{background:#008f94}.bar.s{background:#d9692a}
+.bar em{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);font-style:normal;font-size:.72rem;font-weight:700;color:#1f2a2c;padding-bottom:2px}
+.xl{position:absolute;top:100%;margin-top:4px;font-size:.72rem;color:#5a6a6c;white-space:nowrap}
+.tip{position:absolute;z-index:5;background:#1f2a2c;color:#fff;font-size:.78rem;padding:6px 9px;border-radius:8px;pointer-events:none;max-width:260px}
+.prx{display:inline-flex;align-items:center;gap:6px;margin:0 4px 0 0}.prv{font-weight:700;font-size:.85rem;color:#1f2a2c}
+.prx .pre{font:inherit;font-size:.78rem;border:1px solid var(--line);background:#fff;color:var(--teal);border-radius:8px;padding:4px 8px;cursor:pointer}.prx .pre.add{font-weight:700}
+.prf{display:inline-flex;gap:4px}.prf input{width:110px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.85rem}.prf button{font:inherit;font-size:.8rem;font-weight:700;border:0;background:var(--teal);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer}
+@media(max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:1.25rem;overflow-wrap:anywhere}.chart.many .bar em{display:none}.chart.many .bar{width:45%}.chart.many .bars{gap:1px}.plot{height:150px}.xl{font-size:.64rem}.crow .prx{order:5;margin-left:24px}}
 .pmenu{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}.pmenu a{font-weight:700;padding:8px 14px;font-size:.9rem;border-radius:10px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none}
 .pmenu a.on{background:var(--teal);color:#fff;border-color:var(--teal)}.cbc{font-size:.85rem;font-weight:600;color:#5a6a6c;margin-left:6px}
 .pp{display:flex;flex-wrap:wrap;gap:6px}.pp a{font-weight:700;font-size:.82rem;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--teal);text-decoration:none}
@@ -93,16 +139,49 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
   <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
 <?php if ($p === 'prev' && !$years): ?>    <p class="empty">No closed files from previous years.</p>
 <?php else: ?>
+<?php if ($perr): ?>    <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
+<?php endif; ?>
+    <div class="tiles">
+      <div class="tile"><span class="tl"><i class="sw b"></i>Buyer sides</span><b><?= $tot['buyer_sides'] ?></b><span class="ts"><?= $money($tot['buyer_volume']) ?></span></div>
+      <div class="tile"><span class="tl"><i class="sw s"></i>Seller sides</span><b><?= $tot['seller_sides'] ?></b><span class="ts"><?= $money($tot['seller_volume']) ?></span></div>
+      <div class="tile"><span class="tl">Total sides</span><b><?= $tot['sides'] ?></b><span class="ts">closed transactions</span></div>
+      <div class="tile vol"><span class="tl">$ Volume</span><b><?= $money($tot['volume']) ?></b><span class="ts">credit for every side you closed</span></div>
+    </div>
+<?php if ($buckets): $mx = max(1, max(array_map(function ($b) { return max($b['b'], $b['s']); }, $buckets))); $ticks = $mx <= 4 ? range(0, $mx) : [0, (int)ceil($mx / 2), $mx]; ?>
+    <div class="chart<?= count($buckets) > 6 ? ' many' : '' ?>" role="img" aria-label="Closed sides by <?= $p === 'month' ? 'week' : 'month' ?>, buyer and seller">
+      <div class="lg"><span><i class="sw b"></i>Buyer side</span><span><i class="sw s"></i>Seller side</span></div>
+      <div class="plot">
+        <div class="yax"><?php foreach (array_reverse($ticks) as $tk): ?><span style="bottom:<?= round($tk / $mx * 100, 2) ?>%"><?= $tk ?></span><?php endforeach; ?></div>
+        <div class="grid"><?php foreach ($ticks as $tk): ?><i style="bottom:<?= round($tk / $mx * 100, 2) ?>%"></i><?php endforeach; ?>
+<?php foreach ($buckets as $bk): ?>
+          <div class="grp" tabindex="0" data-tip="<?= htmlspecialchars($bk['lbl'] . ' — Buyer sides: ' . $bk['b'] . ' (' . $money($bk['bv']) . ') · Seller sides: ' . $bk['s'] . ' (' . $money($bk['sv']) . ')') ?>">
+            <div class="bars"><span class="bar b" style="height:<?= round($bk['b'] / $mx * 100, 2) ?>%"><?= $bk['b'] ? '<em>' . $bk['b'] . '</em>' : '' ?></span><span class="bar s" style="height:<?= round($bk['s'] / $mx * 100, 2) ?>%"><?= $bk['s'] ? '<em>' . $bk['s'] . '</em>' : '' ?></span></div>
+            <span class="xl"><?= htmlspecialchars($bk['lbl']) ?></span>
+          </div>
+<?php endforeach; ?>
+        </div>
+      </div>
+      <div class="tip" hidden></div>
+    </div>
+<?php endif; ?>
+<?php if ($tot['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_price'] ?> closed file<?= $tot['missing_price'] === 1 ? ' has' : 's have' ?> no sold price yet, so <?= $tot['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to volume. Use <b>+ Sold price</b> on the row.</p>
+<?php endif; ?>
     <div class="ovsub"><span>Buyers (<?= count($cb) ?>)</span></div>
 <?php if (!$cb): ?>    <p class="empty">No closed buyer transactions in this period.</p>
-<?php else: foreach ($cb as $r) echo ab_row($r, 'buyer'); endif; ?>
+<?php else: foreach ($cb as $r) echo ab_row($r, 'buyer', $priceUI($r)); endif; ?>
     <div class="ovsub"><span>Sellers (<?= count($cs) ?>)</span></div>
 <?php if (!$cs): ?>    <p class="empty">No closed seller transactions in this period.</p>
-<?php else: foreach ($cs as $r) echo ab_row($r, 'seller'); endif; ?>
+<?php else: foreach ($cs as $r) echo ab_row($r, 'seller', $priceUI($r)); endif; ?>
 <?php endif; ?>
 <?php if ($undated && $p !== 'nodate'): ?>    <p class="cbn"><?= $undated ?> closed file<?= $undated === 1 ? ' has' : 's have' ?> no closing date, so <?= $undated === 1 ? 'it isn\'t' : 'they aren\'t' ?> counted in a period. <a href="performance.php?p=nodate#closed">See <?= $undated === 1 ? 'it' : 'them' ?></a></p>
 <?php endif; ?>
   </div>
+<script>(function(){
+document.querySelectorAll(".prx .pre").forEach(function(b){b.addEventListener("click",function(e){e.stopPropagation();var f=b.closest(".prx");f.querySelector(".prf").hidden=false;f.querySelectorAll(".pre,.prv").forEach(function(x){x.hidden=true;});var i=f.querySelector("input[name=price]");i.focus();i.select();});});
+var c=document.querySelector(".chart");if(!c)return;var t=c.querySelector(".tip");
+function show(g){var r=g.getBoundingClientRect(),cr=c.getBoundingClientRect();t.textContent=g.dataset.tip;t.hidden=false;var x=r.left-cr.left+r.width/2-t.offsetWidth/2;x=Math.max(4,Math.min(x,cr.width-t.offsetWidth-4));t.style.left=x+"px";t.style.top=(r.top-cr.top-t.offsetHeight+6)+"px";}
+c.querySelectorAll(".grp").forEach(function(g){g.addEventListener("mouseenter",function(){show(g);});g.addEventListener("focus",function(){show(g);});g.addEventListener("mouseleave",function(){t.hidden=true;});g.addEventListener("blur",function(){t.hidden=true;});});
+})();</script>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>

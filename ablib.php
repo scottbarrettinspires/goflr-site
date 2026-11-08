@@ -17,13 +17,13 @@ function ab_rows($me, $side, $list, $pk) {
         $ph = trim((string)($in[$p . '1_phone'] ?? '')) ?: (string)($L['phone'] ?? '');
         $em = trim((string)($in[$p . '1_email'] ?? '')) ?: (string)($L['email'] ?? '');
         $next = null; $c = dl_get($t['folder']); if ($c) foreach (dl_compute(is_array($c["data"]) ? $c["data"] : (json_decode((string)$c["data"], true) ?: [])) as $d) { if (!$d['done']) { $next = $d; break; } }
-        $out[] = ['t' => $t, 'k' => $k, 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
+        $out[] = ['t' => $t, 'k' => $k, 'price' => ab_price($t['folder'], $in), 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
             'addr' => trim((string)($in['property'] ?? '')) ?: ($nm !== $t['name'] ? (string)$t['name'] : '')];
     }
     usort($out, function ($a, $b) { return [$a['i'], $a['nm']] <=> [$b['i'], $b['nm']]; });
     return $out;
 }
-function ab_row($r, $side) {
+function ab_row($r, $side, $extra = '') {
     $h = function ($x) { return htmlspecialchars((string)$x); };
     $url = ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($r['t']['folder']);
     $meta = [PS_STAGES[$side][$r['k']] ?? '']; if ($r['addr'] !== '') $meta[] = $r['addr']; if ($r['src'] !== '') $meta[] = $r['src']; if ($r['ph'] !== '') $meta[] = $r['ph'];
@@ -33,7 +33,7 @@ function ab_row($r, $side) {
     $dig = preg_replace('/[^0-9+]/', '', $r['ph']);
     $qa = '<span class="qa">' . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
         . ($r['em'] !== '' ? '<a href="mailto:' . $h($r['em']) . '" title="Email">&#9993;</a>' : '') . '</span>';
-    return '<div class="lrow crow" onclick="if(!event.target.closest(\'.qa\'))location.href=\'' . $h($url) . '\'"><span class="dot" style="background:' . $h(ps_color($side, $r['k'])) . '"></span><div class="who"><a class="nm" href="' . $h($url) . '">' . $h($r['nm']) . '</a><div class="meta">' . $h(implode(' · ', $meta)) . '</div></div>' . $tag . $qa . '</div>';
+    return '<div class="lrow crow" onclick="if(!event.target.closest(\'.qa\'))location.href=\'' . $h($url) . '\'"><span class="dot" style="background:' . $h(ps_color($side, $r['k'])) . '"></span><div class="who"><a class="nm" href="' . $h($url) . '">' . $h($r['nm']) . '</a><div class="meta">' . $h(implode(' · ', $meta)) . '</div></div>' . $extra . $tag . $qa . '</div>';
 }
 // Stage key for a record (the pipeline stage saved on the site, else the Drive folder's stage).
 function ab_pk($t) { return ps_get($t['folder'], $t['side'], (int)$t['stage']); }
@@ -70,4 +70,36 @@ function ab_closed($me, $period = null) {
         $out[$side] = $rows;
     }
     return $out;
+}
+// Sold price: saved on the site (transactions.sold_price), else the purchase price the Contract Forms Wizard put in the
+// record's info. Whole dollars; 0 when unknown.
+function ab_price_column() {
+    static $done = false; if ($done) return; $done = true; $pdo = flr_db();
+    foreach ($pdo->query('PRAGMA table_info(transactions)')->fetchAll() as $c) { if ($c['name'] === 'sold_price') return; }
+    $pdo->exec('ALTER TABLE transactions ADD COLUMN sold_price INTEGER');
+}
+function ab_price($folder, array $info = []) {
+    ab_price_column();
+    $q = flr_db()->prepare('SELECT sold_price FROM transactions WHERE folder = ?'); $q->execute([$folder]); $v = $q->fetchColumn();
+    if ($v !== false && $v !== null && (int)$v > 0) return (int)$v;
+    $p = preg_replace('/[^0-9.]/', '', (string)($info['price'] ?? '')); return $p === '' ? 0 : (int)round((float)$p);
+}
+// Save the sold price for one of the agent's own records. Returns '' or a human-readable error.
+function ab_set_price($me, $folder, $price) {
+    $ok = false; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $folder) $ok = true; }
+    if (!$ok) return 'That record was not found in your business.';
+    $n = preg_replace('/[^0-9.]/', '', (string)$price);
+    if ($n === '' || (float)$n < 1000 || (float)$n > 500000000) return 'Please enter the sold price in dollars, for example 425000.';
+    ab_price_column();
+    flr_db()->prepare('UPDATE transactions SET sold_price = ? WHERE folder = ?')->execute([(int)round((float)$n), $folder]);
+    flr_audit(flr_akey($me), 'soldprice', $folder, 'Sold price set to $' . number_format((int)round((float)$n)));
+    return '';
+}
+// Totals for a set of closed rows. Volume credit is per side: each closed buyer or seller record counts its full sold
+// price, so a property the agent represented on both sides counts twice.
+function ab_totals(array $buyers, array $sellers) {
+    $sum = function ($rows) { return array_sum(array_map(function ($r) { return (int)($r['price'] ?? 0); }, $rows)); };
+    $miss = count(array_filter(array_merge($buyers, $sellers), function ($r) { return empty($r['price']); }));
+    return ['buyer_sides' => count($buyers), 'seller_sides' => count($sellers), 'sides' => count($buyers) + count($sellers),
+        'buyer_volume' => $sum($buyers), 'seller_volume' => $sum($sellers), 'volume' => $sum($buyers) + $sum($sellers), 'missing_price' => $miss];
 }
