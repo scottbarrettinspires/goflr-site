@@ -124,7 +124,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <?php if ($pic): ?><img class="av" src="<?= htmlspecialchars($pic === 'photo.php' ? 'photo.php?v=' . (int)@filemtime(flr_photo_path($_SESSION['email'] ?? '')) : $pic) ?>" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;av&quot;><?= htmlspecialchars($ini) ?></span>'"><?php else: ?><span class="av"><?= htmlspecialchars($ini) ?></span><?php endif; ?>
     <div>
       <h1>Welcome<?= $first !== '' ? ', ' . htmlspecialchars($first) : '' ?></h1>
-      <p><?= $agentView ? 'This is Home as your agents see it.' : 'What needs your attention today.' ?></p>
+      <p><?= $agentView ? 'This is Home as your agents see it.' : ($isStaff ? 'What needs your attention today.' : 'What&#39;s happening at the brokerage.') ?></p>
     </div>
     <span class="homeicons">
     <a class="omicon" href="notifications.php" title="Notifications" aria-label="Notifications<?= $ntCount ? ', ' . $ntCount . ' need attention' : '' ?>" id="ntbell">
