@@ -131,7 +131,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 
 <section class="hero">
   <h1>Active Business</h1>
-  <p>Buyers and sellers who became clients, sorted into the same kind of pipeline stages as your Leads.</p>
+  <p>What needs your attention today.</p>
 </section>
 
 <main class="wrap">
