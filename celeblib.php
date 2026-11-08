@@ -32,27 +32,46 @@ function cb_run($force = false) {
         if (time() - (int)$q->fetchColumn() < 600) return 0;
         $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute([$flag, (string)time()]);
     }
-    $n = 0;
+    $n = cb_examples();
     foreach (ar_upcoming_dates(0) as $D) {
         if ((int)$D['daysAway'] !== 0 || empty($D['postOk'])) continue;
-        $claim = $pdo->prepare('INSERT OR IGNORE INTO celeb_posts (k, post_id, created) VALUES (?, 0, ?)'); $claim->execute([cb_key($D), date('c')]);
-        if (!$claim->rowCount()) continue; // already posted (or being posted)
-        try {
-            $rec = ar_get($D['agent_id']); $full = trim((string)($rec['full_name'] ?? '')) ?: $D['name'];
-            $img = cb_render($D['type'], $full, (int)($D['years'] ?? 0), cb_headshot($D['email']));
-            $yrs = (int)($D['years'] ?? 0);
-            $body = $D['type'] === 'birthday' // Scott's wording
-                ? "Happy Birthday, {$full}!\nHere's to another great year, new goals and plenty of reasons to celebrate.\nWe're so glad you're part of the FLR family. Wishing you a day full of joy!"
-                : "Happy Workiversary!\n{$full} is celebrating {$yrs} year" . ($yrs === 1 ? '' : 's') . " with Florida Luxury Realty!\nThank you for your hard work, your clients, and everything you bring to our team. Here's to many more!";
-            $pdo->prepare('INSERT INTO co_posts (author_email, author_key, author_name, author_staff, body, image, created) VALUES (?,?,?,?,?,?,?)')
-                ->execute(['', 'staff:*', 'Florida Luxury Realty', 1, $body, $img, date('c')]);
-            $pid = (int)$pdo->lastInsertId();
-            $pdo->prepare('UPDATE celeb_posts SET post_id = ? WHERE k = ?')->execute([$pid, cb_key($D)]);
-            flr_audit('', 'celebration_post', (string)$pid, $D['type'] . ' for ' . $full);
-            $n++;
-        } catch (Throwable $e) {
-            $pdo->prepare('DELETE FROM celeb_posts WHERE k = ? AND post_id = 0')->execute([cb_key($D)]); // try again on a later visit
-        }
+        if (cb_post_one($D)) $n++;
+    }
+    return $n;
+}
+// Post one celebration ($D from ar_upcoming_dates) if it hasn't been posted. Returns the post id, or 0.
+function cb_post_one($D) {
+    $pdo = cb_db();
+    $claim = $pdo->prepare('INSERT OR IGNORE INTO celeb_posts (k, post_id, created) VALUES (?, 0, ?)'); $claim->execute([cb_key($D), date('c')]);
+    if (!$claim->rowCount()) return 0; // already posted (or being posted)
+    try {
+        $rec = ar_get($D['agent_id']); $full = trim((string)($rec['full_name'] ?? '')) ?: $D['name'];
+        $img = cb_render($D['type'], $full, (int)($D['years'] ?? 0), cb_headshot($D['email']));
+        $yrs = (int)($D['years'] ?? 0);
+        $body = $D['type'] === 'birthday' // Scott's wording
+            ? "Happy Birthday, {$full}!\nHere's to another great year, new goals and plenty of reasons to celebrate.\nWe're so glad you're part of the FLR family. Wishing you a day full of joy!"
+            : "Happy Workiversary!\n{$full} is celebrating {$yrs} year" . ($yrs === 1 ? '' : 's') . " with Florida Luxury Realty!\nThank you for your hard work, your clients, and everything you bring to our team. Here's to many more!";
+        $pdo->prepare('INSERT INTO co_posts (author_email, author_key, author_name, author_staff, body, image, created) VALUES (?,?,?,?,?,?,?)')
+            ->execute(['', 'staff:*', 'Florida Luxury Realty', 1, $body, $img, date('c')]);
+        $pid = (int)$pdo->lastInsertId();
+        $pdo->prepare('UPDATE celeb_posts SET post_id = ? WHERE k = ?')->execute([$pid, cb_key($D)]);
+        flr_audit('', 'celebration_post', (string)$pid, $D['type'] . ' for ' . $full);
+        return $pid;
+    } catch (Throwable $e) {
+        $pdo->prepare('DELETE FROM celeb_posts WHERE k = ? AND post_id = 0')->execute([cb_key($D)]); // try again on a later visit
+        return 0;
+    }
+}
+// One-time examples Scott asked for (Nov 8, 2026): Bonnie Bowersox's workiversary and Tiffany Prete's birthday,
+// posted ahead of their days. They're recorded under their real dates, so they aren't posted again on the day.
+function cb_examples() {
+    $pdo = cb_db();
+    $c = $pdo->prepare("INSERT OR IGNORE INTO kv (k, v) VALUES ('cb_examples_v1', ?)"); $c->execute([date('c')]);
+    if (!$c->rowCount()) return 0;
+    $n = 0;
+    foreach (ar_upcoming_dates(30) as $D) {
+        $nm = strtolower($D['name'] . ' ' . (ar_get($D['agent_id'])['full_name'] ?? ''));
+        if (($D['type'] === 'anniversary' && strpos($nm, 'bowersox') !== false) || ($D['type'] === 'birthday' && strpos($nm, 'prete') !== false)) { if (cb_post_one($D)) $n++; }
     }
     return $n;
 }
