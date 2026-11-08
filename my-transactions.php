@@ -246,10 +246,10 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 @media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.none,.mc.past{display:none}.mcal{background:#fff}.mc+.mc{border-top:1px solid var(--line)}.mcal.mempty{display:none}.mdh .mmo{display:block;font-size:.7rem;color:#8a9a9c;padding-left:4px}.mdh .md{font-size:.95rem}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
 </style>
   <div class="lpanel" id="clients"><h2>Active Clients</h2>
-    <div class="ovsub"><span>Buyers (<?= count($ovB) ?>) <a href="#" class="addmini" data-k="buyer" role="button">+ ADD</a></span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
+    <div class="ovsub"><span>Buyers (<?= count($ovB) ?>) <a href="#" class="addmini" data-k="buyer" role="button">+ ADD</a></span></div>
 <?php if (!$ovB): ?>    <p class="empty">No active buyers.</p>
 <?php else: foreach ($ovB as $r) echo ab_row($r, 'buyer'); endif; ?>
-    <div class="ovsub"><span>Sellers (<?= count($ovS) ?>) <a href="#" class="addmini" data-k="seller" role="button">+ ADD</a></span><a href="my-transactions.php?side=seller">See all sellers &rarr;</a></div>
+    <div class="ovsub"><span>Sellers (<?= count($ovS) ?>) <a href="#" class="addmini" data-k="seller" role="button">+ ADD</a></span></div>
 <?php if (!$ovS): ?>    <p class="empty">No active sellers.</p>
 <?php else: foreach ($ovS as $r) echo ab_row($r, 'seller'); endif; ?>
   </div>
