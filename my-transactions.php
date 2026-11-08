@@ -25,6 +25,8 @@ $dlSoon = dl_upcoming($me, 7, true);
 $stageF = (string)($_GET['stage'] ?? '');
 $rows = [];
 require_once __DIR__ . '/ablib.php';
+require_once __DIR__ . '/perfcards.php';
+$perr = $view === 'overview' ? pf_handle_post($me, 'my-transactions.php') : '';
 if ($view !== 'overview') $rows = ab_rows($me, $view, $view === 'buyer' ? $buyers : $sellers, $pk);
 else { $ovB = array_values(array_filter(ab_rows($me, 'buyer', $buyers, $pk), function ($r) { return $r['k'] !== 'closed'; }));
        $ovS = array_values(array_filter(ab_rows($me, 'seller', $sellers, $pk), function ($r) { return $r['k'] !== 'closed'; })); }
@@ -53,6 +55,7 @@ try { require_once __DIR__ . '/signed_panel.php'; $txAll = flr_tx_list($me);
 <meta name="robots" content="noindex,nofollow">
 <title>Active Business - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=11">
+<?= pf_css() ?>
 <style>
 .stabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.stabs a{padding:9px 16px;border-radius:99px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;font-weight:600}.stabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
 /* Sidebar + tabs, matching the Leads page's look. */
@@ -127,6 +130,9 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if (!empty($_GET['added'])): ?>  <p class="note">The Pre Listing record is created. It can take a minute to show here.</p>
 <?php endif; ?>
 <?php if ($view === 'overview'): ?>
+<?php if ($perr): ?>  <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
+<?php endif; ?>
+<?= pf_active_html($me, 'right now') ?>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
 <?php
     // A week strip like a calendar row: today plus 6 days, each item under the day it's actually due (a deadline on
@@ -281,6 +287,7 @@ f.addEventListener("submit",function(e){e.preventDefault();er.hidden=true;
   }).catch(function(e2){fail(e2.message);});});
 })();
 </script>
+<?php if ($view === 'overview') echo pf_js(); ?>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
