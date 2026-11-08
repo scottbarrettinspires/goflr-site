@@ -115,7 +115,7 @@ foreach ($agentsAll as $i => $p) {
 <?= $restCards ?>  </div></section>
   </div>
   <p class="note" id="none" hidden>No one matches that search.</p>
-<?php if (!empty($d['note'])): ?><p class="note"><?= htmlspecialchars($d['note']) ?></p><?php endif; ?>
+<?php if (!empty($d['note']) && $canLoginAs): // the office script's technical note: staff only ?><p class="note"><?= htmlspecialchars($d['note']) ?></p><?php endif; ?>
 <?php endif; ?>
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
