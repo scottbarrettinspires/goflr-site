@@ -186,8 +186,35 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
       </div>
 <?php endforeach; ?>
     </div>
-<?php if (!$dlSoon): ?>    <p class="empty" style="padding:10px 0 0">Nothing due in the next 7 days.</p><?php endif; ?>
-    <p style="margin:10px 0 0;text-align:right;font-size:.88rem"><a href="deadlines.php" style="font-weight:600">See all upcoming deadlines &rarr;</a></p>
+<?php if (!$dlSoon): ?>    <p class="empty" id="dlnone" style="padding:10px 0 0">Nothing due in the next 7 days.</p><?php endif; ?>
+<?php
+    // Expanded view: this calendar week (Sun-Sat) plus the next 3 weeks, same item cards as the strip above.
+    $mStart = strtotime('today') - (int)date('w') * 86400; $mStart = strtotime(date('Y-m-d', $mStart));
+    $mEnd = strtotime('+27 days', $mStart); $todayD = date('Y-m-d');
+    $mDays = (int)round(($mEnd - strtotime('today')) / 86400);
+    $mCells = []; for ($k = 0; $k < 28; $k++) $mCells[date('Y-m-d', strtotime("+$k days", $mStart))] = [];
+    $mOver = []; $mCount = 0;
+    foreach (dl_upcoming($me, $mDays, true) as $d) { $eff = $d['nextbiz'] ?: $d['date'];
+        if ($d['left'] < 0) $mOver[] = $d; elseif (isset($mCells[$eff])) { $mCells[$eff][] = $d; $mCount++; } }
+?>
+    <div id="dlmonth" hidden>
+      <h3 class="mh"><?= date('M j', $mStart) ?> &ndash; <?= date('M j', $mEnd) ?> <span>(<?= $mCount ?> due<?= $mOver ? ', ' . count($mOver) . ' overdue' : '' ?>)</span></h3>
+<?php if ($mOver): ?>      <div class="mover"><span class="mol">Overdue</span><?php foreach ($mOver as $d) echo $item($d, 'red'); ?></div>
+<?php endif; ?>
+      <div class="mcal">
+<?php foreach (['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as $wd): ?>        <div class="mwd"><?= $wd ?></div>
+<?php endforeach; foreach ($mCells as $day => $items): $t = strtotime($day); $past = $day < $todayD; $off = dl_offday($day); ?>
+        <div class="mc<?= $day === $todayD ? ' today' : '' ?><?= $past ? ' past' : '' ?><?= $off !== '' ? ' off' : '' ?>">
+          <div class="mdh"><span class="mwn"><?= date('D', $t) ?></span><span class="md"><?= date('j', $t) === '1' || $day === date('Y-m-d', $mStart) ? date('M j', $t) : date('j', $t) ?></span><?= ($off !== '' && $off !== 'Saturday' && $off !== 'Sunday') ? '<span class="mhol">' . htmlspecialchars($off) . '</span>' : '' ?></div>
+          <div class="wki"><?php foreach ($items as $d) echo $item($d, $d['left'] <= 0 ? 'red' : ($d['left'] <= 3 ? 'amber' : '')); ?></div>
+        </div>
+<?php endforeach; ?>
+      </div>
+      <p style="margin:10px 0 0;font-size:.85rem;color:#5a6a6c">A deadline that falls on a weekend or holiday shows on the next business day. <a href="deadlines.php">Open the full deadlines list</a></p>
+    </div>
+    <p style="margin:10px 0 0;text-align:right;font-size:.88rem"><a href="deadlines.php" id="dlmore" role="button" aria-expanded="false" aria-controls="dlmonth" style="font-weight:600">See all upcoming deadlines &darr;</a></p>
+<script>(function(){var a=document.getElementById("dlmore"),m=document.getElementById("dlmonth"),w=document.querySelector("#deadlines .wk");
+a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hidden=!open;var h=document.querySelector("#deadlines h2");if(h)h.textContent=open?"Contract deadlines: next 4 weeks":"Contract deadlines: next 7 days";if(w)w.hidden=open;var n=document.getElementById("dlnone");if(n)n.hidden=open;a.setAttribute("aria-expanded",open?"true":"false");a.innerHTML=open?"Show the next 7 days only &uarr;":"See all upcoming deadlines &darr;";if(open)m.scrollIntoView({behavior:"smooth",block:"nearest"});});})();</script>
   </div>
 <style>
 .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -208,6 +235,14 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 @media(max-width:760px){.wk,.wk.hasover{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
   .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}.ovsub a{font-weight:600;font-size:.85rem}
+.mh{margin:0 0 10px;font-size:1rem}.mh span{font-weight:500;color:#5a6a6c;font-size:.88rem}
+.mover{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;padding:10px;margin:0 0 10px;border:1px solid #f3c7c4;background:#fff6f5;border-radius:12px}.mover .mol{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#b71c1c;align-self:center;margin-right:4px}.mover .wkit{max-width:220px}
+.mcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line);gap:1px}
+.mwd{background:#f3f6f6;text-align:center;font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5a6a6c;padding:6px 0}
+.mc{background:#fff;min-height:96px;padding:6px;display:flex;flex-direction:column;gap:5px;min-width:0}.mc.off{background:#f8fafa}.mc.past{background:#fafbfb}.mc.past .mdh{opacity:.45}
+.mdh{display:flex;align-items:center;gap:6px;font-size:.8rem;color:#1f2a2c}.mdh .mwn{display:none}.mdh .md{font-weight:600;min-width:24px;height:24px;padding:0 4px;border-radius:99px;display:inline-flex;align-items:center;justify-content:center}
+.mc.today .md{background:var(--teal);color:#fff}.mhol{font-size:.66rem;color:#8a9a9c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.past:not(.today){display:none}.mc:has(.wki:empty):not(.today){display:none}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
 </style>
   <div class="lpanel" id="clients"><h2>Your clients</h2>
     <div class="ovsub"><span>Buyers (<?= count($ovB) ?>)</span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
