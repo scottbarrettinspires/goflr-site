@@ -29,7 +29,7 @@ function cb_run($force = false) {
     $pdo = cb_db(); $flag = 'cb_check';
     if (!$force) {
         $q = $pdo->prepare('SELECT v FROM kv WHERE k = ?'); $q->execute([$flag]);
-        if (time() - (int)$q->fetchColumn() < 600) return 0;
+        if (time() - (int)$q->fetchColumn() < 60) return 0;
         $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute([$flag, (string)time()]);
     }
     $n = cb_examples();
@@ -59,20 +59,23 @@ function cb_post_one($D) {
         return $pid;
     } catch (Throwable $e) {
         $pdo->prepare('DELETE FROM celeb_posts WHERE k = ? AND post_id = 0')->execute([cb_key($D)]); // try again on a later visit
+        cb_log(cb_key($D) . ': ' . get_class($e) . ': ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine());
         return 0;
     }
 }
 // One-time examples Scott asked for (Nov 8, 2026): Bonnie Bowersox's workiversary and Tiffany Prete's birthday,
 // posted ahead of their days. They're recorded under their real dates, so they aren't posted again on the day.
+function cb_log($msg) { @file_put_contents(__DIR__ . '/logs/celebrate.log', date('c') . ' ' . $msg . "\n", FILE_APPEND | LOCK_EX); }
 function cb_examples() {
     $pdo = cb_db();
-    $c = $pdo->prepare("INSERT OR IGNORE INTO kv (k, v) VALUES ('cb_examples_v1', ?)"); $c->execute([date('c')]);
-    if (!$c->rowCount()) return 0;
-    $n = 0;
+    $q = $pdo->prepare("SELECT v FROM kv WHERE k = 'cb_examples_v2'"); $q->execute(); if ($q->fetchColumn()) return 0; // done
+    $n = 0; $found = 0;
     foreach (ar_upcoming_dates(30) as $D) {
         $nm = strtolower($D['name'] . ' ' . (ar_get($D['agent_id'])['full_name'] ?? ''));
-        if (($D['type'] === 'anniversary' && strpos($nm, 'bowersox') !== false) || ($D['type'] === 'birthday' && strpos($nm, 'prete') !== false)) { if (cb_post_one($D)) $n++; }
+        if (($D['type'] === 'anniversary' && strpos($nm, 'bowersox') !== false) || ($D['type'] === 'birthday' && strpos($nm, 'prete') !== false)) { $found++; if (cb_post_one($D) || cb_post_id($D)) $n++; }
     }
+    cb_log('examples: found ' . $found . ', posted ' . $n . ' (GD freetype: ' . (function_exists('imagettftext') ? 'yes' : 'no') . ')');
+    if ($found && $n >= $found) $pdo->prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('cb_examples_v2', ?)")->execute([date('c')]); // otherwise try again next visit
     return $n;
 }
 
