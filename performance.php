@@ -53,7 +53,8 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}
 .ovsub span{display:inline-flex;align-items:center;gap:8px}
-.cbh{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:0 0 10px}.cbh h2{margin:0!important}
+.pmenu{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}.pmenu a{font-weight:700;padding:8px 14px;font-size:.9rem;border-radius:10px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none}
+.pmenu a.on{background:var(--teal);color:#fff;border-color:var(--teal)}.cbc{font-size:.85rem;font-weight:600;color:#5a6a6c;margin-left:6px}
 .pp{display:flex;flex-wrap:wrap;gap:6px}.pp a{font-weight:700;font-size:.82rem;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--teal);text-decoration:none}
 .pp a.on{background:var(--teal);color:#fff;border-color:var(--teal)}.pp.yrs{margin:0 0 10px}.pp.yrs a{font-size:.78rem;padding:4px 10px}
 .cbl{margin:0 0 12px;font-size:.88rem;color:#5a6a6c}.cbn{margin:12px 0 0;font-size:.85rem;color:#5a6a6c}
@@ -81,14 +82,15 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 </section>
 
 <main class="wrap">
-  <div class="lpanel" id="closed"><div class="cbh"><h2>Closed Business</h2>
-    <div class="pp">
-<?php foreach (['month' => 'Current Month', 'quarter' => 'Current Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?>#closed" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
+  <nav class="pmenu" aria-label="Time period">
+<?php foreach (['month' => 'Current Month', 'quarter' => 'Current Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?>" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
 <?php endforeach; ?>
-    </div></div>
-<?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?>#closed" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
+  </nav>
+<?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?>" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
 <?php endif; ?>
-    <p class="cbl"><?= htmlspecialchars($label) ?> &middot; <?= count($cb) + count($cs) ?> closed</p>
+<?php if ($p !== 'prev'): ?>  <p class="cbl"><?= htmlspecialchars($label) ?></p>
+<?php endif; ?>
+  <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
 <?php if ($p === 'prev' && !$years): ?>    <p class="empty">No closed files from previous years.</p>
 <?php else: ?>
     <div class="ovsub"><span>Buyers (<?= count($cb) ?>)</span></div>
