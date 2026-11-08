@@ -85,6 +85,13 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .lrow .meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .spills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.spills a{font-weight:700;font-size:.82rem;padding:5px 10px;border-radius:99px;text-decoration:none;border:2px solid transparent}.spills a.on{border-color:#1f2a2c}
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
+.cbhd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 12px}.cbhd h2{margin:0!important}
+.csrch{position:relative;display:flex;align-items:center;gap:6px;flex:0 1 340px;min-width:220px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;color:#5a6a6c}
+.csrch:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(3,111,114,.12)}.csrch input{flex:1;border:0;outline:0;font:inherit;font-size:.9rem;padding:8px 0;background:transparent;min-width:0}
+.csres{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-height:340px;overflow:auto;padding:4px}
+.csres a{display:block;padding:8px 10px;border-radius:8px;text-decoration:none;color:#1f2a2c}.csres a:hover,.csres a.on{background:#eef6f6}.csres a b{display:block;font-size:.92rem}.csres a span{display:block;font-size:.78rem;color:#5a6a6c}
+.csnone{margin:0;padding:10px;font-size:.88rem;color:#5a6a6c}
+@media(max-width:700px){.csrch{flex:1 1 100%}}
 </style>
 </head>
 <body>
@@ -118,7 +125,21 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
 <?php endif; ?>
 <?= pf_active_html($me, 'right now · not affected by the time period') ?>
-  <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
+  <div class="lpanel" id="closed"><div class="cbhd"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
+    <div class="csrch" role="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="csq" type="search" placeholder="Search closed by client or address" autocomplete="off" aria-label="Search all closed transactions by client name or property address" aria-controls="csres">
+      <div id="csres" class="csres" role="listbox" hidden></div></div></div>
+<?php $srch = []; foreach (['buyer', 'seller'] as $sd) foreach ($all[$sd] as $r) $srch[] = ['n' => $r['nm'], 'a' => $r['addr'], 's' => $sd === 'buyer' ? 'Buyer' : 'Seller', 'd' => $r['closed'] !== '' ? 'Closed ' . date('M j, Y', strtotime($r['closed'])) : 'No closing date', 'u' => ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])]; ?>
+<script>(function(){var D=<?= json_encode($srch, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,q=document.getElementById("csq"),box=document.getElementById("csres"),sel=-1;
+function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function norm(t){return String(t||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();}
+function run(){var v=norm(q.value);sel=-1;if(!v){box.hidden=true;box.innerHTML="";return;}var w=v.split(" ");
+  var hits=D.filter(function(x){var h=norm(x.n+" "+x.a);return w.every(function(t){return h.indexOf(t)>=0;});}).slice(0,8);
+  box.innerHTML=hits.length?hits.map(function(x){return '<a role="option" href="'+esc(x.u)+'"><b>'+esc(x.n)+'</b><span>'+esc([x.s,x.a,x.d].filter(Boolean).join(" · "))+'</span></a>';}).join(""):'<p class="csnone">No closed transaction matches "'+esc(q.value)+'".</p>';box.hidden=false;}
+q.addEventListener("input",run);q.addEventListener("focus",run);
+q.addEventListener("keydown",function(e){var a=box.querySelectorAll("a");if(!a.length)return;if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();sel=(sel+(e.key==="ArrowDown"?1:-1)+a.length)%a.length;a.forEach(function(x,i){x.classList.toggle("on",i===sel);});a[sel].scrollIntoView({block:"nearest"});}
+  else if(e.key==="Enter"){e.preventDefault();location.href=(a[sel>=0?sel:0]).getAttribute("href");}else if(e.key==="Escape"){box.hidden=true;}});
+document.addEventListener("click",function(e){if(!e.target.closest(".csrch"))box.hidden=true;});})();</script>
 <?php if ($p !== 'prev' || $cmp): ?>  <p class="cbl"><?= htmlspecialchars($p === 'prev' ? (string)$yr : $label) ?><?php if ($cmp): ?> <span class="vs">compared with <?= htmlspecialchars(date('M j, Y', strtotime($rgL[0])) . ' – ' . date('M j, Y', strtotime($rgL[1]))) ?></span><?php endif; ?></p>
 <?php endif; ?>
 <?php if ($p === 'prev' && !$years): ?>    <p class="empty">No closed files from previous years.</p>

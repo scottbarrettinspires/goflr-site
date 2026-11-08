@@ -2,7 +2,7 @@
 // Performance data for the signed-in agent, as JSON (for the page's future widgets and for assistants via the FLR MCP).
 // GET ?action=closed[&period=month|quarter|ytd|YYYY] -> {ok, period, from, to, buyers:[...], sellers:[...]},
 // each item {folder, name, stage, closed (YYYY-MM-DD or ''), price, address, phone, email, source, url}, plus totals (sides and
-// $ volume; each side counts its full sold price). No period = every closed file. POST action=setprice saves a sold price.
+// $ volume; each side counts its full sold price). No period = every closed file. &q= searches client name or address. POST action=setprice saves a sold price.
 // &compare=1 adds previous_year: the same period a year earlier, with its totals.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/ablib.php";
@@ -24,7 +24,10 @@ if ($action === 'active') { // GET ?action=active -> {ok, totals, pending:[{fold
 if ($action !== 'closed') { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use action=closed or action=active.']); exit; }
 $per = (string)($_GET['period'] ?? '');
 if ($per !== '' && !in_array($per, ['month', 'quarter', 'ytd'], true) && !preg_match('/^\d{4}$/', $per)) { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'period must be month, quarter, ytd, or a 4-digit year.']); exit; }
-$c = ab_closed($_SESSION['email'], $per === '' ? null : $per); $rg = $per === '' ? ['', ''] : ab_period_range($per);
+$c = ab_closed($_SESSION['email'], $per === '' ? null : $per);
+$qq = strtolower(trim((string)($_GET['q'] ?? ''))); // optional search: every word must appear in the client name or address
+if ($qq !== '') foreach ($c as $sd => $rows) $c[$sd] = array_values(array_filter($rows, function ($r) use ($qq) { $hay = strtolower($r['nm'] . ' ' . $r['addr']);
+    foreach (preg_split('/\s+/', $qq) as $w) if ($w !== '' && strpos($hay, $w) === false) return false; return true; })); $rg = $per === '' ? ['', ''] : ab_period_range($per);
 $map = function ($r, $side) { return ['folder' => $r['t']['folder'], 'name' => $r['nm'], 'stage' => PS_STAGES[$side][$r['k']] ?? $r['k'], 'closed' => $r['closed'], 'price' => $r['price'], 'gross_commission' => ab_gci($r),
     'address' => $r['addr'], 'phone' => $r['ph'], 'email' => $r['em'], 'source' => $r['src'], 'url' => ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])]; };
 $prevTot = null;
