@@ -32,7 +32,7 @@ function sg_api($method, $path, $raw = false) {
 
 // Ask DigiSigner (never trust a callback body) whether the request is finished. Updates the stored record.
 function sg_refresh(&$rec) {
-    if (!empty($rec['completed'])) return true;
+    if (!empty($rec['completed']) || strpos((string)($rec['id'] ?? ''), 'SAMPLE-') === 0) return true;
     $q = sg_api('GET', '/signature_requests/' . rawurlencode($rec['id']));
     if (!is_array($q)) return false;
     $rec['signers_status'] = [];
@@ -295,6 +295,7 @@ function sg_packet_pdf($email, $fileId) {
 
 // Buyer Info: one data file per buyer folder, read and written through the office script.
 function sg_buyer_info($email, $folderId) {
+    if (strpos((string)$folderId, 'SAMPLE-') === 0) { require_once __DIR__ . '/samplelib.php'; return ['ok' => true, 'info' => sd_info($folderId)]; } // sample data (Settings > Sample data)
     $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=buyerinfo&email=' . urlencode(strtolower($email)) . '&folderId=' . urlencode($folderId));
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 45, CURLOPT_CONNECTTIMEOUT => 8]);
     $b = curl_exec($ch); curl_close($ch);
@@ -303,6 +304,7 @@ function sg_buyer_info($email, $folderId) {
 }
 // Seller records keep "Seller Info.json" in the listing folder (office script v26 reads and saves it).
 function sg_seller_info($email, $folderId) {
+    if (strpos((string)$folderId, 'SAMPLE-') === 0) { require_once __DIR__ . '/samplelib.php'; return ['ok' => true, 'info' => sd_info($folderId)]; } // sample data (Settings > Sample data)
     $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=sellerinfo&email=' . urlencode(strtolower($email)) . '&folderId=' . urlencode($folderId));
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 45, CURLOPT_CONNECTTIMEOUT => 8]);
     $b = curl_exec($ch); curl_close($ch); $j = $b === false ? null : json_decode($b, true);
@@ -375,7 +377,7 @@ function sg_drafts($email, $hint, $addr) {
 // Check several open requests with DigiSigner at the same time (newest first, recent ones only), so pages stay fast.
 function sg_refresh_many(&$recs, $max = 8) {
     $idx = []; $cut = time() - 45 * 86400;
-    foreach ($recs as $i => $r) { if (empty($r['completed']) && strtotime($r['created'] ?? '') > $cut) { $idx[] = $i; if (count($idx) >= $max) break; } }
+    foreach ($recs as $i => $r) { if (empty($r['completed']) && strpos((string)($r['id'] ?? ''), 'SAMPLE-') !== 0 && strtotime($r['created'] ?? '') > $cut) { $idx[] = $i; if (count($idx) >= $max) break; } }
     if (!$idx) return;
     $mh = curl_multi_init(); $hs = [];
     foreach ($idx as $i) {

@@ -54,7 +54,7 @@ function sp_head($title, $backTx = '') {
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <?php if (!(function_exists('flr_is_broker') && flr_is_broker())): ?>
+    <?php if (!function_exists('flr_agent_menu') || flr_agent_menu()): ?>
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>

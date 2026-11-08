@@ -136,7 +136,7 @@ function flr_tx_sync($email, array $folders) {
                 if ((int)$c['stage'] !== $st) { $moved[] = $id; flr_audit($ak, 'tx_stage', $id, $c['grp'] . ' -> ' . $grp); }
             } else { $pdo->prepare('UPDATE transactions SET seen=? WHERE folder=?')->execute([$now, $id]); }
         }
-        foreach ($cur as $id => $c) { if (!isset($seen[$id]) && (int)$c['listed']) { $pdo->prepare('UPDATE transactions SET listed=0, updated=? WHERE folder=?')->execute([$now, $id]); $n++; flr_audit($ak, 'tx_unlisted', $id, 'No longer in the active folders (archived or moved)'); } }
+        foreach ($cur as $id => $c) { if (!isset($seen[$id]) && (int)$c['listed'] && strpos((string)$id, 'SAMPLE-') !== 0) { $pdo->prepare('UPDATE transactions SET listed=0, updated=? WHERE folder=?')->execute([$now, $id]); $n++; flr_audit($ak, 'tx_unlisted', $id, 'No longer in the active folders (archived or moved)'); } }
         $pdo->exec('COMMIT');
     } catch (Throwable $e) { $pdo->exec('ROLLBACK'); throw $e; }
     return [$n, $moved];

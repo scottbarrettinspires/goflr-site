@@ -46,6 +46,14 @@ sp_head('Settings');
       <div class="acts"><a class="btn" href="forms.php">Open Forms</a> <a class="lnk" href="forms.php?edit=1">Edit forms</a></div>
     </div>
   </div>
+  <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>
+    <div class="tx">
+      <h2>Sample data</h2>
+      <p>Load realistic agent data into your account to preview screens as they're built, and clear it all before launch.</p>
+      <div class="acts"><a class="btn" href="sample_data.php">Open Sample data</a></div>
+    </div>
+  </div>
 <?php endif; ?>
   <div class="setc">
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>

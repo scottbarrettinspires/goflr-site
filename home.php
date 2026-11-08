@@ -10,7 +10,12 @@ $me = strtolower($_SESSION['email'] ?? '');
 // content -- a personalized home focused on running the brokerage rather than an individual agent's leads and deals.
 $isStaff = flr_is_broker();
 // Staff choose between Dashboard (their own staff Home) and Agent View (Home exactly as an agent sees it); remembered.
-if ($isStaff && isset($_GET['view'])) $_SESSION['homeview'] = $_GET['view'] === 'agent' ? 'agent' : 'dash';
+if ($isStaff && isset($_GET['view'])) { $_SESSION['homeview'] = $_GET['view'] === 'agent' ? 'agent' : 'dash'; unset($_SESSION['ntc']); }
+// One time (Scott asked, Nov 8 2026): load the preview sample data into scott@myflroffice.com and open Agent View.
+// After that it's managed from Settings > Sample data, and cleared from there before launch.
+if ($isStaff && $me === 'scott@myflroffice.com') { try { $kq = flr_db()->query("SELECT v FROM kv WHERE k = 'sample_autoload_v1'");
+    if (!$kq->fetchColumn()) { flr_db()->prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('sample_autoload_v1', ?)")->execute([date('c')]); require_once __DIR__ . '/samplelib.php'; sd_load($me); $_SESSION['homeview'] = 'agent'; unset($_SESSION['ntc']); }
+} catch (Throwable $e) {} }
 $agentView = $isStaff && ($_SESSION['homeview'] ?? 'dash') === 'agent';
 $showStaff = $isStaff && !$agentView;
 // Agent dismissed a "signed" notice.
@@ -104,7 +109,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php" aria-current="page">Home</a>
-    <?php if (!flr_is_broker()): ?>
+    <?php if (flr_agent_menu()): ?>
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>

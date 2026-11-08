@@ -16,6 +16,7 @@ const NT_UNDER_CONTRACT = ['contract', 'contingencies', 'closingready'];
 
 // ---- Transaction record details from Drive, cached ----
 function nt_info_cached($folder) {
+    if (strpos((string)$folder, 'SAMPLE-') === 0) { require_once __DIR__ . '/samplelib.php'; return sd_info($folder); } // sample data
     $q = flr_db()->prepare('SELECT v FROM kv WHERE k = ?'); $q->execute(['nt_info_' . $folder]); $j = json_decode((string)$q->fetchColumn(), true);
     return (is_array($j) && time() - (int)($j['t'] ?? 0) < NT_INFO_TTL) ? (array)($j['info'] ?? []) : null;
 }
@@ -62,6 +63,7 @@ function nt_missing($t, array $info, $underContract) {
 // ---- Sections ----
 // $remote false = only what's quick and local (plus cached record details): used for the Home badge's first draw.
 function nt_sections($email, $isStaff, $remote = true) {
+    if ($isStaff && ($_SESSION['homeview'] ?? '') === 'agent') $isStaff = false; // staff in Agent View see an agent's notifications
     $email = strtolower(trim((string)$email)); $S = [];
     if ($isStaff) {
         try {

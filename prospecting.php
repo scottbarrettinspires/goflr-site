@@ -132,7 +132,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0}.lrow .nm{di
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
-    <?php if (!flr_is_broker()): ?>
+    <?php if (flr_agent_menu()): ?>
     <a href="prospecting.php" aria-current="page">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
