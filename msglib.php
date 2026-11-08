@@ -100,7 +100,7 @@ function om_person($key, $fallbackName = '') {
     $p = $byEmail[$email] ?? null;
     if ($p && $name === '') $name = (string)$p['name'];
     $ini = ''; foreach (preg_split('/\s+/', trim($name)) as $w) { if ($w !== '' && mb_strlen($ini) < 2) $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
-    return ['name' => $name, 'ini' => $ini, 'photo' => ($p && !empty($p['photo'])) ? 'dirphoto.php?k=' . flr_dir_photo_key($p['photo']) : ''];
+    return ['name' => $name, 'ini' => $ini, 'photo' => flr_headshot_url($email, ($p && !empty($p['photo'])) ? 'dirphoto.php?k=' . flr_dir_photo_key($p['photo']) : '')];
 }
 // Messages not yet opened, for the Home page badge.
 function om_unread_count(array $keys) {

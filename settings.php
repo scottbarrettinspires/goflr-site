@@ -21,6 +21,22 @@ sp_head('Settings');
 .setc a.lnk{font-size:.9rem;color:var(--teal)}
 </style>
 <div class="setw">
+  <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span>
+    <div class="tx">
+      <h2>Profile</h2>
+      <p><?= $isStaff ? 'Your headshot and details.' : 'Your headshot, your logo in color and white, and your details from Agent Records.' ?></p>
+      <div class="acts"><a class="btn" href="profile.php">Open Profile</a></div>
+    </div>
+  </div>
+  <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg></span>
+    <div class="tx">
+      <h2>Connectors</h2>
+      <p>Connect the back office to Gmail, Google Calendar, Google Drive, Google Business Profile and your social media accounts.</p>
+      <div class="acts"><a class="btn" href="connectors.php">Open Connectors</a></div>
+    </div>
+  </div>
 <?php if ($isStaff): ?>
   <div class="setc">
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></span>

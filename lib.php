@@ -97,6 +97,11 @@ function flr_directory() {
     return null;
 }
 function flr_dir_photo_key($fileId) { return substr(sha1('dir|' . $fileId), 0, 20); }
+// Headshot for a person: their own upload on the Profile page when there is one, otherwise $fallback (the roster photo URL, or '').
+function flr_headshot_url($email, $fallback = '') {
+    $email = strtolower(trim((string)$email)); if ($email === '') return $fallback;
+    require_once __DIR__ . '/profilelib.php'; $u = pf_url($email, 'headshot'); return $u !== '' ? $u : $fallback;
+}
 
 // Announcements from the FLR Announcements sheet (all-agent and agent-specific), cached briefly per agent; dismissals are kept per agent.
 function flr_ann_file($email, $kind) { return flr_dir_dir() . '/ann-' . $kind . '-' . sha1(strtolower(trim($email))) . '.json'; }

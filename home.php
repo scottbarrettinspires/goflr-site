@@ -60,7 +60,8 @@ if ($isStaff) {
 $agentDates = flr_agent_dates();
 $full = trim($_SESSION['name'] ?? '');
 $first = $full !== '' ? preg_split('/\s+/', $full)[0] : '';
-$pic = $_SESSION['pic'] ?? '';
+$pic = $_SESSION['pic'] ?? ''; $pfPic = flr_headshot_url($_SESSION['email'] ?? '', ''); // a headshot uploaded on the Profile page wins
+if ($pfPic !== '') $pic = $pfPic;
 $ini = '';
 foreach (array_slice(preg_split('/\s+/', $full), 0, 2) as $w) { if ($w !== '') $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
 if ($ini === '') $ini = 'FLR';

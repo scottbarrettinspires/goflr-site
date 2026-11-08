@@ -16,7 +16,7 @@ function dir_phone_fmt($p) { $x = preg_replace('/\D/', '', (string)$p); if (strl
 function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i = 0) {
     $name = htmlspecialchars($p['name']); $ph = trim((string)($p['phone'] ?? '')); $em = trim((string)($p['email'] ?? ''));
     $ini = ''; foreach (preg_split('/\s+/', trim($p['name'])) as $w) { if ($w !== '' && strlen($ini) < 2) $ini .= mb_strtoupper(mb_substr($w, 0, 1)); }
-    $img = !empty($p['photo']) ? '<img src="dirphoto.php?k=' . flr_dir_photo_key($p['photo']) . '" alt="" loading="lazy" onerror="this.remove()">' : '';
+    $pu = flr_headshot_url($em, !empty($p['photo']) ? 'dirphoto.php?k=' . flr_dir_photo_key($p['photo']) : ''); $img = $pu !== '' ? '<img src="' . htmlspecialchars($pu) . '" alt="" loading="lazy" onerror="this.remove()">' : '';
     $star = $fav === null ? '' : '<button type="button" class="dstar' . ($fav ? ' on' : '') . '" aria-pressed="' . ($fav ? 'true' : 'false') . '" title="' . ($fav ? 'Remove from favorites' : 'Add to favorites') . '" aria-label="Favorite ' . $name . '">'
         . '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg></button>';
     $h = '<div class="dcard" data-s="' . htmlspecialchars(strtolower($p['name'] . ' ' . $sub . ' ' . $em . ' ' . $ph)) . '" data-email="' . htmlspecialchars(strtolower($em)) . '" data-n="' . htmlspecialchars(strtolower($p['name'])) . '" data-i="' . (int)$i . '"><div class="davw"><div class="dav"><span>' . htmlspecialchars($ini) . '</span>' . $img . '</div>' . $star . '</div><div class="dtx"><div class="dnm">' . $name . '</div>';
@@ -141,7 +141,7 @@ document.addEventListener("click",function(e){var b=e.target.closest(".dstar");i
 </script>
 <?php
 $pins = [];
-if ($d) { foreach ((array)($d['agents'] ?? []) as $p) { if (isset($p['lat']) && is_numeric($p['lat']) && is_numeric($p['lng'])) { $pins[] = ['n' => $p['name'], 'e' => (string)($p['email'] ?? ''), 'p' => (string)($p['phone'] ?? ''), 'pf' => dir_phone_fmt($p['phone'] ?? ''), 'pd' => dir_phone_digits($p['phone'] ?? ''), 'k' => !empty($p['photo']) ? flr_dir_photo_key($p['photo']) : '', 'lat' => (float)$p['lat'], 'lng' => (float)$p['lng']]; } } }
+if ($d) { foreach ((array)($d['agents'] ?? []) as $p) { if (isset($p['lat']) && is_numeric($p['lat']) && is_numeric($p['lng'])) { $pins[] = ['n' => $p['name'], 'e' => (string)($p['email'] ?? ''), 'p' => (string)($p['phone'] ?? ''), 'pf' => dir_phone_fmt($p['phone'] ?? ''), 'pd' => dir_phone_digits($p['phone'] ?? ''), 'k' => flr_headshot_url((string)($p['email'] ?? ''), !empty($p['photo']) ? 'dirphoto.php?k=' . flr_dir_photo_key($p['photo']) : ''), 'lat' => (float)$p['lat'], 'lng' => (float)$p['lng']]; } } }
 $noloc = $d ? max(0, count((array)($d['agents'] ?? [])) - count($pins)) : 0;
 ?>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -159,9 +159,9 @@ function build(){
   PINS.forEach(function(p){
     var key=p.lat+","+p.lng,n=seen[key]||0;seen[key]=n+1;
     var a=n*2.4,r=n?0.004*Math.sqrt(n):0,lat=p.lat+r*Math.sin(a),lng=p.lng+r*Math.cos(a)*1.1;
-    var bg=p.k?"background-image:url(dirphoto.php?k="+p.k+")":"";
+    var bg=p.k?"background-image:url("+p.k+")":"";
     var ic=L.divIcon({className:"",html:'<div class="pin" style="'+bg+'">'+(p.k?"":esc(ini(p.n)))+'</div>',iconSize:[46,46],iconAnchor:[23,23],popupAnchor:[0,-24]});
-    var h='<div class="mpop"><div class="dav"><span>'+esc(ini(p.n))+'</span>'+(p.k?'<img src="dirphoto.php?k='+p.k+'" alt="">':"")+'</div><div class="dtx"><div class="dnm">'+esc(p.n)+'</div>'
+    var h='<div class="mpop"><div class="dav"><span>'+esc(ini(p.n))+'</span>'+(p.k?'<img src="'+esc(p.k)+'" alt="">':"")+'</div><div class="dtx"><div class="dnm">'+esc(p.n)+'</div>'
       +(p.pd?'<div><a href="tel:'+esc(p.pd)+'">'+esc(p.pf)+'</a></div>':"")+(p.e?'<div><a href="mailto:'+esc(p.e)+'">'+esc(p.e)+'</a></div>':"")+'</div></div>';
     L.marker([lat,lng],{icon:ic,title:p.n}).addTo(map).bindPopup(h);pts.push([lat,lng]);
   });
