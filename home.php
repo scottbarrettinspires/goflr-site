@@ -162,7 +162,8 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <style>.hasside{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:22px;align-items:start}.homemain{min-width:0}
 @media(max-width:900px){.hasside{grid-template-columns:minmax(0,1fr)}}
 .homemain .sigbox{max-width:none}
-.nextup.nxside{max-width:none;padding:14px 16px;margin:0 0 16px;gap:14px;box-shadow:0 4px 16px rgba(3,111,114,.07)}
+.nextup.nxside{max-width:none;padding:14px 16px;margin:0 0 16px;gap:14px;background:linear-gradient(135deg,#c6e9e7 0%,#ddf2f0 50%,#fde6cf 100%);border:1px solid #9fd3cf;box-shadow:0 6px 20px rgba(3,111,114,.12)}
+.nxside .ers{border-top-color:rgba(3,111,114,.18)!important}.nxside .ersess{border-top-color:rgba(3,111,114,.18)}
 .nxleft{flex:0 0 58px;display:flex;flex-direction:column;align-items:center;gap:6px}.nxedu{width:58px;height:47px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:2.6rem;animation:nxwig 1.1s ease-in-out .4s 2;line-height:1;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
 .nxside .tile{flex-basis:auto;width:58px;padding:6px 0}
 @keyframes nxwig{0%,100%{transform:rotate(0) scale(1)}20%{transform:rotate(-12deg) scale(1.12)}40%{transform:rotate(10deg) scale(1.12)}60%{transform:rotate(-6deg) scale(1.06)}80%{transform:rotate(4deg)}}
