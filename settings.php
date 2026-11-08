@@ -47,6 +47,22 @@ sp_head('Settings');
     </div>
   </div>
   <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>
+    <div class="tx">
+      <h2>Agent Records</h2>
+      <p>Every agent&#39;s record on the server: contact details, license, dates, compliance files and marketing consents.</p>
+      <div class="acts"><a class="btn" href="agentrecords.php">Open Agent Records</a></div>
+    </div>
+  </div>
+  <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></span>
+    <div class="tx">
+      <h2>MLS Data</h2>
+      <p>The MLS Grid (Stellar MLS) connection settings and the sample-data test of the pipeline.</p>
+      <div class="acts"><a class="btn" href="mls_data.php">Open MLS Data</a></div>
+    </div>
+  </div>
+  <div class="setc">
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span>
     <div class="tx">
       <h2>Sample data</h2>

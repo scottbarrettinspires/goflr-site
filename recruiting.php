@@ -99,7 +99,6 @@ $joinedCount = count(array_filter($recruits, function ($R) { return ($R['status'
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
     <a href="recruiting.php" aria-current="page">Recruiting</a>
-    <a href="mls_data.php">MLS Data</a>
     <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>

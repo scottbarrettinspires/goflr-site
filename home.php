@@ -114,7 +114,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
-    <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a> <a href="agentrecords.php">Agent Records</a><?php endif; ?>
+    <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a><?php endif; ?>
     <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
