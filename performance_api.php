@@ -14,7 +14,13 @@ if ($action === 'setprice') { // POST JSON {action:'setprice', csrf, tx, price} 
     $e = ab_set_price($_SESSION['email'], (string)($j['tx'] ?? ''), (string)($j['price'] ?? ''));
     echo json_encode($e === '' ? ['ok' => true, 'tx' => (string)$j['tx'], 'price' => ab_price((string)$j['tx'])] : ['ok' => false, 'msg' => $e]); exit;
 }
-if ($action !== 'closed') { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use action=closed.']); exit; }
+if ($action === 'active') { // GET ?action=active -> {ok, totals, pending:[{folder, side, name, stage, expected_close, price, url}]}
+    $a = ab_active($_SESSION['email']); $pend = [];
+    foreach (['buyer', 'seller'] as $sd) foreach ($a[$sd] as $r) if ($r['pending']) $pend[] = ['folder' => $r['t']['folder'], 'side' => $sd, 'name' => $r['nm'], 'stage' => PS_STAGES[$sd][$r['k']] ?? $r['k'],
+        'expected_close' => $r['close'], 'price' => $r['price'], 'url' => ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])];
+    echo json_encode(['ok' => true, 'totals' => ab_active_totals($a), 'pending' => $pend]); exit;
+}
+if ($action !== 'closed') { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use action=closed or action=active.']); exit; }
 $per = (string)($_GET['period'] ?? '');
 if ($per !== '' && !in_array($per, ['month', 'quarter', 'ytd'], true) && !preg_match('/^\d{4}$/', $per)) { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'period must be month, quarter, ytd, or a 4-digit year.']); exit; }
 $c = ab_closed($_SESSION['email'], $per === '' ? null : $per); $rg = $per === '' ? ['', ''] : ab_period_range($per);

@@ -55,10 +55,19 @@ if ($rg && $p !== 'nodate' && !($p === 'prev' && !$yr)) {
     unset($bk);
 }
 $money = function ($n) { return '$' . number_format((int)$n); };
-$priceUI = function ($r) use ($money) { $h = function ($x) { return htmlspecialchars((string)$x); };
+$priceUI = function ($r, $addLbl = '+ Sold price', $ttl = 'sold price') use ($money) { $h = function ($x) { return htmlspecialchars((string)$x); };
     return '<form method="post" class="qa prx" onclick="event.stopPropagation()"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="op" value="setprice"><input type="hidden" name="tx" value="' . $h($r['t']['folder']) . '">'
-        . ($r['price'] ? '<span class="prv">' . $money($r['price']) . '</span><button type="button" class="pre" title="Edit sold price" aria-label="Edit sold price">&#9998;</button>' : '<button type="button" class="pre add">+ Sold price</button>')
-        . '<span class="prf" hidden><input name="price" inputmode="numeric" placeholder="Sold price" value="' . ($r['price'] ?: '') . '" aria-label="Sold price"><button type="submit">Save</button></span></form>'; };
+        . ($r['price'] ? '<span class="prv">' . $money($r['price']) . '</span><button type="button" class="pre" title="Edit ' . $ttl . '" aria-label="Edit ' . $ttl . '">&#9998;</button>' : '<button type="button" class="pre add">' . $addLbl . '</button>')
+        . '<span class="prf" hidden><input name="price" inputmode="numeric" placeholder="' . ucfirst($ttl) . '" value="' . ($r['price'] ?: '') . '" aria-label="' . ucfirst($ttl) . '"><button type="submit">Save</button></span></form>'; };
+// Active Business snapshot (today's pipeline; the period menu doesn't change it).
+$act = ab_active($me); $at = ab_active_totals($act);
+$pend = []; foreach (['buyer', 'seller'] as $sd) foreach ($act[$sd] as $r) if ($r['pending']) { $r['side'] = $sd; $pend[] = $r; }
+usort($pend, function ($a, $b) { return [$a['close'] === '' ? '9999' : $a['close'], $a['nm']] <=> [$b['close'] === '' ? '9999' : $b['close'], $b['nm']]; });
+$pb = []; for ($i = 0; $i < 6; $i++) { $t = strtotime(date('Y-m-01') . " +$i month"); $pb[] = ['lbl' => date('M', $t), 'from' => date('Y-m-01', $t), 'to' => date('Y-m-t', $t), 'b' => 0, 's' => 0, 'bv' => 0, 'sv' => 0]; }
+$pNoDate = 0; $pLater = 0;
+foreach ($pend as $r) { if ($r['close'] === '') { $pNoDate++; continue; } $hit = false;
+    foreach ($pb as &$bk) if ($r['close'] >= $bk['from'] && $r['close'] <= $bk['to']) { $k = $r['side'] === 'buyer' ? 'b' : 's'; $bk[$k]++; $bk[$k . 'v'] += (int)$r['price']; $hit = true; } unset($bk);
+    if (!$hit && $r['close'] > end($pb)['to']) $pLater++; }
 $qn = intdiv((int)date('n') - 1, 3) + 1;
 $label = ['month' => date('F Y'), 'quarter' => 'Q' . $qn . ' ' . $thisY, 'ytd' => $thisY . ' year to date', 'prev' => $yr ? (string)$yr : 'Previous years', 'nodate' => 'No closing date entered'][$p];
 ?>
@@ -117,6 +126,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .prf{display:inline-flex;gap:4px}.prf input{width:110px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.85rem}.prf button{font:inherit;font-size:.8rem;font-weight:700;border:0;background:var(--teal);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer}
 @media(max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:1.25rem;overflow-wrap:anywhere}.chart.many .bar em{display:none}.chart.many .bar{width:45%}.chart.many .bars{gap:1px}.plot{height:150px}.xl{font-size:.64rem}.crow .prx{order:5;margin-left:24px}}
 .sw.bl{background:#8fcfd1}.sw.sl{background:#efb48f}.bar.bl{background:#8fcfd1}.bar.sl{background:#efb48f}.chart.cmp .bar{width:min(16px,22%)}.chart.cmp .bar em{display:none}
+.lg .lgn{margin-left:auto;color:#5a6a6c;font-size:.78rem}.lg span{white-space:nowrap}.cls{margin-right:4px}@media(max-width:700px){.lg .lgn{display:none}}
 .tc{display:block;font-size:.76rem;color:#4b5b5d;margin-top:4px;padding-top:4px;border-top:1px dashed #dfe7e7}.vs{color:#5a6a6c}
 .cmpbtn{margin-left:auto;display:inline-flex!important;align-items:center;gap:8px;font-weight:600!important;color:#3c4a4c!important}
 .cmpbtn .ck{width:30px;height:18px;border-radius:99px;background:#cfd8d8;position:relative;flex:none}.cmpbtn .ck::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
@@ -159,9 +169,41 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
   </nav>
 <?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
 <?php endif; ?>
+  <div class="lpanel" id="active"><h2>Active Business <span class="cbc">right now &middot; not affected by the time period</span></h2>
+    <div class="tiles">
+      <div class="tile"><span class="tl"><i class="sw b"></i>Active buyers</span><b><?= $at['active_buyers'] ?></b><span class="ts"><?= $at['pending_buyer_sides'] ?> under contract</span></div>
+      <div class="tile"><span class="tl"><i class="sw s"></i>Active sellers</span><b><?= $at['active_sellers'] ?></b><span class="ts"><?= $at['pending_seller_sides'] ?> under contract</span></div>
+      <div class="tile"><span class="tl">Pending sales</span><b><?= $at['pending'] ?></b><span class="ts">sides under contract</span></div>
+      <div class="tile vol"><span class="tl">Anticipated $ volume</span><b><?= $money($at['anticipated_volume']) ?></b><span class="ts">credit for every pending side</span></div>
+    </div>
+<?php if ($pend): $pmx = max(1, max(array_map(function ($b) { return max($b['b'], $b['s']); }, $pb))); $pt = $pmx <= 4 ? range(0, $pmx) : [0, (int)ceil($pmx / 2), $pmx]; ?>
+    <div class="chart" role="img" aria-label="Pending sides by expected closing month, buyer and seller">
+      <div class="lg"><span><i class="sw b"></i>Buyer side</span><span><i class="sw s"></i>Seller side</span><span class="lgn">Pending sales by expected closing month</span></div>
+      <div class="plot">
+        <div class="yax"><?php foreach (array_reverse($pt) as $tk): ?><span style="bottom:<?= round($tk / $pmx * 100, 2) ?>%"><?= $tk ?></span><?php endforeach; ?></div>
+        <div class="grid"><?php foreach ($pt as $tk): ?><i style="bottom:<?= round($tk / $pmx * 100, 2) ?>%"></i><?php endforeach; ?>
+<?php foreach ($pb as $bk): ?>
+          <div class="grp" tabindex="0" data-tip="<?= htmlspecialchars($bk['lbl'] . ' — Buyer sides: ' . $bk['b'] . ' (' . $money($bk['bv']) . ') · Seller sides: ' . $bk['s'] . ' (' . $money($bk['sv']) . ')') ?>">
+            <div class="bars"><span class="bar b" style="height:<?= round($bk['b'] / $pmx * 100, 2) ?>%"><?= $bk['b'] ? '<em>' . $bk['b'] . '</em>' : '' ?></span><span class="bar s" style="height:<?= round($bk['s'] / $pmx * 100, 2) ?>%"><?= $bk['s'] ? '<em>' . $bk['s'] . '</em>' : '' ?></span></div>
+            <span class="xl"><?= htmlspecialchars($bk['lbl']) ?></span>
+          </div>
+<?php endforeach; ?>
+        </div>
+      </div>
+      <div class="tip" hidden></div>
+    </div>
+<?php if ($pNoDate || $pLater): ?>    <p class="cbn" style="margin:0 0 12px"><?= implode(' ', array_filter([$pNoDate ? $pNoDate . ' pending sale' . ($pNoDate === 1 ? ' has' : 's have') . ' no closing date in Contract Deadlines, so ' . ($pNoDate === 1 ? 'it isn\'t' : 'they aren\'t') . ' on the chart.' : '', $pLater ? $pLater . ' close' . ($pLater === 1 ? 's' : '') . ' after ' . date('F Y', strtotime(end($pb)['from'])) . '.' : ''])) ?></p>
+<?php endif; ?>
+<?php endif; ?>
+<?php if ($at['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_price'] ?> pending sale<?= $at['missing_price'] === 1 ? ' has' : 's have' ?> no contract price yet, so <?= $at['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated volume. Use <b>+ Contract price</b> on the row.</p>
+<?php endif; ?>
+    <div class="ovsub"><span>Pending sales (<?= count($pend) ?>)</span></div>
+<?php if (!$pend): ?>    <p class="empty">No sales under contract right now. They show here once a file reaches Executed Contract.</p>
+<?php else: foreach ($pend as $r) echo ab_row($r, $r['side'], ($r['close'] !== '' ? '<span class="due later cls">' . htmlspecialchars('Closes ' . date('M j', strtotime($r['close']))) . '</span>' : '') . $priceUI($r, '+ Contract price', 'contract price')); endif; ?>
+  </div>
+  <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
 <?php if ($p !== 'prev' || $cmp): ?>  <p class="cbl"><?= htmlspecialchars($p === 'prev' ? (string)$yr : $label) ?><?php if ($cmp): ?> <span class="vs">compared with <?= htmlspecialchars(date('M j, Y', strtotime($rgL[0])) . ' – ' . date('M j, Y', strtotime($rgL[1]))) ?></span><?php endif; ?></p>
 <?php endif; ?>
-  <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
 <?php if ($p === 'prev' && !$years): ?>    <p class="empty">No closed files from previous years.</p>
 <?php else: ?>
 <?php if ($perr): ?>    <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
@@ -205,9 +247,9 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
   </div>
 <script>(function(){
 document.querySelectorAll(".prx .pre").forEach(function(b){b.addEventListener("click",function(e){e.stopPropagation();var f=b.closest(".prx");f.querySelector(".prf").hidden=false;f.querySelectorAll(".pre,.prv").forEach(function(x){x.hidden=true;});var i=f.querySelector("input[name=price]");i.focus();i.select();});});
-var c=document.querySelector(".chart");if(!c)return;var t=c.querySelector(".tip");
+document.querySelectorAll(".chart").forEach(function(c){var t=c.querySelector(".tip");
 function show(g){var r=g.getBoundingClientRect(),cr=c.getBoundingClientRect();t.textContent=g.dataset.tip;t.hidden=false;var x=r.left-cr.left+r.width/2-t.offsetWidth/2;x=Math.max(4,Math.min(x,cr.width-t.offsetWidth-4));t.style.left=x+"px";t.style.top=(r.top-cr.top-t.offsetHeight+6)+"px";}
-c.querySelectorAll(".grp").forEach(function(g){g.addEventListener("mouseenter",function(){show(g);});g.addEventListener("focus",function(){show(g);});g.addEventListener("mouseleave",function(){t.hidden=true;});g.addEventListener("blur",function(){t.hidden=true;});});
+c.querySelectorAll(".grp").forEach(function(g){g.addEventListener("mouseenter",function(){show(g);});g.addEventListener("focus",function(){show(g);});g.addEventListener("mouseleave",function(){t.hidden=true;});g.addEventListener("blur",function(){t.hidden=true;});});});
 })();</script>
 </main>
 

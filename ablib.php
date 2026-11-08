@@ -103,3 +103,32 @@ function ab_totals(array $buyers, array $sellers) {
     return ['buyer_sides' => count($buyers), 'seller_sides' => count($sellers), 'sides' => count($buyers) + count($sellers),
         'buyer_volume' => $sum($buyers), 'seller_volume' => $sum($sellers), 'volume' => $sum($buyers) + $sum($sellers), 'missing_price' => $miss];
 }
+// Stages that count as a pending sale (under contract, not yet closed). Same keys on both sides.
+const AB_PENDING = ['contract', 'contingencies', 'closingready'];
+// Expected closing date of a file: the Closing date in its Contract Deadlines ('' if not entered).
+function ab_expected_close($folder) {
+    $c = dl_get($folder);
+    if ($c) foreach (dl_compute(is_array($c['data']) ? $c['data'] : (json_decode((string)$c['data'], true) ?: [])) as $d) { if ($d['key'] === 'closing') return $d['nextbiz'] ?: $d['date']; }
+    return '';
+}
+// Active (not closed) records for one agent: ['buyer' => rows, 'seller' => rows]; each row adds 'pending' (under
+// contract) and 'close' (expected closing date). Pending rows first, soonest closing first.
+function ab_active($me) {
+    $all = flr_tx_list($me); $out = [];
+    foreach (['buyer', 'seller'] as $side) {
+        $list = array_values(array_filter($all, function ($t) use ($side) { return $t['side'] === $side && ab_pk($t) !== 'closed'; }));
+        $rows = ab_rows($me, $side, $list, 'ab_pk');
+        foreach ($rows as &$r) { $r['pending'] = in_array($r['k'], AB_PENDING, true); $r['close'] = $r['pending'] ? ab_expected_close($r['t']['folder']) : ''; } unset($r);
+        $out[$side] = $rows;
+    }
+    return $out;
+}
+// Pipeline totals: active buyers/sellers, pending sides, and anticipated $ volume (each pending side counts its full
+// contract price, the same per-side credit as closed volume).
+function ab_active_totals(array $act) {
+    $pb = array_values(array_filter($act['buyer'], function ($r) { return $r['pending']; }));
+    $ps = array_values(array_filter($act['seller'], function ($r) { return $r['pending']; }));
+    $t = ab_totals($pb, $ps);
+    return ['active_buyers' => count($act['buyer']), 'active_sellers' => count($act['seller']), 'pending_buyer_sides' => count($pb), 'pending_seller_sides' => count($ps),
+        'pending' => count($pb) + count($ps), 'anticipated_volume' => $t['volume'], 'buyer_volume' => $t['buyer_volume'], 'seller_volume' => $t['seller_volume'], 'missing_price' => $t['missing_price']];
+}
