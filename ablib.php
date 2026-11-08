@@ -17,7 +17,7 @@ function ab_rows($me, $side, $list, $pk) {
         $ph = trim((string)($in[$p . '1_phone'] ?? '')) ?: (string)($L['phone'] ?? '');
         $em = trim((string)($in[$p . '1_email'] ?? '')) ?: (string)($L['email'] ?? '');
         $next = null; $c = dl_get($t['folder']); if ($c) foreach (dl_compute(is_array($c["data"]) ? $c["data"] : (json_decode((string)$c["data"], true) ?: [])) as $d) { if (!$d['done']) { $next = $d; break; } }
-        $out[] = ['t' => $t, 'k' => $k, 'price' => ab_price($t['folder'], $in), 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
+        $out[] = ['t' => $t, 'k' => $k, 'price' => ab_price($t['folder'], $in), 'comm' => ab_comm($t['folder']), 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
             'addr' => trim((string)($in['property'] ?? '')) ?: ($nm !== $t['name'] ? (string)$t['name'] : '')];
     }
     usort($out, function ($a, $b) { return [$a['i'], $a['nm']] <=> [$b['i'], $b['nm']]; });
@@ -99,9 +99,12 @@ function ab_set_price($me, $folder, $price) {
 // price, so a property the agent represented on both sides counts twice.
 function ab_totals(array $buyers, array $sellers) {
     $sum = function ($rows) { return array_sum(array_map(function ($r) { return (int)($r['price'] ?? 0); }, $rows)); };
+    $g = function ($rows) { return array_sum(array_map('ab_gci', $rows)); };
+    $missG = count(array_filter(array_merge($buyers, $sellers), function ($r) { return ab_gci($r) === 0; }));
     $miss = count(array_filter(array_merge($buyers, $sellers), function ($r) { return empty($r['price']); }));
     return ['buyer_sides' => count($buyers), 'seller_sides' => count($sellers), 'sides' => count($buyers) + count($sellers),
-        'buyer_volume' => $sum($buyers), 'seller_volume' => $sum($sellers), 'volume' => $sum($buyers) + $sum($sellers), 'missing_price' => $miss];
+        'buyer_volume' => $sum($buyers), 'seller_volume' => $sum($sellers), 'volume' => $sum($buyers) + $sum($sellers), 'missing_price' => $miss,
+        'buyer_gci' => $g($buyers), 'seller_gci' => $g($sellers), 'gci' => $g($buyers) + $g($sellers), 'missing_gci' => $missG];
 }
 // Stages that count as a pending sale (under contract, not yet closed). Same keys on both sides.
 const AB_PENDING = ['contract', 'contingencies', 'closingready'];
@@ -130,5 +133,40 @@ function ab_active_totals(array $act) {
     $ps = array_values(array_filter($act['seller'], function ($r) { return $r['pending']; }));
     $t = ab_totals($pb, $ps);
     return ['active_buyers' => count($act['buyer']), 'active_sellers' => count($act['seller']), 'pending_buyer_sides' => count($pb), 'pending_seller_sides' => count($ps),
-        'pending' => count($pb) + count($ps), 'anticipated_volume' => $t['volume'], 'buyer_volume' => $t['buyer_volume'], 'seller_volume' => $t['seller_volume'], 'missing_price' => $t['missing_price']];
+        'pending' => count($pb) + count($ps), 'anticipated_volume' => $t['volume'], 'anticipated_gci' => $t['gci'], 'missing_gci' => $t['missing_gci'], 'buyer_volume' => $t['buyer_volume'], 'seller_volume' => $t['seller_volume'], 'missing_price' => $t['missing_price']];
+}
+
+// Gross commission for one side (before the brokerage split): a percent of the price or a flat dollar amount, entered by
+// the agent per file. Stored as transactions.comm_pct / comm_amt.
+function ab_comm_columns() {
+    static $done = false; if ($done) return; $done = true; $pdo = flr_db(); $have = [];
+    foreach ($pdo->query('PRAGMA table_info(transactions)')->fetchAll() as $c) $have[$c['name']] = true;
+    if (empty($have['comm_pct'])) $pdo->exec('ALTER TABLE transactions ADD COLUMN comm_pct REAL');
+    if (empty($have['comm_amt'])) $pdo->exec('ALTER TABLE transactions ADD COLUMN comm_amt INTEGER');
+}
+function ab_comm($folder) {
+    ab_comm_columns(); $q = flr_db()->prepare('SELECT comm_pct, comm_amt FROM transactions WHERE folder = ?'); $q->execute([$folder]); $r = $q->fetch() ?: [];
+    return ['pct' => (float)($r['comm_pct'] ?? 0), 'amt' => (int)($r['comm_amt'] ?? 0)];
+}
+// Gross commission in dollars for a row (0 when unknown).
+function ab_gci(array $r) {
+    $c = $r['comm'] ?? ['pct' => 0, 'amt' => 0];
+    if ($c['amt'] > 0) return (int)$c['amt'];
+    return ($c['pct'] > 0 && (int)($r['price'] ?? 0) > 0) ? (int)round($r['price'] * $c['pct'] / 100) : 0;
+}
+// Save the gross commission: "3%" or "2.5" (a percent of the price), or "$12,500" / "12500" (flat dollars).
+// Empty clears it. Returns '' or a human-readable error.
+function ab_set_comm($me, $folder, $val) {
+    $ok = false; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $folder) $ok = true; }
+    if (!$ok) return 'That record was not found in your business.';
+    ab_comm_columns(); $v = trim((string)$val); $pct = null; $amt = null;
+    if ($v !== '') {
+        $n = (float)preg_replace('/[^0-9.]/', '', $v);
+        if (strpos($v, '%') !== false || ($n > 0 && $n <= 20 && strpos($v, '$') === false)) { if ($n <= 0 || $n > 20) return 'Enter the commission as a percent (for example 3%) or a dollar amount (for example $12,500).'; $pct = $n; }
+        elseif ($n >= 100 && $n <= 50000000) $amt = (int)round($n);
+        else return 'Enter the commission as a percent (for example 3%) or a dollar amount (for example $12,500).';
+    }
+    flr_db()->prepare('UPDATE transactions SET comm_pct = ?, comm_amt = ? WHERE folder = ?')->execute([$pct, $amt, $folder]);
+    flr_audit(flr_akey($me), 'commission', $folder, $v === '' ? 'Gross commission cleared' : ($pct !== null ? 'Gross commission set to ' . $pct . '%' : 'Gross commission set to $' . number_format($amt)));
+    return '';
 }

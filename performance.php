@@ -9,8 +9,10 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $perr = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'setprice') { // sold price for one closed file
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) $perr = 'This page expired. Please reload and try again.';
-    else $perr = ab_set_price($me, (string)($_POST['tx'] ?? ''), (string)($_POST['price'] ?? ''));
-    if ($perr === '') { header('Location: performance.php?' . http_build_query(array_filter(['p' => $_GET['p'] ?? '', 'y' => $_GET['y'] ?? '', 'cmp' => $_GET['cmp'] ?? ''])) . '#closed'); exit; }
+    else { $tx0 = (string)($_POST['tx'] ?? ''); $pv = trim((string)($_POST['price'] ?? ''));
+        $perr = $pv === '' ? '' : ab_set_price($me, $tx0, $pv);
+        if ($perr === '' && isset($_POST['comm'])) $perr = ab_set_comm($me, $tx0, (string)$_POST['comm']); }
+    if ($perr === '') { header('Location: performance.php?' . http_build_query(array_filter(['p' => $_GET['p'] ?? '', 'y' => $_GET['y'] ?? '', 'cmp' => $_GET['cmp'] ?? ''])) . '#' . (($_POST['sec'] ?? '') === 'active' ? 'active' : 'closed')); exit; }
 }
 $all = ab_closed($me); // every closed file, with its closing date
 $thisY = (int)date('Y');
@@ -55,10 +57,12 @@ if ($rg && $p !== 'nodate' && !($p === 'prev' && !$yr)) {
     unset($bk);
 }
 $money = function ($n) { return '$' . number_format((int)$n); };
-$priceUI = function ($r, $addLbl = '+ Sold price', $ttl = 'sold price') use ($money) { $h = function ($x) { return htmlspecialchars((string)$x); };
-    return '<form method="post" class="qa prx" onclick="event.stopPropagation()"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="op" value="setprice"><input type="hidden" name="tx" value="' . $h($r['t']['folder']) . '">'
-        . ($r['price'] ? '<span class="prv">' . $money($r['price']) . '</span><button type="button" class="pre" title="Edit ' . $ttl . '" aria-label="Edit ' . $ttl . '">&#9998;</button>' : '<button type="button" class="pre add">' . $addLbl . '</button>')
-        . '<span class="prf" hidden><input name="price" inputmode="numeric" placeholder="' . ucfirst($ttl) . '" value="' . ($r['price'] ?: '') . '" aria-label="' . ucfirst($ttl) . '"><button type="submit">Save</button></span></form>'; };
+$priceUI = function ($r, $addLbl = '+ Sold price', $ttl = 'sold price', $sec = 'closed') use ($money) { $h = function ($x) { return htmlspecialchars((string)$x); };
+    $g = ab_gci($r); $c = $r['comm'] ?? ['pct' => 0, 'amt' => 0]; $cv = $c['amt'] > 0 ? '$' . number_format($c['amt']) : ($c['pct'] > 0 ? rtrim(rtrim(number_format($c['pct'], 3), '0'), '.') . '%' : '');
+    $shown = $r['price'] || $g;
+    return '<form method="post" class="qa prx" onclick="event.stopPropagation()"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="op" value="setprice"><input type="hidden" name="sec" value="' . $h($sec) . '"><input type="hidden" name="tx" value="' . $h($r['t']['folder']) . '">'
+        . ($shown ? '<span class="prv">' . ($r['price'] ? $money($r['price']) : '<span class="pmiss">No price</span>') . '<small>' . ($g ? 'GCI ' . $money($g) . ($c['pct'] > 0 && !$c['amt'] ? ' (' . $h($cv) . ')' : '') : '<span class="pmiss">GCI not set</span>') . '</small></span><button type="button" class="pre" title="Edit ' . $ttl . ' and commission" aria-label="Edit ' . $ttl . ' and commission">&#9998;</button>' : '<button type="button" class="pre add">' . $addLbl . ' &amp; GCI</button>')
+        . '<span class="prf" hidden><label>' . ucfirst($ttl) . '<input name="price" inputmode="numeric" placeholder="425000" value="' . ($r['price'] ?: '') . '"></label><label>Gross commission<input name="comm" placeholder="3% or $12,750" value="' . $h($cv) . '"></label><button type="submit">Save</button></span></form>'; };
 // Active Business snapshot (today's pipeline; the period menu doesn't change it).
 $act = ab_active($me); $at = ab_active_totals($act);
 $pend = []; foreach (['buyer', 'seller'] as $sd) foreach ($act[$sd] as $r) if ($r['pending']) { $r['side'] = $sd; $pend[] = $r; }
@@ -103,10 +107,11 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}
 .ovsub span{display:inline-flex;align-items:center;gap:8px}
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+.tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0 0 14px}
 .tile{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff}.tile b{display:block;font-size:1.6rem;line-height:1.15;color:#1f2a2c}
 .tl{display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;color:#4b5b5d}.ts{display:block;font-size:.8rem;color:#5a6a6c;margin-top:2px}
-.tile.vol{background:#f0f8f8;border-color:#cfe5e5}
+.tile.vol{background:#f0f8f8;border-color:#cfe5e5}.tile.gci{background:#fbf6ef;border-color:#efe1cc}
+@media(max-width:1100px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .sw{display:inline-block;width:10px;height:10px;border-radius:3px}.sw.b{background:#008f94}.sw.s{background:#d9692a}
 .chart{position:relative;border:1px solid var(--line);border-radius:12px;padding:12px 14px 8px;margin:0 0 14px}
 .lg{display:flex;gap:16px;font-size:.82rem;color:#4b5b5d;margin:0 0 10px}.lg span{display:inline-flex;align-items:center;gap:6px}
@@ -121,9 +126,9 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .bar em{position:absolute;left:50%;bottom:100%;transform:translateX(-50%);font-style:normal;font-size:.72rem;font-weight:700;color:#1f2a2c;padding-bottom:2px}
 .xl{position:absolute;top:100%;margin-top:4px;font-size:.72rem;color:#5a6a6c;white-space:nowrap}
 .tip{position:absolute;z-index:5;background:#1f2a2c;color:#fff;font-size:.78rem;padding:6px 9px;border-radius:8px;pointer-events:none;max-width:260px}
-.prx{display:inline-flex;align-items:center;gap:6px;margin:0 4px 0 0}.prv{font-weight:700;font-size:.85rem;color:#1f2a2c}
+.prx{display:inline-flex;align-items:center;gap:6px;margin:0 4px 0 0}.prv{font-weight:700;font-size:.85rem;color:#1f2a2c;text-align:right;line-height:1.25}.prv small{display:block;font-weight:600;font-size:.74rem;color:#4b5b5d}.pmiss{color:#8a9a9c;font-weight:600}
 .prx .pre{font:inherit;font-size:.78rem;border:1px solid var(--line);background:#fff;color:var(--teal);border-radius:8px;padding:4px 8px;cursor:pointer}.prx .pre.add{font-weight:700}
-.prf{display:inline-flex;gap:4px}.prf input{width:110px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.85rem}.prf button{font:inherit;font-size:.8rem;font-weight:700;border:0;background:var(--teal);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer}
+.prf{display:inline-flex;gap:6px;align-items:flex-end}.prf label{display:flex;flex-direction:column;font-size:.7rem;font-weight:700;color:#4b5b5d;gap:2px}.prf input{width:110px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:.85rem}.prf button{font:inherit;font-size:.8rem;font-weight:700;border:0;background:var(--teal);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer}
 @media(max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.tile b{font-size:1.25rem;overflow-wrap:anywhere}.chart.many .bar em{display:none}.chart.many .bar{width:45%}.chart.many .bars{gap:1px}.plot{height:150px}.xl{font-size:.64rem}.crow .prx{order:5;margin-left:24px}}
 .sw.bl{background:#8fcfd1}.sw.sl{background:#efb48f}.bar.bl{background:#8fcfd1}.bar.sl{background:#efb48f}.chart.cmp .bar{width:min(16px,22%)}.chart.cmp .bar em{display:none}
 .lg .lgn{margin-left:auto;color:#5a6a6c;font-size:.78rem}.lg span{white-space:nowrap}.cls{margin-right:4px}@media(max-width:700px){.lg .lgn{display:none}}
@@ -174,6 +179,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
       <div class="tile"><span class="tl"><i class="sw b"></i>Active buyers</span><b><?= $at['active_buyers'] ?></b><span class="ts"><?= $at['pending_buyer_sides'] ?> under contract</span></div>
       <div class="tile"><span class="tl"><i class="sw s"></i>Active sellers</span><b><?= $at['active_sellers'] ?></b><span class="ts"><?= $at['pending_seller_sides'] ?> under contract</span></div>
       <div class="tile"><span class="tl">Pending sales</span><b><?= $at['pending'] ?></b><span class="ts">sides under contract</span></div>
+      <div class="tile gci"><span class="tl">Anticipated gross commission</span><b><?= $money($at['anticipated_gci']) ?></b><span class="ts">on pending sales</span></div>
       <div class="tile vol"><span class="tl">Anticipated $ volume</span><b><?= $money($at['anticipated_volume']) ?></b><span class="ts">credit for every pending side</span></div>
     </div>
 <?php if ($pend): $pmx = max(1, max(array_map(function ($b) { return max($b['b'], $b['s']); }, $pb))); $pt = $pmx <= 4 ? range(0, $pmx) : [0, (int)ceil($pmx / 2), $pmx]; ?>
@@ -195,11 +201,13 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($pNoDate || $pLater): ?>    <p class="cbn" style="margin:0 0 12px"><?= implode(' ', array_filter([$pNoDate ? $pNoDate . ' pending sale' . ($pNoDate === 1 ? ' has' : 's have') . ' no closing date in Contract Deadlines, so ' . ($pNoDate === 1 ? 'it isn\'t' : 'they aren\'t') . ' on the chart.' : '', $pLater ? $pLater . ' close' . ($pLater === 1 ? 's' : '') . ' after ' . date('F Y', strtotime(end($pb)['from'])) . '.' : ''])) ?></p>
 <?php endif; ?>
 <?php endif; ?>
-<?php if ($at['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_price'] ?> pending sale<?= $at['missing_price'] === 1 ? ' has' : 's have' ?> no contract price yet, so <?= $at['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated volume. Use <b>+ Contract price</b> on the row.</p>
+<?php if ($at['missing_gci']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_gci'] ?> pending sale<?= $at['missing_gci'] === 1 ? ' has' : 's have' ?> no gross commission yet, so <?= $at['missing_gci'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated commission.</p>
+<?php endif; ?>
+<?php if ($at['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_price'] ?> pending sale<?= $at['missing_price'] === 1 ? ' has' : 's have' ?> no contract price yet, so <?= $at['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated volume. Use <b>+ Contract price &amp; GCI</b> or the pencil on the row.</p>
 <?php endif; ?>
     <div class="ovsub"><span>Pending sales (<?= count($pend) ?>)</span></div>
 <?php if (!$pend): ?>    <p class="empty">No sales under contract right now. They show here once a file reaches Executed Contract.</p>
-<?php else: foreach ($pend as $r) echo ab_row($r, $r['side'], ($r['close'] !== '' ? '<span class="due later cls">' . htmlspecialchars('Closes ' . date('M j', strtotime($r['close']))) . '</span>' : '') . $priceUI($r, '+ Contract price', 'contract price')); endif; ?>
+<?php else: foreach ($pend as $r) echo ab_row($r, $r['side'], ($r['close'] !== '' ? '<span class="due later cls">' . htmlspecialchars('Closes ' . date('M j', strtotime($r['close']))) . '</span>' : '') . $priceUI($r, '+ Contract price', 'contract price', 'active')); endif; ?>
   </div>
   <div class="lpanel" id="closed"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
 <?php if ($p !== 'prev' || $cmp): ?>  <p class="cbl"><?= htmlspecialchars($p === 'prev' ? (string)$yr : $label) ?><?php if ($cmp): ?> <span class="vs">compared with <?= htmlspecialchars(date('M j, Y', strtotime($rgL[0])) . ' – ' . date('M j, Y', strtotime($rgL[1]))) ?></span><?php endif; ?></p>
@@ -209,9 +217,10 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($perr): ?>    <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
 <?php endif; ?>
     <div class="tiles">
-      <div class="tile"><span class="tl"><i class="sw b"></i>Buyer sides</span><b><?= $tot['buyer_sides'] ?></b><span class="ts"><?= $money($tot['buyer_volume']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['buyer_sides'] ?> (<?= $money($totL['buyer_volume']) ?>) &middot; <?= $delta($tot['buyer_sides'], $totL['buyer_sides']) ?></span><?php endif; ?></div>
-      <div class="tile"><span class="tl"><i class="sw s"></i>Seller sides</span><b><?= $tot['seller_sides'] ?></b><span class="ts"><?= $money($tot['seller_volume']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['seller_sides'] ?> (<?= $money($totL['seller_volume']) ?>) &middot; <?= $delta($tot['seller_sides'], $totL['seller_sides']) ?></span><?php endif; ?></div>
+      <div class="tile"><span class="tl"><i class="sw b"></i>Buyer sides</span><b><?= $tot['buyer_sides'] ?></b><span class="ts"><?= $money($tot['buyer_volume']) ?> &middot; GCI <?= $money($tot['buyer_gci']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['buyer_sides'] ?> (<?= $money($totL['buyer_volume']) ?>) &middot; <?= $delta($tot['buyer_sides'], $totL['buyer_sides']) ?></span><?php endif; ?></div>
+      <div class="tile"><span class="tl"><i class="sw s"></i>Seller sides</span><b><?= $tot['seller_sides'] ?></b><span class="ts"><?= $money($tot['seller_volume']) ?> &middot; GCI <?= $money($tot['seller_gci']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['seller_sides'] ?> (<?= $money($totL['seller_volume']) ?>) &middot; <?= $delta($tot['seller_sides'], $totL['seller_sides']) ?></span><?php endif; ?></div>
       <div class="tile"><span class="tl">Total sides</span><b><?= $tot['sides'] ?></b><span class="ts">closed transactions</span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $totL['sides'] ?> &middot; <?= $delta($tot['sides'], $totL['sides']) ?></span><?php endif; ?></div>
+      <div class="tile gci"><span class="tl">Gross commission earned</span><b><?= $money($tot['gci']) ?></b><span class="ts">Buyer <?= $money($tot['buyer_gci']) ?> &middot; Seller <?= $money($tot['seller_gci']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $money($totL['gci']) ?> &middot; <?= $delta($tot['gci'], $totL['gci'], function ($x) use ($money) { return $money($x); }) ?></span><?php endif; ?></div>
       <div class="tile vol"><span class="tl">$ Volume</span><b><?= $money($tot['volume']) ?></b><span class="ts">credit for every side you closed</span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $money($totL['volume']) ?> &middot; <?= $delta($tot['volume'], $totL['volume'], function ($x) use ($money) { return $money($x); }) ?></span><?php endif; ?></div>
     </div>
 <?php if ($buckets): $mx = max(1, max(array_map(function ($b) { return max($b['b'], $b['s'], $b['lb'] ?? 0, $b['ls'] ?? 0); }, $buckets))); $ticks = $mx <= 4 ? range(0, $mx) : [0, (int)ceil($mx / 2), $mx]; ?>
@@ -233,7 +242,9 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
       <div class="tip" hidden></div>
     </div>
 <?php endif; ?>
-<?php if ($tot['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_price'] ?> closed file<?= $tot['missing_price'] === 1 ? ' has' : 's have' ?> no sold price yet, so <?= $tot['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to volume. Use <b>+ Sold price</b> on the row.</p>
+<?php if ($tot['missing_gci']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_gci'] ?> closed file<?= $tot['missing_gci'] === 1 ? ' has' : 's have' ?> no gross commission yet (a percent with a price, or a dollar amount), so <?= $tot['missing_gci'] === 1 ? 'it adds' : 'they add' ?> $0 to commission earned.</p>
+<?php endif; ?>
+<?php if ($tot['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_price'] ?> closed file<?= $tot['missing_price'] === 1 ? ' has' : 's have' ?> no sold price yet, so <?= $tot['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to volume. Use <b>+ Sold price &amp; GCI</b> or the pencil on the row.</p>
 <?php endif; ?>
     <div class="ovsub"><span>Buyers (<?= count($cb) ?>)</span></div>
 <?php if (!$cb): ?>    <p class="empty">No closed buyer transactions in this period.</p>
