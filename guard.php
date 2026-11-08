@@ -55,13 +55,14 @@ function flr_header_icons($email) {
     $badge = function ($n) { return $n ? '<span class="hib">' . ($n > 99 ? '99+' : $n) . '</span>' : ''; };
     $i = function ($href, $title, $n, $svg) use ($badge) { return '<a class="hic" href="' . $href . '" title="' . $title . '" aria-label="' . $title . ($n ? ', ' . $n : '') . '">' . $svg . $badge($n) . '</a>'; };
     $sv = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
-    return '<style>.hashi{position:relative;padding-right:200px}.hashi .hicons{position:absolute;top:40px;right:20px}.hirow{max-width:1080px;margin:0 auto;padding:16px 20px 0;display:flex;justify-content:flex-end}'
+    return '<style>.hashi{position:relative;padding-right:262px}.hashi .hicons{position:absolute;top:40px;right:20px}.hirow{max-width:1080px;margin:0 auto;padding:16px 20px 0;display:flex;justify-content:flex-end}'
         . '.hicons{display:flex;gap:10px;align-items:center}.hic{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:#fff;color:#036f72;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 4px 14px rgba(3,111,114,.2)}'
         . '.hic:hover{background:#e6f2f2}.hic svg{width:24px;height:24px}.hib{position:absolute;top:-4px;right:-4px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;border-radius:99px;background:#c0392b;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;border:2px solid #fff}'
         . '@media(max-width:600px){.hashi{padding-right:20px;padding-top:18px}.hashi .hicons{position:static;justify-content:flex-end;gap:8px;margin:0 0 6px}.hic{flex-basis:44px;width:44px;height:44px}.hic svg{width:21px;height:21px}}</style>'
         . '<span class="hicons">'
         . $i('notifications.php', 'Notifications', $nt, $sv . '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>')
         . $i('messages.php', 'Messages', $msgs, $sv . '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>')
+        . $i('directory.php', 'Directory', 0, $sv . '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 20a6.5 6.5 0 0 0-3-5.5"/></svg>')
         . $i('settings.php', 'Settings', 0, $sv . '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>')
         . '</span>';
 }
