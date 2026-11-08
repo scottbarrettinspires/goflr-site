@@ -42,7 +42,7 @@ $cached = mls_db()->query('SELECT data, updated FROM mls_listings ORDER BY updat
     <a href="home.php">Home</a>
     <a href="recruiting.php">Recruiting</a>
     <a href="mls_data.php" aria-current="page">MLS Data</a>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>MLS Data</h1><p>MLS Grid back-office connection settings, and a sample-data test of the pipeline before any live pull.</p></section>

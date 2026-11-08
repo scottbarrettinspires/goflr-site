@@ -144,7 +144,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>Send packet for signature</h1><p>Send a contract packet and the buyer disclosures from a buyer's folder in one email. Once the buyers sign, each signed copy is filed in Contract Offers under the property address.</p></section>

@@ -31,7 +31,7 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <?php // This page turns off output buffering (to show its loading screen at once), so guard.php can't add the

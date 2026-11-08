@@ -37,7 +37,7 @@ $rows = dl_upcoming($all ? '' : $me, 60, true);
     <?php endif; ?>
 <?php if ($broker): ?>    <a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a>
 <?php endif; ?>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>Contract Deadlines</h1><p>Every date entered on a Contract Deadlines panel, across your open buyer and seller records, for the next 60 days (including anything overdue).</p></section>

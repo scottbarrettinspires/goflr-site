@@ -82,7 +82,7 @@ function ago($iso) { $t = strtotime($iso); return $t ? date('M j, Y', $t) : ''; 
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>Signed Documents</h1><p>Every form you sent for signature. Each one also shows inside its buyer or seller record.</p></section>

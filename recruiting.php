@@ -100,7 +100,7 @@ $joinedCount = count(array_filter($recruits, function ($R) { return ($R['status'
     <?php endif; ?>
     <a href="recruiting.php" aria-current="page">Recruiting</a>
     <a href="mls_data.php">MLS Data</a>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>Recruiting CRM</h1><p>Recruiting agents to Florida Luxury Realty: New Licensees, licensed agents at other brokerages, and FLR's own agents. One shared pipeline for the whole brokerage.</p></section>

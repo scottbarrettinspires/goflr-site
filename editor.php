@@ -43,7 +43,7 @@ elseif ($files) {
     <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>Review and Complete</h1><p>Fill in the contract packet here, then continue for signing.</p></section>

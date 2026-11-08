@@ -81,7 +81,7 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a><?php endif; ?>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1>Directory</h1><p>Our staff and active agents. Tap a phone number to call or an email address to write.</p></section>

@@ -61,7 +61,7 @@ function sp_head($title, $backTx = '') {
     <?php endif; ?>
 <?php if (function_exists('flr_is_broker') && flr_is_broker()): ?>    <a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a> <a href="agentrecords.php">Agent Records</a>
 <?php endif; ?>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 <section class="hero"><h1><?= htmlspecialchars($title) ?></h1><?php if ($backTx !== ''): ?><p><a href="buyer.php?tx=<?= urlencode($backTx) ?>">&larr; Back to the buyer record</a></p><?php endif; ?></section>

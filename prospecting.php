@@ -138,7 +138,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0}.lrow .nm{di
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a> <a href="mls_data.php">MLS Data</a><?php endif; ?>
-    <a href="logout.php">Sign out</a>
+    <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
 
