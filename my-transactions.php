@@ -132,7 +132,8 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($view === 'overview'): ?>
 <?php if ($perr): ?>  <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
 <?php endif; ?>
-<?= pf_active_html($me, 'right now') ?>
+<div class="deskonly"><?= pf_active_html($me, 'right now') ?></div>
+<style>@media(max-width:760px){.deskonly{display:none}}</style>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
 <?php
     // A week strip like a calendar row: today plus 6 days, each item under the day it's actually due (a deadline on
