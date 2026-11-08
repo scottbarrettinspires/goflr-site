@@ -110,7 +110,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 
 <main class="wrap">
   <nav class="pmenu" aria-label="Time period">
-<?php foreach (['month' => 'Current Month', 'quarter' => 'Current Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
+<?php foreach (['ytd' => 'Year To Date', 'month' => 'Current Month', 'quarter' => 'Current Quarter', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
 <?php endforeach; ?>
 <?php if ($p !== 'nodate'): $q = array_filter(['p' => $p, 'y' => $p === 'prev' ? $yr : '', 'cmp' => empty($_GET['cmp']) ? 1 : '']); ?>      <a href="performance.php?<?= htmlspecialchars(http_build_query($q)) ?>" class="cmpbtn<?= !empty($_GET['cmp']) ? ' on' : '' ?>" role="switch" aria-checked="<?= !empty($_GET['cmp']) ? 'true' : 'false' ?>"><span class="ck"></span>Compare to last year</a>
 <?php endif; ?>
