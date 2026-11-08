@@ -21,6 +21,16 @@ sp_head('Settings');
 .setc a.lnk{font-size:.9rem;color:var(--teal)}
 </style>
 <div class="setw">
+<?php if ($isStaff): ?>
+  <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></span>
+    <div class="tx">
+      <h2>Forms</h2>
+      <p>The forms agents download in Active Business &rsaquo; Forms. See the page as agents do, or add, edit and delete forms and sections.</p>
+      <div class="acts"><a class="btn" href="forms.php">Open Forms</a> <a class="lnk" href="forms.php?edit=1">Edit forms</a></div>
+    </div>
+  </div>
+<?php endif; ?>
   <div class="setc">
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
     <div class="tx">

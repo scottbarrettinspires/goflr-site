@@ -1,4 +1,33 @@
-<?php require __DIR__ . "/guard.php"; require_once __DIR__ . "/dlib.php"; ?>
+<?php require __DIR__ . "/guard.php"; require_once __DIR__ . "/dlib.php"; require_once __DIR__ . "/formslib.php";
+// Forms (agents: Active Business > Forms; staff: Settings > Forms). Built from the Forms library on the server (formslib.php).
+// Staff see the page exactly as agents do, plus "Edit forms" to add, edit, move or delete forms and sections.
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$isStaff = flr_is_broker(); $by = strtolower($_SESSION['email'] ?? '');
+$editing = $isStaff && !empty($_GET['edit']);
+$err = '';
+if ($isStaff && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $back = 'forms.php?edit=1' . (preg_match('/^[a-z]+$/', (string)($_POST['cat'] ?? '')) ? '#' . $_POST['cat'] : '');
+    if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) { $err = 'That PDF is too large to upload. Please choose a smaller one.'; }
+    elseif (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
+    else {
+        $a = (string)($_POST['a'] ?? '');
+        if ($a === 'item') $err = fm_save_item((int)($_POST['id'] ?? 0), (int)($_POST['section'] ?? 0), $_POST['name'] ?? '', $_POST['link'] ?? '', $_FILES['pdf'] ?? [], $by);
+        elseif ($a === 'delitem') $err = fm_delete_item((int)($_POST['id'] ?? 0), $by);
+        elseif ($a === 'section') $err = fm_save_section((int)($_POST['id'] ?? 0), (string)($_POST['cat'] ?? ''), $_POST['name'] ?? '', $by);
+        elseif ($a === 'delsection') $err = fm_delete_section((int)($_POST['id'] ?? 0), $by);
+        elseif ($a === 'up' || $a === 'down') fm_move_section((int)($_POST['id'] ?? 0), $a === 'up' ? -1 : 1);
+        if ($err === '') { header('Location: ' . $back . (strpos($back, '#') === false ? '' : '') . ''); $_SESSION['fm_ok'] = $a; exit; }
+    }
+    $editing = true;
+}
+$ok = $_SESSION['fm_ok'] ?? ''; unset($_SESSION['fm_ok']);
+$perm = $_SESSION['perm'] ?? [];
+$all = fm_all();
+// Which category tabs show: Buyer, Seller, Agent for everyone; Commercial / Leasing for agents with that permission (staff see all).
+$cats = []; foreach (FM_CATS as $k => $lbl) { if (in_array($k, ['commercial', 'leasing'], true) && !$isStaff && empty($perm[$k])) continue; $cats[$k] = $lbl; }
+$h = function ($x) { return htmlspecialchars((string)$x); };
+$csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSION['csrf']) . '">';
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -32,102 +61,129 @@
 </div></header>
 
 <section class="hero">
-  <p style="margin:0 0 4px"><a href="my-transactions.php">&larr; Active Business</a></p>
+  <p style="margin:0 0 4px"><?= $isStaff ? '<a href="settings.php">&larr; Settings</a>' : '<a href="my-transactions.php">&larr; Active Business</a>' ?></p>
   <h1>Forms</h1>
-  <p>Choose a category, find your form, and download it. Then open the PDF to fill it in.</p>
+  <p><?= $editing ? 'Editing the forms agents see in Active Business &rsaquo; Forms. Changes show for every agent right away.' : 'Choose a category, find your form, and download it. Then open the PDF to fill it in.' ?></p>
 </section>
-
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<?php $perm = $_SESSION['perm'] ?? []; ?>
-<main class="wrap">
+<style>
+.fmbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}.fmbar .sp{flex:1}
+.fmbtn{font:inherit;font-size:.82rem;font-weight:600;padding:6px 11px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--teal);cursor:pointer;text-decoration:none;white-space:nowrap}
+.fmbtn:hover{border-color:var(--teal)}.fmbtn.del{color:#c0392b}.fmbtn.del:hover{border-color:#c0392b}.fmbtn.pri{background:var(--teal);color:#fff;border-color:var(--teal)}
+.fsec h2 .fmacts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}.fsec h2 .fmacts form{display:inline}
+.frow .fmacts{display:flex;gap:6px}.frow .fmacts form{display:inline}
+.fmsrc{font-size:.72rem;font-weight:600;color:#5a6a6c;background:#eef3f3;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.fmedit .frow{border-style:dashed}
+dialog.fmdlg{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}
+dialog.fmdlg::backdrop{background:rgba(15,30,32,.45)}
+.fmdlg form{padding:20px 22px}.fmdlg h2{margin:0 0 14px;font-size:1.15rem}
+.fmdlg label{display:block;font-size:.88rem;color:#455355;margin:0 0 12px}.fmdlg input[type=text],.fmdlg select{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;background:#fff}
+.fmdlg input[type=file]{display:block;margin-top:6px;font:inherit;font-size:.88rem}
+.fmor{display:flex;align-items:center;gap:10px;color:#5a6a6c;font-size:.82rem;margin:-2px 0 12px}.fmor:before,.fmor:after{content:"";flex:1;border-top:1px solid var(--line)}
+.fmhint{font-size:.8rem;color:#5a6a6c;margin:4px 0 0}
+.fmdlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+</style>
+<main class="wrap<?= $editing ? ' fmedit' : '' ?>">
+<?php if ($err): ?>  <p class="sigerr"><?= $h($err) ?></p>
+<?php elseif ($ok): ?>  <p class="note"><?= $h(['item' => 'Form saved.', 'delitem' => 'Form deleted.', 'section' => 'Section saved.', 'delsection' => 'Section deleted.', 'up' => 'Section moved.', 'down' => 'Section moved.'][$ok] ?? 'Saved.') ?></p>
+<?php endif; ?>
+<?php if ($isStaff): ?>
+  <div class="fmbar">
+<?php if ($editing): ?>
+    <strong style="color:#8a5a0e">&#9998; Editing forms</strong><span class="sp"></span>
+    <a class="fmbtn" href="forms.php" onclick="this.href='forms.php'+location.hash">Done editing</a>
+<?php else: ?>
+    <span style="color:#5a6a6c;font-size:.9rem">This is the Forms page agents see.</span><span class="sp"></span>
+    <a class="fmbtn pri" href="forms.php?edit=1" onclick="this.href='forms.php?edit=1'+location.hash">&#9998; Edit forms</a>
+<?php endif; ?>
+  </div>
+<?php endif; ?>
+<?php if (!$editing): ?>
   <div class="tips">
-    <div><b>1</b><span>Pick a category: Buyer, Seller, Agent<?php if(!empty($perm['commercial'])): ?>, Commercial<?php endif; ?><?php if(!empty($perm['leasing'])): ?>, Leasing<?php endif; ?>.</span></div>
+    <div><b>1</b><span>Pick a category: <?= $h(implode(', ', $cats)) ?>.</span></div>
     <div><b>2</b><span>Click Download to save the form.</span></div>
     <div><b>3</b><span>Open the downloaded PDF to fill in the fields.</span></div>
   </div>
+<?php endif; ?>
   <div class="ftabs" role="tablist">
-<button type="button" class="ftab" data-k="buyer">Buyer <span>23</span></button>
-<button type="button" class="ftab" data-k="seller">Seller <span>16</span></button>
-<button type="button" class="ftab" data-k="agent">Agent</button>
-<?php if(!empty($perm["commercial"])): ?><button type="button" class="ftab" data-k="commercial">Commercial</button><?php endif; ?>
-<?php if(!empty($perm["leasing"])): ?><button type="button" class="ftab" data-k="leasing">Leasing</button><?php endif; ?>
+<?php foreach ($cats as $k => $lbl): $n = 0; foreach ($all[$k] as $sec) $n += count($sec['forms']); ?>
+    <button type="button" class="ftab" data-k="<?= $k ?>"><?= $h($lbl) ?><?= $n ? ' <span>' . $n . '</span>' : '' ?></button>
+<?php endforeach; ?>
   </div>
   <div class="fsearch"><input id="fq" type="search" placeholder="Search this category" autocomplete="off"></div>
-<div class="fpanel" id="p-buyer" hidden><p class="fwiz"><a class="btn" href="wizard.php">Contract Forms Wizard: build a buyer contract packet</a></p>
-<section class="fsec"><h2>Buyer Starter Forms <span>6</span></h2><div class="flist">
-<div class="frow" data-t="amendment to buyer broker / showing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Amendment to Buyer Broker / Showing Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1wSbaZBFasz9QtutJL_lQ4GXIFAVj-M3g">Download</a></div>
-<div class="frow" data-t="buyer disclosures"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Buyer Disclosures</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1NYrkj4ma4OfJOFZkO6HoUOyudz4wsZaZ/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1NYrkj4ma4OfJOFZkO6HoUOyudz4wsZaZ">Download</a></div>
-<div class="frow" data-t="exclusive buyer brokerage agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Exclusive Buyer Brokerage Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1IoJl7SSl2grnKbpLMqH_L1gq15XDJi7U">Download</a></div>
-<div class="frow" data-t="prospect identification form"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Prospect Identification Form</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1pb-HBcU9DmCU0QLGYzU11ZDM-N15QqoY/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1pb-HBcU9DmCU0QLGYzU11ZDM-N15QqoY">Download</a></div>
-<div class="frow" data-t="showing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Showing Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=17tIOcmfAHRbhshBrsADOlJxeFlgAEsi8">Download</a></div>
-<div class="frow" data-t="unrepresented buyer"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Unrepresented Buyer</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1jecrkKhIGJy1_vPbPpJzuMLrbI6Vlk-W">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Buyer Disclosures <span>0</span></h2><div class="flist">
-</div></section>
-<section class="fsec"><h2>Contracts and Addendums <span>8</span></h2><div class="flist">
-<div class="frow" data-t="(aa) licensee personal interest in property"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(AA) Licensee Personal Interest in Property</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/12x3kPLMjsfABh6YzlTq3RAcsBVhGihjD/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=12x3kPLMjsfABh6YzlTq3RAcsBVhGihjD">Download</a></div>
-<div class="frow" data-t="&quot;as is&quot; residential contract"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">&quot;AS IS&quot; Residential Contract</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1UXAPIjAyJ_Gl1f9rg8aHdEd3SVxiipq0/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1UXAPIjAyJ_Gl1f9rg8aHdEd3SVxiipq0">Download</a></div>
-<div class="frow" data-t="(e) fha/va financing"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(E) FHA/VA Financing</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1k_IDQXw1T2kLwXkOqQRc8qviRufPp5C9/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1k_IDQXw1T2kLwXkOqQRc8qviRufPp5C9">Download</a></div>
-<div class="frow" data-t="(f) appraisal contingency"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(F) Appraisal Contingency</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1E1lDLxy6n6jnlE8HfuXki1B2z9y0uc4t/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1E1lDLxy6n6jnlE8HfuXki1B2z9y0uc4t">Download</a></div>
-<div class="frow" data-t="(ff) credit related to buyer&#x27;s broker compensation"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(FF) Credit Related to Buyer&#x27;s Broker Compensation</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1v3nKHURf-vsY486CYxko_WbBMFdn1kAH/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1v3nKHURf-vsY486CYxko_WbBMFdn1kAH">Download</a></div>
-<div class="frow" data-t="(q) housing for older persons"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(Q) Housing for Older Persons</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/16l32Ce1nxKJMz1eESTFCFJliGC_nY1nm/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=16l32Ce1nxKJMz1eESTFCFJliGC_nY1nm">Download</a></div>
-<div class="frow" data-t="(v) sale of buyer&#x27;s property"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(V) Sale of Buyer&#x27;s Property</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1UYSNBPiqOuDNCr2WUEZMDPA-GGcpqEud/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1UYSNBPiqOuDNCr2WUEZMDPA-GGcpqEud">Download</a></div>
-<div class="frow" data-t="vacant land contract"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Vacant Land Contract</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1yHzb9mvEO2OqH2F0avJo4tPVjSKL5e9C/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1yHzb9mvEO2OqH2F0avJo4tPVjSKL5e9C">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Contract Disclosure Addendums <span>4</span></h2><div class="flist">
-<div class="frow" data-t="community development district (cdd) addendum"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Community Development District (CDD) Addendum</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1YQENk7bO2LwvD8FFv1NpafEmneUpGADJ/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1YQENk7bO2LwvD8FFv1NpafEmneUpGADJ">Download</a></div>
-<div class="frow" data-t="condominium rider"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Condominium Rider</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1bOsNWhnSyawMHLw6e-IOWIRTKPed9HA1/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1bOsNWhnSyawMHLw6e-IOWIRTKPed9HA1">Download</a></div>
-<div class="frow" data-t="hoa / community disclosure"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">HOA / Community Disclosure</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/19f41Z4X625Ou9rpqXDN81s9W5jn9E9cB/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=19f41Z4X625Ou9rpqXDN81s9W5jn9E9cB">Download</a></div>
-<div class="frow" data-t="(p) lead-based paint disclosure (pre-1978)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(P) Lead-Based Paint Disclosure (Pre-1978)</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1OTSs6RJ4soTsVVrWRX-RBxuNFMcQmgoC/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1OTSs6RJ4soTsVVrWRX-RBxuNFMcQmgoC">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Post Contract Addendums <span>4</span></h2><div class="flist">
-<div class="frow" data-t="contract addendum"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Contract Addendum</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1R4cVcDD1e79jR3ByorGsJOXTrFCAgFuW/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1R4cVcDD1e79jR3ByorGsJOXTrFCAgFuW">Download</a></div>
-<div class="frow" data-t="extension addendum to contract"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Extension Addendum to Contract</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/19HFp7IX1l4hkxb2qHnxNq6C2HIlDeIqf/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=19HFp7IX1l4hkxb2qHnxNq6C2HIlDeIqf">Download</a></div>
-<div class="frow" data-t="notice to seller - buyer&#x27;s loan approval"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Notice to Seller - Buyer&#x27;s Loan Approval</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1g7FdXyTln8ZlpVFx21A-uK1GWD2I56NE/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1g7FdXyTln8ZlpVFx21A-uK1GWD2I56NE">Download</a></div>
-<div class="frow" data-t="property repairs addendum"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Property Repairs Addendum</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/137AiaMOrJmsg5loA14QnKbnwE6OvN-kq/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=137AiaMOrJmsg5loA14QnKbnwE6OvN-kq">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Pre-Closing Forms <span>1</span></h2><div class="flist">
-<div class="frow" data-t="buyer pre-closing final inspection"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Buyer Pre-Closing Final Inspection</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/138uML5GUJgxwVQ_Wu3XWTt9NbYwkqsJ6/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=138uML5GUJgxwVQ_Wu3XWTt9NbYwkqsJ6">Download</a></div>
-</div></section>
-</div>
-<div class="fpanel" id="p-seller" hidden><section class="fsec"><h2>Seller Listing Forms <span>5</span></h2><div class="flist">
-<div class="frow" data-t="exclusive brokerage listing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Exclusive Brokerage Listing Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1qyog5-xtOo6gqfzKiEzx49q6Qt_a3hGX/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1qyog5-xtOo6gqfzKiEzx49q6Qt_a3hGX">Download</a></div>
-<div class="frow" data-t="listing advance fee addendum"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Listing Advance Fee Addendum</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/146kvTpLnMyZ36bvLF1JIdXrjFGBP32FZ/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=146kvTpLnMyZ36bvLF1JIdXrjFGBP32FZ">Download</a></div>
-<div class="frow" data-t="listing agreement change terms addendum"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Listing Agreement Change Terms Addendum</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1AN92bUeRyVCXxGldn4bM86ONpdV7pPpP/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1AN92bUeRyVCXxGldn4bM86ONpdV7pPpP">Download</a></div>
-<div class="frow" data-t="non-listed property seller agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Non-Listed Property Seller Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1lUdx2gatN5VHiUrW_qldYfJqGLsHnJeC/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1lUdx2gatN5VHiUrW_qldYfJqGLsHnJeC">Download</a></div>
-<div class="frow" data-t="vacant land listing agreement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Vacant Land Listing Agreement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1WA1oYks0mVLJT1NgXBCzLDth0vOnZ94_/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1WA1oYks0mVLJT1NgXBCzLDth0vOnZ94_">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Seller Property Disclosures <span>6</span></h2><div class="flist">
-<div class="frow" data-t="flood disclosure"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Flood Disclosure</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1yG4pfD4kJpaZWar3eG-OJLIpBmZN5Hyf/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1yG4pfD4kJpaZWar3eG-OJLIpBmZN5Hyf">Download</a></div>
-<div class="frow" data-t="milestone inspection and sirs disclosure (condominium)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Milestone Inspection and SIRS Disclosure (Condominium)</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1e9OHU0aHOr8Z8PScMslc6N2GxUGfyj3H/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1e9OHU0aHOr8Z8PScMslc6N2GxUGfyj3H">Download</a></div>
-<div class="frow" data-t="request for seller non-disclosure form"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Request For Seller Non-Disclosure Form</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1nJv1IUE4xSK5VILxN7TN0f-GnJuugyj7/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1nJv1IUE4xSK5VILxN7TN0f-GnJuugyj7">Download</a></div>
-<div class="frow" data-t="seller&#x27;s property disclosure - condominium"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Seller&#x27;s Property Disclosure - Condominium</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1K8EXphJV0mIB4wc44iFQeBT1QJQp6xIb/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1K8EXphJV0mIB4wc44iFQeBT1QJQp6xIb">Download</a></div>
-<div class="frow" data-t="seller&#x27;s property disclosure - residential"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Seller&#x27;s Property Disclosure - Residential</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1VJFQ81FHz4WRSFDM_890IpShcQeYy4wz/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1VJFQ81FHz4WRSFDM_890IpShcQeYy4wz">Download</a></div>
-<div class="frow" data-t="vacant land disclosure statement"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Vacant Land Disclosure Statement</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1v0uP5FP3tTDdTwaFYRV9QHxRCwCPRaSB/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1v0uP5FP3tTDdTwaFYRV9QHxRCwCPRaSB">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Seller Disclosures <span>4</span></h2><div class="flist">
-<div class="frow" data-t="affiliated business arrangement disclosure (seller)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Affiliated Business Arrangement Disclosure (Seller)</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1ZlWMEaiSyBz1Y8nCvNvUnIuy18ETyj4P/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1ZlWMEaiSyBz1Y8nCvNvUnIuy18ETyj4P">Download</a></div>
-<div class="frow" data-t="authorization to furnish trid (seller)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Authorization to Furnish TRID (Seller)</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1BMrDZxb_n0s9lefn7VN1CnHLxzZI6bmb/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1BMrDZxb_n0s9lefn7VN1CnHLxzZI6bmb">Download</a></div>
-<div class="frow" data-t="national flood insurance program rate increase disclosure"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">National Flood Insurance Program Rate Increase Disclosure</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/11VnGtqh-6oQCU1Qx2bxQ2tFHpccHpOMl/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=11VnGtqh-6oQCU1Qx2bxQ2tFHpccHpOMl">Download</a></div>
-<div class="frow" data-t="non us citizen firpta withholding disclosure"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">Non US Citizen FIRPTA Withholding Disclosure</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/1aompv4TpCjFGYSUZWZv8fc-1ZCjDiAXT/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=1aompv4TpCjFGYSUZWZv8fc-1ZCjDiAXT">Download</a></div>
-</div></section>
-<section class="fsec"><h2>Seller Contract Disclosures <span>1</span></h2><div class="flist">
-<div class="frow" data-t="(p) lead-based paint disclosure (pre-1978)"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm">(P) Lead-Based Paint Disclosure (Pre-1978)</span><a class="fv" target="_blank" rel="noopener" href="https://drive.google.com/file/d/10rkN_Y8vPa27KMstZkC7sNomI4mtgGz7/view">View</a><a class="fd" href="https://drive.google.com/uc?export=download&amp;id=10rkN_Y8vPa27KMstZkC7sNomI4mtgGz7">Download</a></div>
-</div></section>
-</div>
-<div class="fpanel" id="p-agent" hidden><p class="fsoon">Agent forms are coming soon. Need one now? Contact the office.</p></div>
-<?php if(!empty($perm["commercial"])): ?><div class="fpanel" id="p-commercial" hidden><p class="fsoon">Commercial forms are coming soon. Need one now? Contact the office.</p></div><?php endif; ?>
-<?php if(!empty($perm["leasing"])): ?><div class="fpanel" id="p-leasing" hidden><p class="fsoon">Leasing forms are coming soon. Need one now? Contact the office.</p></div><?php endif; ?>
+<?php foreach ($cats as $k => $lbl): $secs = $all[$k]; ?>
+  <div class="fpanel" id="p-<?= $k ?>" hidden>
+<?php if ($k === 'buyer'): ?>    <p class="fwiz"><a class="btn" href="wizard.php">Contract Forms Wizard: build a buyer contract packet</a></p>
+<?php endif; ?>
+<?php if (!$secs || (!$editing && !array_sum(array_map(function ($s) { return count($s['forms']); }, $secs)))): ?>
+<?php if (!$editing): ?>    <p class="fsoon"><?= $h($lbl) ?> forms are coming soon. Need one now? Contact the office.</p>
+<?php else: ?>    <p class="fsoon">No sections in <?= $h($lbl) ?> yet. Add one below.</p>
+<?php endif; endif; ?>
+<?php foreach ($secs as $si => $sec): if (!$editing && !$sec['forms']) continue; ?>
+    <section class="fsec"><h2><?= $h($sec['name']) ?> <span><?= count($sec['forms']) ?></span>
+<?php if ($editing): ?>
+      <span class="fmacts">
+        <button type="button" class="fmbtn" data-add="<?= $sec['id'] ?>">+ Add form</button>
+        <button type="button" class="fmbtn" data-ren="<?= $sec['id'] ?>" data-name="<?= $h($sec['name']) ?>">Rename</button>
+        <?php if ($si > 0): ?><form method="post"><?= $csrfIn ?><input type="hidden" name="a" value="up"><input type="hidden" name="cat" value="<?= $k ?>"><input type="hidden" name="id" value="<?= $sec['id'] ?>"><button class="fmbtn" title="Move up">&uarr;</button></form><?php endif; ?>
+        <?php if ($si < count($secs) - 1): ?><form method="post"><?= $csrfIn ?><input type="hidden" name="a" value="down"><input type="hidden" name="cat" value="<?= $k ?>"><input type="hidden" name="id" value="<?= $sec['id'] ?>"><button class="fmbtn" title="Move down">&darr;</button></form><?php endif; ?>
+        <form method="post" onsubmit="return confirm('Delete the section &quot;<?= $h(addslashes($sec['name'])) ?>&quot;?')"><?= $csrfIn ?><input type="hidden" name="a" value="delsection"><input type="hidden" name="cat" value="<?= $k ?>"><input type="hidden" name="id" value="<?= $sec['id'] ?>"><button class="fmbtn del">Delete section</button></form>
+      </span>
+<?php endif; ?>
+    </h2><div class="flist">
+<?php if (!$sec['forms']): ?>      <p class="fmhint" style="margin:0 0 4px">No forms in this section yet.</p>
+<?php endif; ?>
+<?php foreach ($sec['forms'] as $f): ?>
+      <div class="frow" data-t="<?= $h(strtolower($f['name'])) ?>"><span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg></span><span class="fnm"><?= $h($f['name']) ?></span>
+<?php if ($editing): ?>        <span class="fmsrc"><?= $f['file'] !== '' ? 'Uploaded PDF' : 'Google Drive' ?></span>
+<?php endif; ?>
+        <a class="fv" target="_blank" rel="noopener" href="<?= $h(fm_view_url($f)) ?>">View</a><a class="fd" href="<?= $h(fm_dl_url($f)) ?>">Download</a>
+<?php if ($editing): ?>        <span class="fmacts"><button type="button" class="fmbtn" data-edit="<?= (int)$f['id'] ?>" data-sec="<?= $sec['id'] ?>" data-name="<?= $h($f['name']) ?>" data-link="<?= $f['drive_id'] !== '' ? $h('https://drive.google.com/file/d/' . $f['drive_id'] . '/view') : '' ?>" data-up="<?= $f['file'] !== '' ? '1' : '' ?>">Edit</button>
+          <form method="post" onsubmit="return confirm('Delete &quot;<?= $h(addslashes($f['name'])) ?>&quot; from the Forms page?')"><?= $csrfIn ?><input type="hidden" name="a" value="delitem"><input type="hidden" name="cat" value="<?= $k ?>"><input type="hidden" name="id" value="<?= (int)$f['id'] ?>"><button class="fmbtn del">Delete</button></form></span>
+<?php endif; ?>
+      </div>
+<?php endforeach; ?>
+    </div></section>
+<?php endforeach; ?>
+<?php if ($editing): ?>
+    <p style="margin:22px 0 0"><button type="button" class="fmbtn" data-newsec="<?= $k ?>">+ Add a section to <?= $h($lbl) ?></button></p>
+<?php endif; ?>
+  </div>
+<?php endforeach; ?>
   <p class="note" id="fnone" hidden>No forms match your search.</p>
+<?php if ($editing): ?>
+  <dialog class="fmdlg" id="dlgItem"><form method="post" enctype="multipart/form-data"><?= $csrfIn ?><input type="hidden" name="a" value="item"><input type="hidden" name="id" value="0"><input type="hidden" name="cat" value="">
+    <h2>Add a form</h2>
+    <label>Form name <input type="text" name="name" maxlength="140" required placeholder="e.g. Property Repairs Addendum"></label>
+    <label>Section <select name="section" required>
+<?php foreach (FM_CATS as $k => $lbl): if (!$all[$k]) continue; ?>
+      <optgroup label="<?= $h($lbl) ?>"><?php foreach ($all[$k] as $sec): ?><option value="<?= $sec['id'] ?>" data-cat="<?= $k ?>"><?= $h($sec['name']) ?></option><?php endforeach; ?></optgroup>
+<?php endforeach; ?>
+    </select></label>
+    <label>Google Drive link to the PDF <input type="text" name="link" placeholder="https://drive.google.com/file/d/..."><span class="fmhint">In Drive: right-click the PDF &rsaquo; Share &rsaquo; Copy link. Anyone at FLR must be able to open it.</span></label>
+    <div class="fmor">or upload the PDF</div>
+    <label>PDF file <input type="file" name="pdf" accept="application/pdf,.pdf"><span class="fmhint" data-keep hidden>Leave both empty to keep the current file.</span></label>
+    <div class="acts"><button type="button" class="fmbtn" data-close>Cancel</button><button class="fmbtn pri">Save form</button></div>
+  </form></dialog>
+  <dialog class="fmdlg" id="dlgSec"><form method="post"><?= $csrfIn ?><input type="hidden" name="a" value="section"><input type="hidden" name="id" value="0"><input type="hidden" name="cat" value="">
+    <h2>Add a section</h2>
+    <label>Section name <input type="text" name="name" maxlength="80" required placeholder="e.g. Buyer Disclosures"></label>
+    <div class="acts"><button type="button" class="fmbtn" data-close>Cancel</button><button class="fmbtn pri">Save section</button></div>
+  </form></dialog>
+  <script>
+  (function(){var di=document.getElementById("dlgItem"),ds=document.getElementById("dlgSec"),fi=di.querySelector("form"),fs=ds.querySelector("form");
+  function cur(){return (location.hash||"#buyer").slice(1);}
+  document.addEventListener("click",function(e){var b=e.target.closest("[data-add],[data-edit],[data-ren],[data-newsec],[data-close]");if(!b)return;
+    if(b.hasAttribute("data-close")){b.closest("dialog").close();return;}
+    if(b.dataset.add||b.dataset.edit){fi.reset();var ed=!!b.dataset.edit;fi.id.value=ed?b.dataset.edit:0;fi.cat.value=cur();fi.section.value=b.dataset.add||b.dataset.sec;
+      fi.querySelector("h2").textContent=ed?"Edit form":"Add a form";if(ed){fi.name.value=b.dataset.name;fi.link.value=b.dataset.link||"";}
+      fi.querySelector("[data-keep]").hidden=!ed;fi.link.required=false;di.showModal();fi.name.focus();return;}
+    fs.reset();fs.cat.value=b.dataset.newsec||cur();fs.id.value=b.dataset.ren||0;fs.querySelector("h2").textContent=b.dataset.ren?"Rename section":"Add a section";if(b.dataset.ren)fs.name.value=b.dataset.name;ds.showModal();fs.name.focus();});
+  fi.addEventListener("submit",function(e){var up=fi.pdf.files[0];if(up&&up.size>25000000){e.preventDefault();alert("That PDF is too large (25 MB max).");return;}
+    if(!+fi.id.value&&!up&&!fi.link.value.trim()){e.preventDefault();alert("Paste the form's Google Drive link or choose a PDF to upload.");return;}
+    if(up&&fi.link.value.trim()&&!confirm("You gave both a Drive link and a PDF. The uploaded PDF will be used. Continue?"))e.preventDefault();});
+  })();
+  </script>
+<?php endif; ?>
 </main>
 
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
@@ -135,7 +191,7 @@
 (function(){
 var tabs=[].slice.call(document.querySelectorAll(".ftab")),q=document.getElementById("fq"),none=document.getElementById("fnone"),cur="";
 function panel(){return document.getElementById("p-"+cur);}
-function filter(){var p=panel();if(!p)return;var v=q.value.trim().toLowerCase(),t=0,rows=[].slice.call(p.querySelectorAll(".frow"));rows.forEach(function(r){var m=!v||r.getAttribute("data-t").indexOf(v)>-1;r.style.display=m?"":"none";if(m)t++;});[].slice.call(p.querySelectorAll(".fsec")).forEach(function(s){s.style.display=s.querySelector('.frow:not([style*="none"])')?"":"none";});none.hidden=!(v&&rows.length&&t===0);}
+function filter(){var p=panel();if(!p)return;var v=q.value.trim().toLowerCase(),t=0,rows=[].slice.call(p.querySelectorAll(".frow"));rows.forEach(function(r){var m=!v||r.getAttribute("data-t").indexOf(v)>-1;r.style.display=m?"":"none";if(m)t++;});[].slice.call(p.querySelectorAll(".fsec")).forEach(function(s){s.style.display=(!v||s.querySelector('.frow:not([style*="none"])'))?"":"none";});none.hidden=!(v&&rows.length&&t===0);}
 function show(k){if(!document.getElementById("p-"+k))k="buyer";cur=k;tabs.forEach(function(b){b.classList.toggle("on",b.getAttribute("data-k")===k);});[].slice.call(document.querySelectorAll(".fpanel")).forEach(function(p){p.hidden=p.id!=="p-"+k;});q.value="";filter();try{history.replaceState(null,"","#"+k);}catch(e){}}
 tabs.forEach(function(b){b.addEventListener("click",function(){show(b.getAttribute("data-k"));});});
 q.addEventListener("input",filter);
