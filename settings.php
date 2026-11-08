@@ -1,5 +1,5 @@
 <?php
-// Settings (gear icon on Home): put FLR Office on your phone, and turn phone alerts on or off for this device.
+// Settings (gear icon on Home): put FLR Office on your phone and turn its alerts on or off for this device (one card).
 // Moved here from the Home page. Alerts are for agents (every new lead) and staff (new recruiting contacts).
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php"; // flr_is_broker()
@@ -19,6 +19,7 @@ sp_head('Settings');
 .setc .btn{border:0;cursor:pointer;font:inherit;font-weight:600;padding:8px 16px}
 .seton{display:inline-flex;align-items:center;gap:6px;color:#2e7d32;font-weight:600;font-size:.92rem}
 .setc a.lnk{font-size:.9rem;color:var(--teal)}
+.subh{margin:16px 0 2px;font-size:.95rem;padding-top:12px;border-top:1px solid var(--line)}.subp{margin:0 0 8px;font-size:.9rem;color:#5a6a6c}
 </style>
 <div class="setw">
   <div class="setc">
@@ -75,17 +76,11 @@ sp_head('Settings');
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
     <div class="tx">
       <h2>FLR Office on your phone</h2>
-      <p>Install it from the browser, no app store, and get an alert for <?= $alertWhat ?>.</p>
+      <p>Install it from your browser, no app store needed, then turn on alerts to get one for <?= $alertWhat ?>.</p>
       <div class="acts" id="appnot"><a class="btn" href="install.php">Install the app</a></div>
       <div class="acts" id="appyes" hidden><span class="seton">&#10003; You're using the FLR Office app</span></div>
-    </div>
-  </div>
-
-  <div class="setc">
-    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span>
-    <div class="tx">
-      <h2>Phone alerts</h2>
-      <p id="pushtext">Get an alert on this phone for <?= $alertWhat ?>. Works best in the FLR Office app on your home screen.</p>
+      <h3 class="subh">Phone alerts</h3>
+      <p id="pushtext" class="subp">Works best in the FLR Office app on your home screen.</p>
       <div class="acts" id="pushcard" hidden><button class="btn" id="pushon" type="button">Turn on alerts</button></div>
       <div class="acts" id="pushok" hidden><span class="seton">&#128276; Alerts are on for this phone</span> <a href="#" class="lnk" id="pushtest">Send a test</a> &middot; <a href="#" class="lnk" id="pushoff">Turn off</a></div>
       <div class="acts" id="pushno" hidden><span style="font-size:.9rem;color:#5a6a6c">This browser can't receive alerts. On a phone, install the app first, then open it from your home screen and come back here.</span></div>
