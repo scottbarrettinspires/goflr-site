@@ -91,6 +91,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .bulk .btn{padding:5px 10px;font-size:.78rem}
 .modal .btns .btn.sm,.modal .btns a.btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
 .touch textarea,.touch input,.fgrid input,.fgrid textarea,.fgrid select{font-size:.92rem;padding:8px 10px}
+.ltabs button.addtab{background:#e07b39;border-color:#e07b39;color:#fff;font-weight:800}.ltabs button.addtab:hover{background:#c96a2c}
 .ltabs button.newtab{background:#d32f2f;border-color:#d32f2f;color:#fff}.ltabs button.newtab .n{background:rgba(255,255,255,.28);color:#fff}.ltabs button.newtab.on{background:#b71c1c;border-color:#b71c1c;box-shadow:0 0 0 3px rgba(183,28,28,.25)}
 .mtabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 12px}.mtabs button{font:inherit;font-size:.86rem;font-weight:700;padding:8px 14px;border:0;border-bottom:3px solid transparent;background:none;color:#5a6a6c;cursor:pointer}
 .mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
@@ -160,12 +161,13 @@ function counts(){var c={new:0,buyer:0,seller:0,sphere:0};LEADS.forEach(function
 function renderTabs(){
   var c=counts(),h='<button class="ov'+(view.tab==="overview"?" on":"")+'" data-t="overview">Overview</button>';
   h+='<button data-t="new" class="newtab'+(view.tab==="new"?" on":"")+'">NEW <span class="n">'+c.new+'</span></button>';
+  h+='<button type="button" class="addtab" id="addlead" title="Add a lead by hand">+ ADD</button>';
   ["buyer","seller","sphere"].forEach(function(k){h+='<button data-t="'+k+'" class="'+(view.tab===k?"on":"")+'">'+CATS[k].label+' <span class="n">'+c[k]+'</span></button>';});
   h+='<button data-t="tags" class="'+(view.tab==="tags"?"on":"")+'">By Source</button>';
   h+='<button class="srcbtn" id="mysrc" type="button">&#9881; My Lead Sources</button>';
   tabs.innerHTML=h;
 }
-tabs.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.id==="mysrc"){openSources();return;}view.tab=b.dataset.t;view.sub=null;view.q="";render();});
+tabs.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.id==="mysrc"){openSources();return;}if(b.id==="addlead"){openLead(null,{});return;}view.tab=b.dataset.t;view.sub=null;view.q="";render();});
 function hotList(){
   var items=[];LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.over>=0&&v.sub!=="dnc")items.push([L,v]);});});
   items.sort(function(a,b){return (HEAT[a[1].sub]-HEAT[b[1].sub])||(b[1].over-a[1].over);});return items;
