@@ -55,6 +55,7 @@ function sp_head($title, $backTx = '') {
   <nav>
     <a href="home.php">Home</a>
     <?php if (!(function_exists('flr_is_broker') && flr_is_broker())): ?>
+    <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>

@@ -120,6 +120,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
   <nav>
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
+    <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
     <?php endif; ?>

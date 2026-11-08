@@ -105,6 +105,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
   <nav>
     <a href="home.php" aria-current="page">Home</a>
     <?php if (!flr_is_broker()): ?>
+    <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>

@@ -141,6 +141,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Agent Back Office</span></a>
   <nav>
     <a href="home.php">Home</a>
+    <a href="prospecting.php">Prospecting</a>
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="directory.php">Directory</a>

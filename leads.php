@@ -105,6 +105,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
   <nav>
     <a href="home.php">Home</a>
     <?php if (!flr_is_broker()): ?>
+    <a href="prospecting.php">Prospecting</a>
     <a href="leads.php" aria-current="page">Leads &amp; Contacts</a>
     <a href="my-transactions.php">Active Business</a>
     <?php endif; ?>
