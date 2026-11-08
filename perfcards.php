@@ -23,7 +23,7 @@ function pf_handle_post($me, $self) {
     return $err;
 }
 
-function pf_active_html($me, $note = 'right now') {
+function pf_active_html($me, $note = 'right now', $showList = true) {
     $money = 'pf_money';
 // Active Business snapshot (today's pipeline; the period menu doesn't change it).
 $act = ab_active($me); $at = ab_active_totals($act);
@@ -64,11 +64,13 @@ foreach ($pend as $r) { if ($r['close'] === '') { $pNoDate++; continue; } $hit =
 <?php endif; ?>
 <?php if ($at['missing_gci']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_gci'] ?> pending sale<?= $at['missing_gci'] === 1 ? ' has' : 's have' ?> no gross commission yet, so <?= $at['missing_gci'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated commission.</p>
 <?php endif; ?>
-<?php if ($at['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_price'] ?> pending sale<?= $at['missing_price'] === 1 ? ' has' : 's have' ?> no contract price yet, so <?= $at['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated volume. Use <b>+ Contract price &amp; GCI</b> or the pencil on the row.</p>
+<?php if ($at['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $at['missing_price'] ?> pending sale<?= $at['missing_price'] === 1 ? ' has' : 's have' ?> no contract price yet, so <?= $at['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to anticipated volume. <?= $showList ? 'Use <b>+ Contract price &amp; GCI</b> or the pencil on the row.' : 'Add it on the file\'s record page.' ?></p>
 <?php endif; ?>
+<?php if ($showList): ?>
     <div class="ovsub"><span>Pending sales (<?= count($pend) ?>)</span></div>
 <?php if (!$pend): ?>    <p class="empty">No sales under contract right now. They show here once a file reaches Executed Contract.</p>
 <?php else: foreach ($pend as $r) echo ab_row($r, $r['side'], ($r['close'] !== '' ? '<span class="due later cls">' . htmlspecialchars('Closes ' . date('M j', strtotime($r['close']))) . '</span>' : '') . pf_price_ui($r, '+ Contract price', 'contract price', 'active')); endif; ?>
+<?php endif; ?>
   </div>
 <?php return ob_get_clean();
 }

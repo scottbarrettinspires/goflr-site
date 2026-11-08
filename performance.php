@@ -126,7 +126,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
   </nav>
 <?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?><?= !empty($_GET['cmp']) ? '&amp;cmp=1' : '' ?>" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
 <?php endif; ?>
-<?= pf_active_html($me, 'right now · not affected by the time period') ?>
+<?= pf_active_html($me, 'right now · not affected by the time period', false) ?>
   <div class="lpanel" id="closed"><div class="cbhd"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
     <div class="csw"><label class="csl" for="csq">Find a closed transaction</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="csq" type="search" placeholder="Search closed by client or address" autocomplete="off" aria-label="Search all closed transactions by client name or property address" aria-controls="csres">
