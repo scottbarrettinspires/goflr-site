@@ -41,6 +41,20 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .sb{font:inherit;font-weight:700;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
 .sb.on{outline:3px solid #1f2a2c;outline-offset:2px}
+.wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.wkd{border-left:1px solid var(--line);min-height:150px;padding:8px 6px;display:flex;flex-direction:column;gap:6px;min-width:0;background:#fff}.wkd:first-child{border-left:0}
+.wkd.off{background:#f6f8f8}.wkd.today{background:#f0f8f8}
+.wkh{display:flex;flex-direction:column;align-items:center;padding:0 0 6px;border-bottom:1px solid #edf1f1;margin-bottom:2px}
+.wkh .dn{font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#5a6a6c}
+.wkh .dd{font-size:1.45rem;font-weight:500;line-height:1.25;color:#1f2a2c;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.wkh .dm{font-size:.7rem;color:#8a9a9c;text-align:center}.wkd.today .wkh .dn{color:var(--teal)}.wkd.today .wkh .dd{background:var(--teal);color:#fff}
+.wki{display:flex;flex-direction:column;gap:6px;min-width:0}
+.wkit{display:flex;flex-direction:column;gap:1px;padding:6px 7px;border-radius:7px;background:#e1f3f2;border-left:3px solid #036f72;color:#1f2a2c;font-size:.78rem;line-height:1.3;overflow-wrap:anywhere;cursor:pointer}
+.wkit:hover{filter:brightness(.96)}.wkit .wd{font-weight:700}.wkit .wn{font-weight:600;color:#2a3638}.wkit .wa{color:#5a6a6c}
+.h0w,.h1w{background:#fde2e1;border-left-color:#e53935}.h2w{background:#fdecea;border-left-color:#f6b1aa}.h3w{background:#f3f6f6;border-left-color:#b9c4c6}.h4w{background:#e8f1fa;border-left-color:#a9cbe9}.h5w{background:#e3ecf7;border-left-color:#1f5fa8}.h6w{background:#e1f3f2;border-left-color:#036f72}
+.wnone{color:#c4cfd0;text-align:center;margin-top:8px}
+@media(max-width:760px){.wk{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
+  .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
 .h0{background:#b71c1c;color:#fff}.h1{background:#e53935;color:#fff}.h2{background:#f6b1aa;color:#5c1410}.h3{background:#fff;color:#2b3a3c}.h4{background:#a9cbe9;color:#0f3558}.h5{background:#1f5fa8;color:#fff}.h6{background:#036f72;color:#fff}
 .lpanel{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;min-height:200px}
 .lpanel h2{margin:0 0 12px;font-size:1.15rem}
@@ -124,6 +138,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 <script>
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>, ALLSRC=<?= json_encode(LD_SOURCES) ?>, MYSRC=<?= json_encode(array_values($mySources)) ?>, ALLINT=<?= json_encode(LD_INTERESTS) ?>, MYINT=<?= json_encode(array_values($myInterests)) ?>, CATS=<?= json_encode($cats) ?>, LEADS=<?= json_encode($leads) ?>, TODAY=<?= json_encode(ld_today()) ?>, INTAKE=<?= json_encode($intakeUrl) ?>;
+var WEEK=<?php $wk = []; for ($i = 0; $i < 7; $i++) { $dd = date('Y-m-d', strtotime(ld_today() . " +$i days")); $o = dl_offday($dd); $wk[] = ['d' => $dd, 'dn' => date('D', strtotime($dd)), 'n' => date('j', strtotime($dd)), 'm' => date('M', strtotime($dd)), 'off' => $o, 'hol' => in_array($o, ['Saturday', 'Sunday'], true) ? '' : $o]; } echo json_encode($wk); ?>;
 var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=ALLSRC;
 var view={tab:"overview",sub:null,q:""};
@@ -172,6 +187,16 @@ function hotList(){
   var items=[];LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.over>=0&&v.sub!=="dnc")items.push([L,v]);});});
   items.sort(function(a,b){return (HEAT[a[1].sub]-HEAT[b[1].sub])||(b[1].over-a[1].over);});return items;
 }
+// "Coming up in the next 7 days" as a calendar strip (same look as Active Business): today + 6 days, each lead's
+// next touch under its day with the name, category and what to do. Overdue touches stay in Hot leads below.
+function weekStrip(){var by={};WEEK.forEach(function(w){by[w.d]=[];});
+  LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.sub!=="dnc"&&by[v.due])by[v.due].push([L,v]);});});
+  var any=0,h='<div class="lpanel"><h2>Coming up in the next 7 days</h2><div class="wk">';
+  WEEK.forEach(function(w,i){var it=by[w.d];it.sort(function(a,b){return HEAT[a[1].sub]-HEAT[b[1].sub];});any+=it.length;
+    h+='<div class="wkd'+(i===0?' today':'')+(w.off?' off':'')+'"><div class="wkh"><span class="dn">'+(i===0?'Today':w.dn)+'</span><span class="dd">'+w.n+'</span><span class="dm">'+w.m+(w.hol?'<br>'+esc(w.hol):'')+'</span></div><div class="wki">';
+    h+=it.length?it.map(function(x){var L=x[0],v=x[1];return '<div class="wkit '+heatClass(v.sub)+'w" data-id="'+esc(L.id)+'" role="button" tabindex="0"><span class="wd">'+esc(v.ch||"Touch")+'</span><span class="wn">'+esc(nm(L))+'</span><span class="wa">'+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub))+'</span></div>';}).join(""):'<span class="wnone">&mdash;</span>';
+    h+='</div></div>';});
+  return h+'</div>'+(any?'':'<p class="empty" style="padding:10px 0 0">Nothing scheduled this week.</p>')+'</div>';}
 function soonList(){var items=[];LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.over<0&&v.over>=-7&&v.sub!=="dnc")items.push([L,v]);});});items.sort(function(a,b){return b[1].over-a[1].over;});return items;}
 function renderOverview(){
   var c=counts(),hot=hotList(),soon=soonList(),wk=0,newWk=0,readyB=0,readyS=0,sa=0,cold=0,unr=0;
@@ -190,8 +215,8 @@ function renderOverview(){
    +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
    +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
    +'<div class="stat cold"><b>'+cold+'</b><span>Cold (D Maybe Not, Do Not Contact)</span></div></div>';
-  h+='<div class="lpanel"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
-  h+='<div class="lpanel" style="margin-top:14px"><h2>Coming up in the next 7 days</h2>'+(soon.length?soon.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing scheduled this week.</p>')+'</div>';
+  h+=weekStrip();
+  h+='<div class="lpanel" style="margin-top:14px"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
   h+='<div class="lpanel" style="margin-top:14px"><h2>Your lead link</h2><p style="color:#5a6a6c;margin:-4px 0 10px">Share this link anywhere people find you. Every person who fills it in lands in your NEW tab and on your home page.</p>'
     +[["Your contact form",""],["Your FLR agent app","Agent App"],["Facebook","Facebook"],["Instagram","Instagram"],["Landing page","Landing page"],["Email signature","Email signature"]].map(function(x){var u=INTAKE+(x[1]?"&src="+encodeURIComponent(x[1]):"");
       return '<div class="lrow" style="cursor:default"><div class="who"><div class="nm">'+esc(x[0])+'</div><div class="meta">'+esc(u)+'</div></div><button class="btn sm ghost cp" data-u="'+esc(u)+'">Copy</button><a class="btn sm ghost" href="'+esc(u)+'" target="_blank" rel="noopener">Open</a></div>';}).join("")
@@ -275,7 +300,7 @@ function openSources(){modal=MODAL;
   draw();mback.classList.add("show");
 }
 
-body.addEventListener("click",function(e){var r=e.target.closest(".lrow");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
+body.addEventListener("click",function(e){var r=e.target.closest(".lrow,.wkit[data-id]");if(!r)return;var L=LEADS.filter(function(x){return x.id===r.dataset.id;})[0];if(L)openLead(L);});
 async function api(payload){payload.csrf=CSRF;var r=await fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});var j=await r.json();if(!j.ok)throw new Error(j.msg||"Could not save.");LEADS=j.leads;return j;}
 function mv(role,cur,withNone){if(cur==="client")return '<div class="mvrow" data-role="'+role+'" data-val="client">'+(MV_LBL?'<b>'+esc(CATS[role].label)+'</b>':'')+'<span class="due" style="background:#e1f3f2;color:#036f72">In Active Business</span></div>';var h='<div class="mvrow" data-role="'+role+'" data-val="'+esc(cur)+'">'+(MV_LBL?'<b>'+esc(CATS[role].label)+'</b>':'')+''+(MV_ACT&&role==="buyer"?'<button type="button" class="mvb h6" style="opacity:1" data-act="execute" title="Buyer consultation: start the buyer record in Active Business and get the buyer broker agreement signed">\uD83D\uDE0A Buyer Consultation</button>':'')+(MV_ACT&&role==="seller"?'<button type="button" class="mvb h6" style="opacity:1" data-act="prelist" title="Listing appointment: start the Pre Listing record in Active Business and prepare your listing documents">\uD83D\uDE0A Listing Appointment</button>':'')+(withNone?'<button type="button" class="mvb none'+(cur===""?" on":"")+'" data-v="">'+(role==="sphere"?"Not in Sphere":"None")+'</button>':'');
   Object.keys(CATS[role].subs).forEach(function(k,i){h+='<button type="button" class="mvb h'+(i+1)+(cur===k?" on":"")+'" data-v="'+k+'" title="'+esc(CATS[role].stage[k]||"")+'">'+ico(k)+esc(CATS[role].subs[k])+'</button>';});return h+'</div>';}
