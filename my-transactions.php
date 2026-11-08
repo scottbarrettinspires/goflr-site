@@ -24,7 +24,7 @@ $dlSoon = dl_upcoming($me, 7, true);
 // Buyers / Sellers tabs: one row per client, styled like the Leads & Contacts list.
 $stageF = (string)($_GET['stage'] ?? '');
 $rows = [];
-// Client rows for one side (used by the Buyers/Sellers tabs and the Overview's client card).
+// Client rows for one side (used by the Buyers/Sellers tabs and the Overview's Active Clients card).
 function ab_rows($me, $side, $list, $pk) {
     $out = [];
     require_once __DIR__ . '/notiflib.php'; require_once __DIR__ . '/leadlib.php';
@@ -246,7 +246,7 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 .mdh .mmo{display:none}.mc.today .md{background:var(--teal);color:#fff}.mhol{font-size:.66rem;color:#8a9a9c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.none,.mc.past{display:none}.mcal{background:#fff}.mc+.mc{border-top:1px solid var(--line)}.mcal.mempty{display:none}.mdh .mmo{display:block;font-size:.7rem;color:#8a9a9c;padding-left:4px}.mdh .md{font-size:.95rem}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
 </style>
-  <div class="lpanel" id="clients"><h2>Your clients</h2>
+  <div class="lpanel" id="clients"><h2>Active Clients</h2>
     <div class="ovsub"><span>Buyers (<?= count($ovB) ?>)</span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
 <?php if (!$ovB): ?>    <p class="empty">No active buyers.</p>
 <?php else: foreach ($ovB as $r) echo ab_row($r, 'buyer'); endif; ?>
