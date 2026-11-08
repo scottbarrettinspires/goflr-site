@@ -98,7 +98,7 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
 <?php else: ?>
   <div class="dbar"><div class="dtools"><input type="search" id="q" placeholder="Search by name, phone or email" autocomplete="off"></div><button type="button" class="btn" id="bymap">Show By Location</button></div>
   <div id="dmap"></div>
-  <div id="dlist"><section class="dsec"><h2>Staff <span><?= count($d['staff'] ?? []) ?></span></h2><div class="dgrid">
+  <div id="dlist"><section class="dsec"><h2>Staff<?php if ($canLoginAs): ?> <span><?= count($d['staff'] ?? []) ?></span><?php endif; ?></h2><div class="dgrid">
 <?php foreach ((array)($d['staff'] ?? []) as $p) { $k = om_key_for($p['email'] ?? '', true); echo dir_card($p, (string)($p['position'] ?? ''), null, in_array($k, $omMine, true) ? '' : $k), "\n"; } ?>
   </div></section>
 <?php $agentsAll = array_values((array)($d['agents'] ?? [])); $favCards = ''; $restCards = ''; $nFav = 0; $nRest = 0;
@@ -111,7 +111,7 @@ foreach ($agentsAll as $i => $p) {
 } ?>
   <section class="dsec" id="favsec"<?= $nFav ? '' : ' style="display:none"' ?>><h2>&#9733; Favorites <span id="favn"><?= $nFav ?></span></h2><div class="dgrid" id="favgrid">
 <?= $favCards ?>  </div></section>
-  <section class="dsec"><h2>Active agents <span id="restn"><?= $nRest ?></span></h2><div class="dgrid" id="restgrid">
+  <section class="dsec"><h2>Active agents <span id="restn"<?= $canLoginAs ? '' : ' hidden' ?>><?= $nRest ?></span></h2><div class="dgrid" id="restgrid">
 <?= $restCards ?>  </div></section>
   </div>
   <p class="note" id="none" hidden>No one matches that search.</p>
