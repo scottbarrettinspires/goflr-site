@@ -24,12 +24,13 @@ $dlSoon = dl_upcoming($me, 7, true);
 // Buyers / Sellers tabs: one row per client, styled like the Leads & Contacts list.
 $stageF = (string)($_GET['stage'] ?? '');
 $rows = [];
-if ($view !== 'overview') {
+// Client rows for one side (used by the Buyers/Sellers tabs and the Overview's client card).
+function ab_rows($me, $side, $list, $pk) {
+    $out = [];
     require_once __DIR__ . '/notiflib.php'; require_once __DIR__ . '/leadlib.php';
-    $list = $view === 'buyer' ? $buyers : $sellers;
     $infos = []; try { $infos = nt_infos($me, $list, true); } catch (Throwable $e) {} // client contact details from the record (cached 10 min)
     $leads = []; try { foreach (ld_load($me)['leads'] as $L) foreach (['buyer', 'seller'] as $r) if (!empty($L['roles'][$r]['folder'])) $leads[$L['roles'][$r]['folder']] = $L; } catch (Throwable $e) {}
-    $keys = ps_keys($view); $p = $view === 'buyer' ? 'b' : 's';
+    $keys = ps_keys($side); $p = $side === 'buyer' ? 'b' : 's';
     foreach ($list as $t) {
         $k = $pk($t); $in = $infos[$t['folder']] ?? []; $L = $leads[$t['folder']] ?? null;
         $nm = trim((string)($in[$p . '1_name'] ?? '')) ?: ($L ? trim(($L['first'] ?? '') . ' ' . ($L['last'] ?? '')) : '') ?: (string)$t['name'];
@@ -37,11 +38,15 @@ if ($view !== 'overview') {
         $ph = trim((string)($in[$p . '1_phone'] ?? '')) ?: (string)($L['phone'] ?? '');
         $em = trim((string)($in[$p . '1_email'] ?? '')) ?: (string)($L['email'] ?? '');
         $next = null; $c = dl_get($t['folder']); if ($c) foreach (dl_compute(is_array($c["data"]) ? $c["data"] : (json_decode((string)$c["data"], true) ?: [])) as $d) { if (!$d['done']) { $next = $d; break; } }
-        $rows[] = ['t' => $t, 'k' => $k, 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
+        $out[] = ['t' => $t, 'k' => $k, 'i' => array_search($k, $keys, true), 'nm' => $nm, 'ph' => $ph, 'em' => $em, 'src' => (string)($L['source'] ?? ''), 'next' => $next,
             'addr' => trim((string)($in['property'] ?? '')) ?: ($nm !== $t['name'] ? (string)$t['name'] : '')];
     }
-    usort($rows, function ($a, $b) { return [$a['i'], $a['nm']] <=> [$b['i'], $b['nm']]; });
+    usort($out, function ($a, $b) { return [$a['i'], $a['nm']] <=> [$b['i'], $b['nm']]; });
+    return $out;
 }
+if ($view !== 'overview') $rows = ab_rows($me, $view, $view === 'buyer' ? $buyers : $sellers, $pk);
+else { $ovB = array_values(array_filter(ab_rows($me, 'buyer', $buyers, $pk), function ($r) { return $r['k'] !== 'closed'; }));
+       $ovS = array_values(array_filter(ab_rows($me, 'seller', $sellers, $pk), function ($r) { return $r['k'] !== 'closed'; })); }
 function ab_row($r, $side) {
     $h = function ($x) { return htmlspecialchars((string)$x); };
     $url = ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($r['t']['folder']);
@@ -202,7 +207,16 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .wki{display:flex;flex-direction:column;gap:6px;min-width:0}
 @media(max-width:760px){.wk,.wk.hasover{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
   .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
+.ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}.ovsub a{font-weight:600;font-size:.85rem}
 </style>
+  <div class="lpanel" id="clients"><h2>Your clients</h2>
+    <div class="ovsub"><span>Buyers (<?= count($ovB) ?>)</span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
+<?php if (!$ovB): ?>    <p class="empty">No active buyers.</p>
+<?php else: foreach ($ovB as $r) echo ab_row($r, 'buyer'); endif; ?>
+    <div class="ovsub"><span>Sellers (<?= count($ovS) ?>)</span><a href="my-transactions.php?side=seller">See all sellers &rarr;</a></div>
+<?php if (!$ovS): ?>    <p class="empty">No active sellers.</p>
+<?php else: foreach ($ovS as $r) echo ab_row($r, 'seller'); endif; ?>
+  </div>
   <div class="lpanel" id="signed"><h2>Newly signed documents</h2>
 <?php if (!$signedNew): ?>    <p class="empty">No newly signed documents.</p>
 <?php else: foreach ($signedNew as $x): $r = $x['r']; $what = ($r['offer_address'] ?? '') ?: preg_replace('/^[^-]*-\s*/', '', (string)($r['form'] ?? 'Document'));
