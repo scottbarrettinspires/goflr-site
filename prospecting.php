@@ -145,7 +145,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0}.lrow .nm{di
 
 <section class="hero">
   <h1>Prospecting</h1>
-  <p>Where your leads come from, and the work that brings them in. Production solves everything.</p>
+  <p>It's time to capture some new business opportunities to serve.</p>
 </section>
 
 <main class="wrap">
