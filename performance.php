@@ -86,13 +86,14 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .spills{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.spills a{font-weight:700;font-size:.82rem;padding:5px 10px;border-radius:99px;text-decoration:none;border:2px solid transparent}.spills a.on{border-color:#1f2a2c}
 @media(max-width:640px){.crow{flex-wrap:wrap}.crow .who{flex:1 1 calc(100% - 30px)}.crow .due{margin-left:24px;white-space:normal;max-width:calc(100% - 140px)}.crow .qa{margin-left:auto}}
 .cbhd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:0 0 12px}.cbhd h2{margin:0!important}
-.csrch{position:relative;display:flex;align-items:center;gap:6px;flex:0 1 340px;min-width:220px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:#fff;color:#5a6a6c}
-.csrch:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(3,111,114,.12)}.csrch input{flex:1;border:0;outline:0;font:inherit;font-size:.9rem;padding:8px 0;background:transparent;min-width:0}
+.csw{display:flex;flex-direction:column;gap:4px;flex:0 1 380px;min-width:240px}.csl{font-size:.78rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--teal)}
+.csrch{position:relative;display:flex;align-items:center;gap:8px;border:2px solid var(--teal);border-radius:12px;padding:0 12px;background:#f0f8f8;color:var(--teal)}
+.csrch:focus-within{background:#fff;box-shadow:0 0 0 4px rgba(3,111,114,.15)}.csrch input{flex:1;border:0;outline:0;font:inherit;font-size:.95rem;font-weight:600;color:#1f2a2c;padding:10px 0;background:transparent;min-width:0}
 .csres{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-height:340px;overflow:auto;padding:4px}
 .csres a{display:block;padding:8px 10px;border-radius:8px;text-decoration:none;color:#1f2a2c}.csres a:hover,.csres a.on{background:#eef6f6}.csres a b{display:block;font-size:.92rem}.csres a span{display:block;font-size:.78rem;color:#5a6a6c}
 .cxf{margin:0 0 12px}.cxi[hidden]{display:none}
 .csnone{margin:0;padding:10px;font-size:.88rem;color:#5a6a6c}
-@media(max-width:700px){.csrch{flex:1 1 100%}}
+@media(max-width:700px){.csw{flex:1 1 100%}}.csrch input::placeholder{color:#5f7f80;font-weight:500}
 </style>
 </head>
 <body>
@@ -127,9 +128,9 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php endif; ?>
 <?= pf_active_html($me, 'right now · not affected by the time period') ?>
   <div class="lpanel" id="closed"><div class="cbhd"><h2>Closed Business <span class="cbc"><?= count($cb) + count($cs) ?> closed</span></h2>
-    <div class="csrch" role="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <div class="csw"><label class="csl" for="csq">Find a closed transaction</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="csq" type="search" placeholder="Search closed by client or address" autocomplete="off" aria-label="Search all closed transactions by client name or property address" aria-controls="csres">
-      <div id="csres" class="csres" role="listbox" hidden></div></div></div>
+      <div id="csres" class="csres" role="listbox" hidden></div></div></div></div>
 <?php $srch = []; foreach (['buyer', 'seller'] as $sd) foreach ($all[$sd] as $r) $srch[] = ['n' => $r['nm'], 'a' => $r['addr'], 's' => $sd === 'buyer' ? 'Buyer' : 'Seller', 'd' => $r['closed'] !== '' ? 'Closed ' . date('M j, Y', strtotime($r['closed'])) : 'No closing date', 'u' => ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])]; ?>
 <script>(function(){var D=<?= json_encode($srch, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,q=document.getElementById("csq"),box=document.getElementById("csres"),sel=-1;
 function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
@@ -183,8 +184,8 @@ document.addEventListener("click",function(e){if(!e.target.closest(".csrch"))box
   </div>
 <?php $canc = ab_cancelled($me); $cc = ['contract' => 0, 'listing' => 0, 'expired' => 0]; foreach ($canc as $r) if (isset($cc[$r['outcome']])) $cc[$r['outcome']]++; ?>
   <div class="lpanel" id="cancelled"><div class="cbhd"><h2>Cancelled &amp; Expired Business <span class="cbc"><?= count($canc) ?> total</span></h2>
-    <div class="csrch" role="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="cxq" type="search" placeholder="Search by client or address" autocomplete="off" aria-label="Search cancelled and expired business by client name or property address"></div></div>
+    <div class="csw"><label class="csl" for="cxq">Find a cancelled or expired file</label><div class="csrch" role="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="cxq" type="search" placeholder="Search by client or address" autocomplete="off" aria-label="Search cancelled and expired business by client name or property address"></div></div></div>
     <p class="cbl">All time &middot; not affected by the time period. Mark a file from its record page with <b>Mark cancelled or expired</b>.</p>
     <div class="pp cxf" role="tablist">
       <a href="#" class="on" data-k="">All (<?= count($canc) ?>)</a>
