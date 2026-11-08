@@ -100,6 +100,7 @@ try { require_once __DIR__ . '/signed_panel.php'; $txAll = flr_tx_list($me);
 .ltabs a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
 .ltabs a .n{font-size:.72rem;font-weight:700;background:rgba(0,0,0,.08);border-radius:99px;padding:1px 7px}.ltabs a.on .n{background:rgba(255,255,255,.25)}
 .ltabs .srcbtn{margin-left:auto;font-weight:600;color:#4b5b5d}
+a.addmini{display:inline-flex;align-items:center;line-height:1;padding:3px 8px;border-radius:6px;background:#e07b39;color:#fff;font-size:.72rem;font-weight:800;letter-spacing:.02em;text-decoration:none;vertical-align:middle}a.addmini:hover{background:#c96a2c}
 .ltabs a.addtab{background:#e07b39;border-color:#e07b39;color:#fff;font-weight:800}.ltabs a.addtab:hover{background:#c96a2c}
 dialog.nc{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}dialog.nc::backdrop{background:rgba(15,30,32,.45)}
 .nc form{padding:20px 22px}.nc h2{margin:0 0 4px;font-size:1.2rem}.nc .sub{color:#5a6a6c;font-size:.9rem;margin:0 0 14px}
@@ -151,13 +152,8 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 </section>
 
 <main class="wrap">
-  <div class="ltabs">
-    <a href="my-transactions.php" class="<?= $view === 'overview' ? 'on' : '' ?>" style="<?= $view === 'overview' ? '' : 'color:#5a6a6c;font-weight:600' ?>">Overview</a>
-    <a href="#" class="addtab" id="addclient" role="button">+ ADD</a>
-    <a href="my-transactions.php?side=buyer" class="<?= $view === 'buyer' ? 'on' : '' ?>">Buyers <span class="n"><?= count($buyers) ?></span></a>
-    <a href="my-transactions.php?side=seller" class="<?= $view === 'seller' ? 'on' : '' ?>">Sellers <span class="n"><?= count($sellers) ?></span></a>
-    <a href="forms.php" class="srcbtn">&#128196; Forms</a>
-  </div>
+<?php if ($view !== 'overview'): ?>  <p style="margin:0 0 14px"><a href="my-transactions.php">&larr; Back to Active Business</a></p>
+<?php endif; ?>
 <?php if (!empty($_GET['added'])): ?>  <p class="note">The Pre Listing record is created. It can take a minute to show here.</p>
 <?php endif; ?>
 <?php if ($view === 'overview'): ?>
@@ -237,6 +233,8 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 @media(max-width:760px){.wk,.wk.hasover{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
   .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}.ovsub a{font-weight:600;font-size:.85rem}
+.ovsub span{display:inline-flex;align-items:center;gap:8px}
+
 .mh{margin:0 0 10px;font-size:1rem}.mh span{font-weight:500;color:#5a6a6c;font-size:.88rem}
 .mover{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;padding:10px;margin:0 0 10px;border:1px solid #f3c7c4;background:#fff6f5;border-radius:12px}.mover .mol{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#b71c1c;align-self:center;margin-right:4px}.mover .wkit{max-width:220px}
 .mcal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line);gap:1px}
@@ -247,10 +245,10 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 @media(max-width:760px){.mcal{grid-template-columns:1fr}.mwd{display:none}.mc{min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.mc.none,.mc.past{display:none}.mcal{background:#fff}.mc+.mc{border-top:1px solid var(--line)}.mcal.mempty{display:none}.mdh .mmo{display:block;font-size:.7rem;color:#8a9a9c;padding-left:4px}.mdh .md{font-size:.95rem}.mdh{flex:0 0 58px;flex-direction:column;align-items:flex-start;gap:0}.mdh .mwn{display:block;font-size:.7rem;font-weight:700;text-transform:uppercase;color:#5a6a6c}.wki{flex:1}}
 </style>
   <div class="lpanel" id="clients"><h2>Active Clients</h2>
-    <div class="ovsub"><span>Buyers (<?= count($ovB) ?>)</span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
+    <div class="ovsub"><span>Buyers (<?= count($ovB) ?>) <a href="#" class="addmini" data-k="buyer" role="button">+ ADD</a></span><a href="my-transactions.php?side=buyer">See all buyers &rarr;</a></div>
 <?php if (!$ovB): ?>    <p class="empty">No active buyers.</p>
 <?php else: foreach ($ovB as $r) echo ab_row($r, 'buyer'); endif; ?>
-    <div class="ovsub"><span>Sellers (<?= count($ovS) ?>)</span><a href="my-transactions.php?side=seller">See all sellers &rarr;</a></div>
+    <div class="ovsub"><span>Sellers (<?= count($ovS) ?>) <a href="#" class="addmini" data-k="seller" role="button">+ ADD</a></span><a href="my-transactions.php?side=seller">See all sellers &rarr;</a></div>
 <?php if (!$ovS): ?>    <p class="empty">No active sellers.</p>
 <?php else: foreach ($ovS as $r) echo ab_row($r, 'seller'); endif; ?>
   </div>
@@ -263,7 +261,7 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
   </div>
 <?php else: $sideNm = $view === 'buyer' ? 'Buyers' : 'Sellers'; $byK = []; foreach ($rows as $r) $byK[$r['k']] = ($byK[$r['k']] ?? 0) + 1; ?>
   <div class="lpanel">
-    <h2><?= $sideNm ?></h2>
+    <h2><?= $sideNm ?> <a href="#" class="addmini" data-k="<?= $view ?>" role="button">+ ADD</a></h2>
     <div class="spills"><a href="my-transactions.php?side=<?= $view ?>" class="<?= $stageF === '' ? 'on' : '' ?>" style="background:#fff;color:var(--teal);border-color:<?= $stageF === '' ? '#1f2a2c' : 'var(--line)' ?>">All <?= count($rows) ?></a>
 <?php foreach (PS_STAGES[$view] as $k => $lbl): ?>
       <a href="my-transactions.php?side=<?= $view ?>&amp;stage=<?= urlencode($k) ?>" class="<?= $stageF === $k ? 'on' : '' ?>" style="background:<?= ps_color($view, $k) ?>;color:<?= ps_fg($view, $k) ?>"><?= htmlspecialchars($lbl) ?> <?= $byK[$k] ?? 0 ?></a>
@@ -292,7 +290,7 @@ if (!$rows): ?>
 (function(){var d=document.getElementById("ncd"),f=document.getElementById("ncf"),kind="buyer",go=document.getElementById("nc_go"),er=document.getElementById("nc_err"),CSRF=<?= json_encode($_SESSION['csrf']) ?>;
 function v(id){return document.getElementById(id).value.trim();}
 function setKind(k){kind=k;f.querySelectorAll(".ncpick button").forEach(function(b){b.classList.toggle("on",b.dataset.k===k);});document.getElementById("nc_addrw").hidden=k!=="seller";go.textContent=k==="seller"?"Create Pre Listing record":"Continue to buyer record";}
-document.getElementById("addclient").addEventListener("click",function(e){e.preventDefault();f.reset();er.hidden=true;setKind("buyer");d.showModal();document.getElementById("nc_first").focus();});
+document.querySelectorAll(".addmini").forEach(function(btn){btn.addEventListener("click",function(e){e.preventDefault();f.reset();er.hidden=true;setKind(btn.dataset.k||"buyer");d.showModal();document.getElementById("nc_first").focus();});});
 f.querySelectorAll(".ncpick button").forEach(function(b){b.addEventListener("click",function(){setKind(b.dataset.k);});});
 document.getElementById("nc_x").addEventListener("click",function(){d.close();});
 function api(o){o.csrf=CSRF;return fetch("leads_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}).then(function(r){return r.json();}).then(function(j){if(!j.ok)throw new Error(j.msg||"Something went wrong.");return j;});}
