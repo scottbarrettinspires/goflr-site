@@ -5,6 +5,7 @@
 require_once __DIR__ . '/leadbox.php';
 require_once __DIR__ . '/pstage.php';
 require_once __DIR__ . '/dlib.php';
+require_once __DIR__ . '/ablib.php';
 
 // Plain data for the header (also handy for a future JSON endpoint): names, contacts, stage, address, lead, next deadline.
 function rv_data($me, $side, $tx, array $rec, array $info) {
@@ -40,7 +41,10 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     if ($d['stage'] === 'closed') $tag = '<span class="due" style="background:#e3f4e8;color:#2e7d32">Closed</span>';
     elseif ($d['next']) { $n = $d['next']; $cl = $n['left'] < 0 ? 'over' : ($n['left'] <= 3 ? 'today' : 'later'); $tag = '<span class="due ' . $cl . '">' . $h($n['label'] . ' · ' . dl_when($n['left'])) . '</span>'; }
     else $tag = '<span class="due later">No deadlines entered</span>';
-    $o = '<div class="rvh"><div class="rvtop"><span class="dot" style="background:' . $h(ps_color($side, $d['stage'])) . '"></span>'
+    flr_outcome_columns(); $oc = (string)($rec['outcome'] ?? ''); $ocOn = (string)($rec['outcome_on'] ?? '');
+    if ($oc === '') { $q = flr_db()->prepare('SELECT outcome, outcome_on FROM transactions WHERE folder = ?'); $q->execute([$tx]); $x = $q->fetch() ?: []; $oc = (string)($x['outcome'] ?? ''); $ocOn = (string)($x['outcome_on'] ?? ''); }
+    if ($oc !== '') $tag = '<span class="due over">' . $h((AB_OUTCOMES[$oc] ?? 'Cancelled') . ($ocOn ? ' · ' . date('M j, Y', strtotime($ocOn)) : '')) . '</span>';
+    $o = (!empty($GLOBALS['rvErr']) ? '<p class="sigerr">' . $h($GLOBALS['rvErr']) . '</p>' : '') . '<div class="rvh"><div class="rvtop"><span class="dot" style="background:' . $h(ps_color($side, $d['stage'])) . '"></span>'
         . '<div class="rvwho"><div class="rvnm">' . $h($d['title']) . '</div><div class="rvmeta">' . $h(implode(' · ', $meta)) . '</div></div>' . $tag . '</div>';
     // One line per person, each with its own Call / Text / Email.
     $o .= '<div class="rvppl">';
@@ -57,7 +61,7 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     // Actions row.
     $o .= '<div class="rvact"><a href="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;embed=1" target="pscontent" onclick="var f=document.getElementById(\'pscontent\');if(f)setTimeout(function(){f.scrollIntoView({behavior:\'smooth\',block:\'start\'})},50)">&#9998; Edit contact info</a>';
     if ($d['lead']) $o .= '<a href="leads.php?open=' . urlencode($d['lead']['id']) . '">Open in Leads &amp; Contacts</a>';
-    $o .= '<a href="https://drive.google.com/drive/folders/' . urlencode($tx) . '" target="_blank" rel="noopener">Open the ' . ($side === 'seller' ? 'listing' : 'buyer') . ' folder</a></div>';
+    $o .= '<a href="https://drive.google.com/drive/folders/' . urlencode($tx) . '" target="_blank" rel="noopener">Open the ' . ($side === 'seller' ? 'listing' : 'buyer') . ' folder</a>' . rv_outcome_ui($side, $tx, $oc) . '</div>' . rv_price_ui($d['stage'], $tx, $info);
     $o .= lb_strip($me, $side, $tx, $info, $d['lead']);
     return $o . '</div>';
 }
@@ -103,7 +107,42 @@ function rv_css() {
 .rvlink{margin:12px 0 0;padding:10px 12px;background:#fff8ec;border:1px solid #f3dfb8;border-radius:10px;font-size:.9rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.rvlink span{flex:1;min-width:200px}
 .rvbtn{font:inherit;font-size:.82rem;font-weight:700;padding:5px 12px;border-radius:8px;border:1px solid var(--teal,#036f72);background:var(--teal,#036f72);color:#fff;cursor:pointer}.rvbtn.ghost{background:#fff;color:var(--teal,#036f72)}
 .rvh~.panel.sigbox,.rvh~details.panel{max-width:none;border-radius:14px}
+.rvoc{display:inline}.rvoc summary{cursor:pointer;color:#b71c1c;font-weight:700;list-style:none}.rvoc summary::-webkit-details-marker{display:none}
+.rvoc[open]{display:block;flex-basis:100%}.rvoc form{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;margin:8px 0 0;padding:10px 12px;border:1px solid #f3c7c4;background:#fff6f5;border-radius:10px}
+.rvoc label{display:flex;flex-direction:column;font-size:.75rem;font-weight:700;color:#4b5b5d;gap:2px}.rvoc select,.rvoc input{font:inherit;font-size:.88rem;padding:6px 8px;border:1px solid var(--line,#dfe7e7);border-radius:8px;background:#fff}
+.rvoc form p{flex-basis:100%;margin:0;font-size:.8rem;color:#5a6a6c}.rvlnk{font:inherit;font-weight:700;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}
+.rvpr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 0;padding:10px 12px;border:1px solid var(--line,#dfe7e7);border-radius:10px}.rvprl{font-size:.85rem;font-weight:700;color:#4b5b5d}.rvpr .prx{margin:0}
 .rvsec{background:var(--white,#fff);border:1px solid var(--line,#dfe7e7);border-radius:14px;padding:16px;margin:0 0 14px}.rvsec>h2{margin:0 0 12px;font-size:1.15rem}
 @media(max-width:640px){.rvtop{flex-wrap:wrap}.rvwho{flex:1 1 calc(100% - 30px)}.rvh .due{margin-left:26px;white-space:normal}.rvp{align-items:flex-start}}
 </style>';
+}
+
+// Cancelled / Expired control on the record header: a small form to mark the file, or to make it active again.
+function rv_outcome_ui($side, $tx, $oc) {
+    $h = function ($s) { return htmlspecialchars((string)$s); };
+    $hid = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf'] ?? '') . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setoutcome">';
+    if ($oc !== '') return '<form method="post" class="rvoc">' . $hid . '<input type="hidden" name="outcome" value=""><button type="submit" class="rvlnk">Make active again</button></form>';
+    $opts = ''; foreach (ab_outcomes_for($side) as $k => $l) $opts .= '<option value="' . $h($k) . '">' . $h($l) . '</option>';
+    return '<details class="rvoc"><summary>Mark cancelled or expired</summary><form method="post">' . $hid
+        . '<label>What happened<select name="outcome">' . $opts . '</select></label><label>Date<input type="date" name="on" value="' . date('Y-m-d') . '" max="' . date('Y-m-d') . '"></label>'
+        . '<button type="submit" class="rvbtn">Save</button><p>The file moves to Performance &rsaquo; Cancelled &amp; Expired and leaves Active Business. You can make it active again.</p></form></details>';
+}
+// POST op=setoutcome on a record page. Redirects on success; returns an error message otherwise.
+function rv_handle_outcome($me, $tx, $self) {
+    if (($_POST['op'] ?? '') === 'setprice') { require_once __DIR__ . '/perfcards.php'; return pf_handle_post($me, $self); } // price / commission from the header
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || ($_POST['op'] ?? '') !== 'setoutcome') return '';
+    if (!hash_equals($_SESSION['csrf'] ?? '', (string)($_POST['csrf'] ?? ''))) return 'This page expired. Please reload and try again.';
+    $e = ab_set_outcome($me, $tx, (string)($_POST['outcome'] ?? ''), (string)($_POST['on'] ?? ''));
+    if ($e === '') { header('Location: ' . $self); exit; }
+    return $e;
+}
+
+// Sold / contract price and gross commission on the header, for files under contract or closed (same editor as Performance).
+function rv_price_ui($stage, $tx, array $info) {
+    if ($stage !== 'closed' && !in_array($stage, AB_PENDING, true)) return '';
+    require_once __DIR__ . '/perfcards.php';
+    $r = ['t' => ['folder' => $tx], 'price' => ab_price($tx, $info), 'comm' => ab_comm($tx)];
+    $closed = $stage === 'closed';
+    return '<div class="rvpr"><span class="rvprl">' . ($closed ? 'Sold price &amp; commission' : 'Contract price &amp; commission') . '</span>'
+        . pf_price_ui($r, $closed ? '+ Sold price' : '+ Contract price', $closed ? 'sold price' : 'contract price') . '</div>' . pf_css() . pf_js();
 }

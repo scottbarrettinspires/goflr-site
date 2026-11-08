@@ -5,8 +5,8 @@ require_once __DIR__ . "/pstage.php";
 $me = $_SESSION['email'];
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $side = (($_GET['side'] ?? '') === 'seller') ? 'seller' : 'buyer';
-$buyers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'buyer'; }));
-$sellers = array_values(array_filter(flr_tx_list($me), function ($t) { return $t['side'] === 'seller'; }));
+$buyers = array_values(array_filter(flr_tx_live($me), function ($t) { return $t['side'] === 'buyer'; }));
+$sellers = array_values(array_filter(flr_tx_live($me), function ($t) { return $t['side'] === 'seller'; }));
 $view = in_array($_GET['side'] ?? '', ['buyer', 'seller'], true) ? $_GET['side'] : 'overview';
 // Overview numbers (all from the server: transaction index, pipeline stages, contract deadlines, signature records).
 $pk = function ($t) { return ps_get($t['folder'], $t['side'], (int)$t['stage']); };

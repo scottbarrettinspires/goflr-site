@@ -15,13 +15,27 @@ if ($action === 'setprice') { // POST JSON {action:'setprice', csrf, tx, price?,
     if ($e === '' && isset($j['commission'])) $e = ab_set_comm($_SESSION['email'], (string)($j['tx'] ?? ''), (string)$j['commission']);
     echo json_encode($e === '' ? ['ok' => true, 'tx' => (string)$j['tx'], 'price' => ab_price((string)$j['tx'])] : ['ok' => false, 'msg' => $e]); exit;
 }
+if ($action === 'cancelled') { // GET ?action=cancelled[&q=] -> {ok, items:[{folder, side, name, address, outcome, outcome_label, date, url}]}
+    $qq = strtolower(trim((string)($_GET['q'] ?? ''))); $items = [];
+    foreach (ab_cancelled($_SESSION['email']) as $r) { $hay = strtolower($r['nm'] . ' ' . $r['addr']); $ok = true;
+        foreach (preg_split('/\s+/', $qq) as $w) if ($w !== '' && strpos($hay, $w) === false) $ok = false; if (!$ok) continue;
+        $items[] = ['folder' => $r['t']['folder'], 'side' => $r['side'], 'name' => $r['nm'], 'address' => $r['addr'], 'outcome' => $r['outcome'], 'outcome_label' => $r['outcome_label'], 'date' => $r['on'],
+            'url' => ($r['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])]; }
+    echo json_encode(['ok' => true, 'items' => $items]); exit;
+}
+if ($action === 'setoutcome') { // POST JSON {action:'setoutcome', csrf, tx, outcome: 'contract'|'listing'|'expired'|'' (active again), date?}
+    $j = json_decode((string)file_get_contents('php://input'), true) ?: $_POST;
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' || !hash_equals((string)($_SESSION['csrf'] ?? ''), (string)($j['csrf'] ?? ''))) { http_response_code(403); echo json_encode(['ok' => false, 'msg' => 'Send a POST with the page csrf token.']); exit; }
+    $e = ab_set_outcome($_SESSION['email'], (string)($j['tx'] ?? ''), (string)($j['outcome'] ?? ''), (string)($j['date'] ?? ''));
+    echo json_encode($e === '' ? ['ok' => true] : ['ok' => false, 'msg' => $e]); exit;
+}
 if ($action === 'active') { // GET ?action=active -> {ok, totals, pending:[{folder, side, name, stage, expected_close, price, url}]}
     $a = ab_active($_SESSION['email']); $pend = [];
     foreach (['buyer', 'seller'] as $sd) foreach ($a[$sd] as $r) if ($r['pending']) $pend[] = ['folder' => $r['t']['folder'], 'side' => $sd, 'name' => $r['nm'], 'stage' => PS_STAGES[$sd][$r['k']] ?? $r['k'],
         'expected_close' => $r['close'], 'price' => $r['price'], 'gross_commission' => ab_gci($r), 'url' => ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder'])];
     echo json_encode(['ok' => true, 'totals' => ab_active_totals($a), 'pending' => $pend]); exit;
 }
-if ($action !== 'closed') { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use action=closed or action=active.']); exit; }
+if ($action !== 'closed') { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use action=closed, active or cancelled.']); exit; }
 $per = (string)($_GET['period'] ?? '');
 if ($per !== '' && !in_array($per, ['month', 'quarter', 'ytd'], true) && !preg_match('/^\d{4}$/', $per)) { http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'period must be month, quarter, ytd, or a 4-digit year.']); exit; }
 $c = ab_closed($_SESSION['email'], $per === '' ? null : $per);

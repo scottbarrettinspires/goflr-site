@@ -70,6 +70,7 @@ function dl_save($email, $folder, $side, array $data) {
 // Upcoming (not done) deadlines for one agent, or for everyone when $email is '' (broker view). Each row gets folder, name, email.
 function dl_upcoming($email, $days = 14, $includeOverdue = true) {
     $sql = 'SELECT c.folder, c.email, c.side, c.data, t.name, t.listed, t.stage_name FROM contracts c LEFT JOIN transactions t ON t.folder = c.folder' . ($email !== '' ? ' WHERE c.akey = ?' : '');
+    flr_outcome_columns(); $sql = str_replace(' WHERE c.akey = ?', " WHERE c.akey = ? AND (t.outcome IS NULL OR t.outcome = '')", $sql); if ($email === '') $sql .= " WHERE (t.outcome IS NULL OR t.outcome = '')";
     $q = dl_db()->prepare($sql); $q->execute($email !== '' ? [flr_akey($email)] : []); $rows = [];
     foreach ($q->fetchAll() as $r) {
         if ($r['listed'] !== null && !(int)$r['listed']) continue; // record archived or gone

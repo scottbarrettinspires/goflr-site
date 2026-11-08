@@ -26,7 +26,7 @@ function oh_my_listings($email) {
     $out = [];
     try {
         require_once __DIR__ . '/pstage.php';
-        $sellers = array_values(array_filter(flr_tx_list($email), function ($t) { return $t['side'] === 'seller'; }));
+        $sellers = array_values(array_filter(flr_tx_live($email), function ($t) { return $t['side'] === 'seller'; }));
         $open = []; foreach ($sellers as $t) { if (ps_get($t['folder'], 'seller', (int)$t['stage']) !== 'closed') $open[] = $t; }
         $infos = [];
         if ($open) { require_once __DIR__ . '/notiflib.php'; $infos = nt_infos($email, $open, true); } // saved property address, when there is one

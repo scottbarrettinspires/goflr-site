@@ -25,6 +25,7 @@ if ($rec) {
     lb_handle_link($me, 'seller', $tx, (string)$rec['name'], (int)$rec['stage'], $info, 'seller.php?tx=' . urlencode($tx));
     dl_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
     ps_handle_save($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx));
+    require_once __DIR__ . '/recview.php'; $rvErr = rv_handle_outcome($me, $tx, 'seller.php?tx=' . urlencode($tx));
 }
 // Fixing a name/phone/email now happens on contact_edit.php, reached from the single pencil above the Pipeline Stage
 // ladder.

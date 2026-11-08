@@ -94,7 +94,7 @@ if ($isNew && !$buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
 require_once __DIR__ . "/leadbox.php";
 require_once __DIR__ . "/dlib.php";
 if ($buyer) { lb_handle_link($me, 'buyer', $tx, (string)$buyer['name'], 1, $info, 'buyer.php?tx=' . urlencode($tx)); }
-if ($buyer || $pastStage1) { ps_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); }
+if ($buyer || $pastStage1) { ps_handle_save($me, 'buyer', $tx, 'buyer.php?tx=' . urlencode($tx)); require_once __DIR__ . '/recview.php'; $rvErr = rv_handle_outcome($me, $tx, 'buyer.php?tx=' . urlencode($tx)); }
 if ($pastStage1) { lb_handle_link($me, 'buyer', $tx, (string)$recAny['name'], (int)$recAny['stage'], $info, 'buyer.php?tx=' . urlencode($tx)); }
 // Fixing a name/phone/email/payment detail now happens on contact_edit.php, reached from the single pencil above the
 // Pipeline Stage ladder -- there is no inline edit form on this page anymore for an existing record.

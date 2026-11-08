@@ -135,7 +135,7 @@ function nt_sections($email, $isStaff, $remote = true) {
     $items = [];
     try {
         require_once __DIR__ . '/pstage.php';
-        $txs = array_values(array_filter(flr_tx_list($email), function ($t) { return in_array($t['side'], ['buyer', 'seller'], true); }));
+        $txs = array_values(array_filter(flr_tx_live($email), function ($t) { return in_array($t['side'], ['buyer', 'seller'], true); }));
         $active = [];
         foreach ($txs as $t) { $t['pkey'] = ps_get($t['folder'], $t['side'], (int)$t['stage']); if ($t['pkey'] !== 'closed') $active[] = $t; }
         $infos = nt_infos($email, $active, $remote);

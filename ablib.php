@@ -23,13 +23,14 @@ function ab_rows($me, $side, $list, $pk) {
     usort($out, function ($a, $b) { return [$a['i'], $a['nm']] <=> [$b['i'], $b['nm']]; });
     return $out;
 }
-function ab_row($r, $side, $extra = '') {
+function ab_row($r, $side, $extra = '', $tagOverride = null) {
     $h = function ($x) { return htmlspecialchars((string)$x); };
     $url = ($side === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($r['t']['folder']);
     $meta = [PS_STAGES[$side][$r['k']] ?? '']; if ($r['addr'] !== '') $meta[] = $r['addr']; if ($r['src'] !== '') $meta[] = $r['src']; if ($r['ph'] !== '') $meta[] = $r['ph'];
     if ($r['k'] === 'closed') $tag = '<span class="due" style="background:#e3f4e8;color:#2e7d32">' . (!empty($r['closed']) ? $h('Closed ' . date('M j, Y', strtotime($r['closed']))) : 'Closed') . '</span>';
     elseif ($r['next']) { $d = $r['next']; $cl = $d['left'] < 0 ? 'over' : ($d['left'] <= 3 ? 'today' : 'later'); $tag = '<span class="due ' . $cl . '">' . $h($d['label'] . ' · ' . dl_when($d['left'])) . '</span>'; }
     else $tag = '<span class="due later">No deadlines entered</span>';
+    if ($tagOverride !== null) $tag = $tagOverride;
     $dig = preg_replace('/[^0-9+]/', '', $r['ph']);
     $qa = '<span class="qa">' . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
         . ($r['em'] !== '' ? '<a href="mailto:' . $h($r['em']) . '" title="Email">&#9993;</a>' : '') . '</span>';
@@ -59,7 +60,7 @@ function ab_period_range($period, $today = null) {
 // Closed records for one agent, both sides, each row with its 'closed' date, newest first:
 // ['buyer' => rows, 'seller' => rows]. With $period set, only files that closed in that period (undated files are left out).
 function ab_closed($me, $period = null) {
-    $all = flr_tx_list($me); $out = [];
+    $all = flr_tx_live($me); $out = [];
     $rg = $period === null ? null : ab_period_range($period);
     foreach (['buyer', 'seller'] as $side) {
         $list = array_values(array_filter($all, function ($t) use ($side) { return $t['side'] === $side && ab_pk($t) === 'closed'; }));
@@ -117,7 +118,7 @@ function ab_expected_close($folder) {
 // Active (not closed) records for one agent: ['buyer' => rows, 'seller' => rows]; each row adds 'pending' (under
 // contract) and 'close' (expected closing date). Pending rows first, soonest closing first.
 function ab_active($me) {
-    $all = flr_tx_list($me); $out = [];
+    $all = flr_tx_live($me); $out = [];
     foreach (['buyer', 'seller'] as $side) {
         $list = array_values(array_filter($all, function ($t) use ($side) { return $t['side'] === $side && ab_pk($t) !== 'closed'; }));
         $rows = ab_rows($me, $side, $list, 'ab_pk');
@@ -169,4 +170,37 @@ function ab_set_comm($me, $folder, $val) {
     flr_db()->prepare('UPDATE transactions SET comm_pct = ?, comm_amt = ? WHERE folder = ?')->execute([$pct, $amt, $folder]);
     flr_audit(flr_akey($me), 'commission', $folder, $v === '' ? 'Gross commission cleared' : ($pct !== null ? 'Gross commission set to ' . $pct . '%' : 'Gross commission set to $' . number_format($amt)));
     return '';
+}
+
+// Cancelled / expired outcomes, by side. Buyers can only have a cancelled purchase contract; sellers can have any.
+const AB_OUTCOMES = ['contract' => 'Cancelled purchase contract', 'listing' => 'Cancelled listing agreement', 'expired' => 'Expired listing agreement'];
+function ab_outcomes_for($side) { return $side === 'seller' ? AB_OUTCOMES : ['contract' => AB_OUTCOMES['contract']]; }
+// Mark one of the agent's records cancelled/expired ($outcome a key of AB_OUTCOMES, $date YYYY-MM-DD), or '' to make it
+// live again. Returns '' or a human-readable error.
+function ab_set_outcome($me, $folder, $outcome, $date = '') {
+    $rec = null; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $folder) $rec = $t; }
+    if (!$rec) return 'That record was not found in your business.';
+    flr_outcome_columns();
+    if ($outcome === '') {
+        flr_db()->prepare('UPDATE transactions SET outcome = NULL, outcome_on = NULL WHERE folder = ?')->execute([$folder]);
+        flr_audit(flr_akey($me), 'outcome', $folder, 'Marked active again'); return '';
+    }
+    $opts = ab_outcomes_for($rec['side']);
+    if (!isset($opts[$outcome])) return 'Choose what happened: ' . implode(', ', $opts) . '.';
+    $date = $date === '' ? date('Y-m-d') : $date;
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !strtotime($date) || $date > date('Y-m-d')) return 'Please enter the date it was cancelled or expired (today or earlier).';
+    flr_db()->prepare('UPDATE transactions SET outcome = ?, outcome_on = ? WHERE folder = ?')->execute([$outcome, $date, $folder]);
+    flr_audit(flr_akey($me), 'outcome', $folder, $opts[$outcome] . ' on ' . $date);
+    return '';
+}
+// Cancelled and expired records for one agent, newest first; each row adds 'side', 'outcome' (key), 'outcome_label', 'on'.
+function ab_cancelled($me) {
+    flr_outcome_columns(); $out = [];
+    $all = array_values(array_filter(flr_tx_list($me), function ($t) { return (string)($t['outcome'] ?? '') !== '' && in_array($t['side'], ['buyer', 'seller'], true); }));
+    foreach (['buyer', 'seller'] as $side) {
+        $list = array_values(array_filter($all, function ($t) use ($side) { return $t['side'] === $side; }));
+        foreach (ab_rows($me, $side, $list, 'ab_pk') as $r) { $r['side'] = $side; $r['outcome'] = (string)$r['t']['outcome']; $r['outcome_label'] = AB_OUTCOMES[$r['outcome']] ?? 'Cancelled'; $r['on'] = (string)($r['t']['outcome_on'] ?? ''); $out[] = $r; }
+    }
+    usort($out, function ($a, $b) { return strcmp($b['on'], $a['on']) ?: strcmp($a['nm'], $b['nm']); });
+    return $out;
 }

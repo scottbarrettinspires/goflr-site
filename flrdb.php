@@ -141,6 +141,16 @@ function flr_tx_sync($email, array $folders) {
     } catch (Throwable $e) { $pdo->exec('ROLLBACK'); throw $e; }
     return [$n, $moved];
 }
+// A file the agent marked Cancelled or Expired (transactions.outcome): it leaves Active Business, deadlines and
+// Performance totals, and lives in Performance > Cancelled & Expired. '' = live. See AB_OUTCOMES in ablib.php.
+function flr_outcome_columns() {
+    static $done = false; if ($done) return; $done = true; $pdo = flr_db(); $have = [];
+    foreach ($pdo->query('PRAGMA table_info(transactions)')->fetchAll() as $c) $have[$c['name']] = true;
+    if (empty($have['outcome'])) $pdo->exec('ALTER TABLE transactions ADD COLUMN outcome TEXT');
+    if (empty($have['outcome_on'])) $pdo->exec('ALTER TABLE transactions ADD COLUMN outcome_on TEXT');
+}
+// Live records only (not marked cancelled or expired).
+function flr_tx_live($email) { flr_outcome_columns(); return array_values(array_filter(flr_tx_list($email), function ($t) { return (string)($t['outcome'] ?? '') === ''; })); }
 function flr_tx_list($email, $listedOnly = true) {
     $q = flr_db()->prepare('SELECT * FROM transactions WHERE akey = ?' . ($listedOnly ? ' AND listed = 1' : '') . ' ORDER BY side, stage, name'); $q->execute([flr_akey($email)]); return $q->fetchAll();
 }

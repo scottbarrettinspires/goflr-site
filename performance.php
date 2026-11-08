@@ -90,6 +90,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 .csrch:focus-within{border-color:var(--teal);box-shadow:0 0 0 3px rgba(3,111,114,.12)}.csrch input{flex:1;border:0;outline:0;font:inherit;font-size:.9rem;padding:8px 0;background:transparent;min-width:0}
 .csres{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.12);max-height:340px;overflow:auto;padding:4px}
 .csres a{display:block;padding:8px 10px;border-radius:8px;text-decoration:none;color:#1f2a2c}.csres a:hover,.csres a.on{background:#eef6f6}.csres a b{display:block;font-size:.92rem}.csres a span{display:block;font-size:.78rem;color:#5a6a6c}
+.cxf{margin:0 0 12px}.cxi[hidden]{display:none}
 .csnone{margin:0;padding:10px;font-size:.88rem;color:#5a6a6c}
 @media(max-width:700px){.csrch{flex:1 1 100%}}
 </style>
@@ -172,20 +173,40 @@ document.addEventListener("click",function(e){if(!e.target.closest(".csrch"))box
       <div class="tile gci"><span class="tl">Gross commission earned</span><b><?= $money($tot['gci']) ?></b><span class="ts">Buyer <?= $money($tot['buyer_gci']) ?> &middot; Seller <?= $money($tot['seller_gci']) ?></span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $money($totL['gci']) ?> &middot; <?= $delta($tot['gci'], $totL['gci'], function ($x) use ($money) { return $money($x); }) ?></span><?php endif; ?></div>
       <div class="tile vol"><span class="tl">$ Volume</span><b><?= $money($tot['volume']) ?></b><span class="ts">credit for every side you closed</span><?php if ($cmp): ?><span class="tc"><?= $yLast ?>: <?= $money($totL['volume']) ?> &middot; <?= $delta($tot['volume'], $totL['volume'], function ($x) use ($money) { return $money($x); }) ?></span><?php endif; ?></div>
     </div>
-<?php if ($tot['missing_gci']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_gci'] ?> closed file<?= $tot['missing_gci'] === 1 ? ' has' : 's have' ?> no gross commission yet (a percent with a price, or a dollar amount), so <?= $tot['missing_gci'] === 1 ? 'it adds' : 'they add' ?> $0 to commission earned.</p>
+<?php if ($tot['missing_gci']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_gci'] ?> closed file<?= $tot['missing_gci'] === 1 ? ' has' : 's have' ?> no gross commission yet (a percent with a price, or a dollar amount), so <?= $tot['missing_gci'] === 1 ? 'it adds' : 'they add' ?> $0 to commission earned. Add it on the file's record page.</p>
 <?php endif; ?>
-<?php if ($tot['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_price'] ?> closed file<?= $tot['missing_price'] === 1 ? ' has' : 's have' ?> no sold price yet, so <?= $tot['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to volume. Use <b>+ Sold price &amp; GCI</b> or the pencil on the row.</p>
+<?php if ($tot['missing_price']): ?>    <p class="cbn" style="margin:0 0 12px"><?= $tot['missing_price'] ?> closed file<?= $tot['missing_price'] === 1 ? ' has' : 's have' ?> no sold price yet, so <?= $tot['missing_price'] === 1 ? 'it adds' : 'they add' ?> $0 to volume. Find the file with the search above and add it on its record page.</p>
 <?php endif; ?>
-    <div class="ovsub"><span>Buyers (<?= count($cb) ?>)</span></div>
-<?php if (!$cb): ?>    <p class="empty">No closed buyer transactions in this period.</p>
-<?php else: foreach ($cb as $r) echo ab_row($r, 'buyer', $priceUI($r)); endif; ?>
-    <div class="ovsub"><span>Sellers (<?= count($cs) ?>)</span></div>
-<?php if (!$cs): ?>    <p class="empty">No closed seller transactions in this period.</p>
-<?php else: foreach ($cs as $r) echo ab_row($r, 'seller', $priceUI($r)); endif; ?>
 <?php endif; ?>
-<?php if ($undated && $p !== 'nodate'): ?>    <p class="cbn"><?= $undated ?> closed file<?= $undated === 1 ? ' has' : 's have' ?> no closing date, so <?= $undated === 1 ? 'it isn\'t' : 'they aren\'t' ?> counted in a period. <a href="performance.php?p=nodate#closed">See <?= $undated === 1 ? 'it' : 'them' ?></a></p>
+<?php if ($undated): $ud = []; foreach (['buyer', 'seller'] as $sd) foreach ($all[$sd] as $r) if ($r['closed'] === '') $ud[] = '<a href="' . ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . rawurlencode($r['t']['folder']) . '">' . htmlspecialchars($r['nm']) . '</a>'; ?>    <p class="cbn"><?= $undated ?> closed file<?= $undated === 1 ? ' has' : 's have' ?> no closing date, so <?= $undated === 1 ? 'it isn\'t' : 'they aren\'t' ?> counted in a period. Add the Closing date in Contract Deadlines: <?= implode(', ', $ud) ?></p>
 <?php endif; ?>
   </div>
+<?php $canc = ab_cancelled($me); $cc = ['contract' => 0, 'listing' => 0, 'expired' => 0]; foreach ($canc as $r) if (isset($cc[$r['outcome']])) $cc[$r['outcome']]++; ?>
+  <div class="lpanel" id="cancelled"><div class="cbhd"><h2>Cancelled &amp; Expired Business <span class="cbc"><?= count($canc) ?> total</span></h2>
+    <div class="csrch" role="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="cxq" type="search" placeholder="Search by client or address" autocomplete="off" aria-label="Search cancelled and expired business by client name or property address"></div></div>
+    <p class="cbl">All time &middot; not affected by the time period. Mark a file from its record page with <b>Mark cancelled or expired</b>.</p>
+    <div class="pp cxf" role="tablist">
+      <a href="#" class="on" data-k="">All (<?= count($canc) ?>)</a>
+      <a href="#" data-k="contract">Cancelled Purchase Contracts (<?= $cc['contract'] ?>)</a>
+      <a href="#" data-k="listing">Cancelled Listing Agreements (<?= $cc['listing'] ?>)</a>
+      <a href="#" data-k="expired">Expired Listing Agreements (<?= $cc['expired'] ?>)</a>
+    </div>
+<?php if (!$canc): ?>    <p class="empty">No cancelled or expired business yet.</p>
+<?php else: ?>
+    <div id="cxlist">
+<?php foreach ($canc as $r): $tag = '<span class="due over">' . htmlspecialchars($r['outcome_label'] . ($r['on'] ? ' · ' . date('M j, Y', strtotime($r['on'])) : '')) . '</span>'; ?>
+      <div class="cxi" data-k="<?= htmlspecialchars($r['outcome']) ?>" data-s="<?= htmlspecialchars(strtolower($r['nm'] . ' ' . $r['addr'])) ?>"><?= ab_row($r, $r['side'], '<span class="due later cls">' . ($r['side'] === 'buyer' ? 'Buyer' : 'Seller') . '</span>', $tag) ?></div>
+<?php endforeach; ?>
+    </div>
+    <p class="empty" id="cxnone" hidden>No cancelled or expired business matches.</p>
+<?php endif; ?>
+  </div>
+<script>(function(){var q=document.getElementById("cxq"),k="",f=document.querySelectorAll(".cxf a");
+function run(){var w=(q.value||"").toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(Boolean),n=0;
+  document.querySelectorAll(".cxi").forEach(function(x){var ok=(!k||x.dataset.k===k)&&w.every(function(t){return x.dataset.s.indexOf(t)>=0;});x.hidden=!ok;if(ok)n++;});
+  var e=document.getElementById("cxnone");if(e)e.hidden=n>0;}
+q.addEventListener("input",run);f.forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();k=a.dataset.k;f.forEach(function(b){b.classList.toggle("on",b===a);});run();});});})();</script>
 <?= pf_js() ?>
 </main>
 
