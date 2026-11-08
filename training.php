@@ -24,7 +24,7 @@ $regs = er_for(array_map('flr_event_key', $upcoming));
 </head>
 <body>
 <header class="top"><div class="in">
-  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Virtual Office</span></a>
+  <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Virtual Broker Office</span></a>
   <nav>
     <a href="home.php">Home</a>
     <?php if (flr_agent_menu()): ?>
