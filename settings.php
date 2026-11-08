@@ -19,7 +19,7 @@ sp_head('Settings');
 .setc .btn{border:0;cursor:pointer;font:inherit;font-weight:600;padding:8px 16px}
 .seton{display:inline-flex;align-items:center;gap:6px;color:#2e7d32;font-weight:600;font-size:.92rem}
 .setc a.lnk{font-size:.9rem;color:var(--teal)}
-.subh{margin:16px 0 2px;font-size:.95rem;padding-top:12px;border-top:1px solid var(--line)}.subp{margin:0 0 8px;font-size:.9rem;color:#5a6a6c}
+.arow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.arow>span[hidden]{display:none}.subp{margin:8px 0 0;font-size:.85rem;color:#5a6a6c}
 </style>
 <div class="setw">
   <div class="setc">
@@ -77,12 +77,12 @@ sp_head('Settings');
     <div class="tx">
       <h2>FLR Office on your phone</h2>
       <p>Install it from your browser, no app store needed, then turn on alerts to get one for <?= $alertWhat ?>.</p>
-      <div class="acts" id="appnot"><a class="btn" href="install.php">Install the app</a></div>
-      <div class="acts" id="appyes" hidden><span class="seton">&#10003; You're using the FLR Office app</span></div>
-      <h3 class="subh">Phone alerts</h3>
-      <p id="pushtext" class="subp">Works best in the FLR Office app on your home screen.</p>
-      <div class="acts" id="pushcard" hidden><button class="btn" id="pushon" type="button">Turn on alerts</button></div>
-      <div class="acts" id="pushok" hidden><span class="seton">&#128276; Alerts are on for this phone</span> <a href="#" class="lnk" id="pushtest">Send a test</a> &middot; <a href="#" class="lnk" id="pushoff">Turn off</a></div>
+      <div class="acts arow">
+        <span id="appnot"><a class="btn" href="install.php">Install the app</a></span><span id="appyes" hidden><span class="seton">&#10003; You're using the FLR Office app</span></span>
+        <span id="pushcard" hidden><button class="btn" id="pushon" type="button">Turn on alerts</button></span>
+        <span id="pushok" hidden><span class="seton">&#128276; Alerts are on for this phone</span> <a href="#" class="lnk" id="pushtest">Send a test</a> &middot; <a href="#" class="lnk" id="pushoff">Turn off</a></span>
+      </div>
+      <p id="pushtext" class="subp">Alerts work best in the FLR Office app on your home screen.</p>
       <div class="acts" id="pushno" hidden><span style="font-size:.9rem;color:#5a6a6c">This browser can't receive alerts. On a phone, install the app first, then open it from your home screen and come back here.</span></div>
       <div class="acts" id="pushblocked" hidden><span style="font-size:.9rem;color:#8a5a0e">Alerts are blocked for this app. Allow notifications for FLR Office in your phone's settings, then reload this page.</span></div>
     </div>
