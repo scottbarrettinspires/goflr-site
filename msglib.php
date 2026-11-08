@@ -87,6 +87,7 @@ function om_key_for($email, $isStaffPerson) {
 // Name + headshot for a sender key. Headshots come from the directory (the same photos it shows), served by
 // dirphoto.php to signed-in users only; '' when there's no photo, and the page shows initials instead.
 function om_person($key, $fallbackName = '') {
+    if ($key === 'staff:*' && $fallbackName === 'Florida Luxury Realty') return ['name' => $fallbackName, 'ini' => 'FLR', 'photo' => 'icon-192.png']; // the office's own posts (celebrations)
     static $byEmail = null;
     if ($byEmail === null) {
         $byEmail = []; $d = function_exists('flr_directory') ? flr_directory() : null;
