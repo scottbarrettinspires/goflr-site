@@ -9,6 +9,10 @@ $me = strtolower($_SESSION['email'] ?? '');
 // Staff / broker accounts get a different home page below: their picture, then messages, then the Broker Dashboard
 // content -- a personalized home focused on running the brokerage rather than an individual agent's leads and deals.
 $isStaff = flr_is_broker();
+// Staff choose between Dashboard (their own staff Home) and Agent View (Home exactly as an agent sees it); remembered.
+if ($isStaff && isset($_GET['view'])) $_SESSION['homeview'] = $_GET['view'] === 'agent' ? 'agent' : 'dash';
+$agentView = $isStaff && ($_SESSION['homeview'] ?? 'dash') === 'agent';
+$showStaff = $isStaff && !$agentView;
 // Agent dismissed a "signed" notice.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? '')) && isset($_POST['seen'])) {
     $rec = sg_load((string)$_POST['seen']);
@@ -50,7 +54,7 @@ if (!$isStaff) {
     $unsent = sg_draft_unsent($me);
 }
 $rcrDue = []; $agentDates = [];
-if ($isStaff) {
+if ($showStaff) {
     require_once __DIR__ . "/rcrlib.php";
     list($rAgent, $rPhone) = rcr_me();
     $rcrDue = array_values(array_filter(rcr_view($rAgent, $rPhone), function ($R) { return isset($R['over']) && $R['over'] >= 0; }));
@@ -115,7 +119,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     <?php if ($pic): ?><img class="av" src="<?= htmlspecialchars($pic === 'photo.php' ? 'photo.php?v=' . (int)@filemtime(flr_photo_path($_SESSION['email'] ?? '')) : $pic) ?>" alt="" referrerpolicy="no-referrer" onerror="this.outerHTML='<span class=&quot;av&quot;><?= htmlspecialchars($ini) ?></span>'"><?php else: ?><span class="av"><?= htmlspecialchars($ini) ?></span><?php endif; ?>
     <div>
       <h1>Welcome<?= $first !== '' ? ', ' . htmlspecialchars($first) : '' ?></h1>
-      <p>What needs your attention today.</p>
+      <p><?= $agentView ? 'This is Home as your agents see it.' : 'What needs your attention today.' ?></p>
     </div>
     <span class="homeicons">
     <a class="omicon" href="notifications.php" title="Notifications" aria-label="Notifications<?= $ntCount ? ', ' . $ntCount . ' need attention' : '' ?>" id="ntbell">
@@ -131,6 +135,15 @@ if (!$nextGroup && $next) $nextGroup = [$next];
     </a>
     </span>
   </div>
+<?php if ($isStaff): ?>
+  <nav class="hviews" aria-label="Home view">
+    <a href="home.php?view=dash" class="<?= $agentView ? '' : 'on' ?>"<?= $agentView ? '' : ' aria-current="page"' ?>><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+    <a href="home.php?view=agent" class="<?= $agentView ? 'on' : '' ?>"<?= $agentView ? ' aria-current="page"' : '' ?>><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Agent View</a>
+  </nav>
+<style>.hviews{display:inline-flex;gap:4px;padding:4px;background:var(--white);border:1px solid var(--line);border-radius:12px;justify-self:start;box-shadow:0 2px 8px rgba(3,111,114,.06)}
+.hviews a{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:9px;font-weight:700;font-size:.92rem;color:var(--teal);text-decoration:none}
+.hviews a:hover{background:var(--teal-soft)}.hviews a.on{background:var(--teal);color:#fff}</style>
+<?php endif; ?>
 <style>.homeicons{margin-left:auto;display:flex;gap:10px;align-items:center}
 @media(max-width:600px){.who{flex-wrap:wrap}.homeicons{order:-1;width:100%;justify-content:flex-end;gap:8px;margin:-10px 0 -4px}.homeicons .omicon{flex-basis:44px;width:44px;height:44px}.homeicons .omicon svg{width:21px;height:21px}}
 .omicon{position:relative;flex:0 0 52px;width:52px;height:52px;border-radius:50%;background:var(--white);color:var(--teal);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(3,111,114,.2);text-decoration:none}
@@ -181,7 +194,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <?php else: ?>
   <p style="margin:0 0 14px"><a class="nxcal" href="training.php"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h2M11 13.5h2M14.5 13.5h2M7.5 17h2M11 17h2"/></svg>Events Schedule</a></p>
 <?php endif; ?>
-<?php if ($isStaff): ?>
+<?php if ($showStaff): ?>
 <?php foreach ($anns as $a): ?>
   <div class="panel sigbox" style="border-left:5px solid <?= !empty($a['personal']) ? '#c2570c' : '#006b68' ?>;margin-bottom:16px">
     <p><span class="tag"><?= !empty($a['personal']) ? 'Message for you' : 'Announcement' ?></span></p>
