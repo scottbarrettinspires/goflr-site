@@ -53,6 +53,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .wkit:hover{filter:brightness(.96)}.wkit .wd{font-weight:700}.wkit .wn{font-weight:600;color:#2a3638}.wkit .wa{color:#5a6a6c}
 .h0w,.h1w{background:#fde2e1;border-left-color:#e53935}.h2w{background:#fdecea;border-left-color:#f6b1aa}.h3w{background:#f3f6f6;border-left-color:#b9c4c6}.h4w{background:#e8f1fa;border-left-color:#a9cbe9}.h5w{background:#e3ecf7;border-left-color:#1f5fa8}.h6w{background:#e1f3f2;border-left-color:#036f72}
 .wnone{color:#c4cfd0;text-align:center;margin-top:8px}
+@media(max-width:760px){.wkd.none{display:none}.wk.wkempty{display:none}.wk .wkd{border-top:0}.wk .wkd:not(.none)~.wkd:not(.none){border-top:1px solid var(--line)}}
 @media(max-width:760px){.wk{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
   .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
 .h0{background:#b71c1c;color:#fff}.h1{background:#e53935;color:#fff}.h2{background:#f6b1aa;color:#5c1410}.h3{background:#fff;color:#2b3a3c}.h4{background:#a9cbe9;color:#0f3558}.h5{background:#1f5fa8;color:#fff}.h6{background:#036f72;color:#fff}
@@ -193,9 +194,10 @@ function weekStrip(){var by={};WEEK.forEach(function(w){by[w.d]=[];});
   LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.sub!=="dnc"&&by[v.due])by[v.due].push([L,v]);});});
   var any=0,h='<div class="lpanel"><h2>Coming up in the next 7 days</h2><div class="wk">';
   WEEK.forEach(function(w,i){var it=by[w.d];it.sort(function(a,b){return HEAT[a[1].sub]-HEAT[b[1].sub];});any+=it.length;
-    h+='<div class="wkd'+(i===0?' today':'')+(w.off?' off':'')+'"><div class="wkh"><span class="dn">'+(i===0?'Today':w.dn)+'</span><span class="dd">'+w.n+'</span><span class="dm">'+w.m+(w.hol?'<br>'+esc(w.hol):'')+'</span></div><div class="wki">';
+    h+='<div class="wkd'+(i===0?' today':'')+(w.off?' off':'')+(it.length?'':' none')+'"><div class="wkh"><span class="dn">'+(i===0?'Today':w.dn)+'</span><span class="dd">'+w.n+'</span><span class="dm">'+w.m+(w.hol?'<br>'+esc(w.hol):'')+'</span></div><div class="wki">';
     h+=it.length?it.map(function(x){var L=x[0],v=x[1];return '<div class="wkit '+heatClass(v.sub)+'w" data-id="'+esc(L.id)+'" role="button" tabindex="0"><span class="wd">'+esc(v.ch||"Touch")+'</span><span class="wn">'+esc(nm(L))+'</span><span class="wa">'+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub))+'</span></div>';}).join(""):'<span class="wnone">&mdash;</span>';
     h+='</div></div>';});
+  if(!any)h=h.replace('<div class="wk">','<div class="wk wkempty">');
   return h+'</div>'+(any?'':'<p class="empty" style="padding:10px 0 0">Nothing scheduled this week.</p>')+'</div>';}
 function soonList(){var items=[];LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.over<0&&v.over>=-7&&v.sub!=="dnc")items.push([L,v]);});});items.sort(function(a,b){return b[1].over-a[1].over;});return items;}
 function renderOverview(){

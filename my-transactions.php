@@ -173,11 +173,11 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
         return '<a class="wkit ' . $cls . '" href="' . ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']) . '"><span class="wd">' . htmlspecialchars($d['label']) . '</span><span class="wn">' . htmlspecialchars($nm) . '</span>'
             . ($ad !== '' ? '<span class="wa">' . htmlspecialchars($ad) . '</span>' : '') . ($d['offday'] !== '' ? '<span class="wo">' . htmlspecialchars('Falls on ' . date('D, M j', strtotime($d['date'])) . (in_array($d['offday'], ['Saturday', 'Sunday'], true) ? '' : ' (' . $d['offday'] . ')') . ', so due the next business day') . '</span>' : '') . '</a>'; };
 ?>
-    <div class="wk<?= $over ? ' hasover' : '' ?>">
+    <div class="wk<?= $over ? ' hasover' : '' ?><?= $dlSoon ? '' : ' wkempty' ?>">
 <?php if ($over): ?>
       <div class="wkd over"><div class="wkh"><span class="dn">Overdue</span><span class="dd">!</span></div><div class="wki"><?php foreach ($over as $d) echo $item($d, 'red'); ?></div></div>
 <?php endif; foreach ($cols as $day => $items): $t = strtotime($day); $isToday = $day === date('Y-m-d'); $off = dl_offday($day); ?>
-      <div class="wkd<?= $isToday ? ' today' : '' ?><?= $off !== '' ? ' off' : '' ?>"><div class="wkh"><span class="dn"><?= $isToday ? 'Today' : date('D', $t) ?></span><span class="dd"><?= date('j', $t) ?></span><span class="dm"><?= date('M', $t) ?><?= ($off !== '' && $off !== 'Saturday' && $off !== 'Sunday') ? '<br>' . htmlspecialchars($off) : '' ?></span></div>
+      <div class="wkd<?= $isToday ? ' today' : '' ?><?= $off !== '' ? ' off' : '' ?><?= $items ? '' : ' none' ?>"><div class="wkh"><span class="dn"><?= $isToday ? 'Today' : date('D', $t) ?></span><span class="dd"><?= date('j', $t) ?></span><span class="dm"><?= date('M', $t) ?><?= ($off !== '' && $off !== 'Saturday' && $off !== 'Sunday') ? '<br>' . htmlspecialchars($off) : '' ?></span></div>
         <div class="wki"><?php if (!$items): ?><span class="wnone">&mdash;</span><?php else: foreach ($items as $d) echo $item($d, $d['left'] <= 0 ? 'red' : ($d['left'] <= 3 ? 'amber' : '')); endif; ?></div>
       </div>
 <?php endforeach; ?>
@@ -232,6 +232,7 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 .wki{display:flex;flex-direction:column;gap:6px;min-width:0}
 @media(max-width:760px){.wk,.wk.hasover{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
   .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
+@media(max-width:760px){.wkd.none{display:none}.wk.wkempty{display:none}.wk .wkd{border-top:0}.wk .wkd:not(.none)~.wkd:not(.none){border-top:1px solid var(--line)}}
 .ovsub{display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 6px;font-weight:700;color:var(--teal);font-size:.95rem}.ovsub:first-of-type{margin-top:0}.ovsub a{font-weight:600;font-size:.85rem}
 .ovsub span{display:inline-flex;align-items:center;gap:8px}
 
