@@ -4,7 +4,9 @@
 // Optional before including: $sideCurrent (post id to highlight). Never breaks the page it's on: any error = no lists.
 if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'collab_side.php') { http_response_code(404); exit; } // include only, never a page
 if (!function_exists('co_db')) require_once __DIR__ . '/collablib.php';
-try { $sideRecent = co_recent(3); $sideActive = co_active(3, array_column($sideRecent, 'id')); }
+$sideSkip = [];
+if (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'collab.php') { try { require_once __DIR__ . '/celeblib.php'; $sideSkip = cb_current_post_ids(); } catch (Throwable $e) {} } // Home: celebration posts are on the celebration card instead
+try { $sideRecent = co_recent(3, $sideSkip); $sideActive = co_active(3, array_merge($sideSkip, array_column($sideRecent, 'id'))); }
 catch (Throwable $e) { $sideRecent = []; $sideActive = []; }
 $sideCurrent = (int)($sideCurrent ?? 0);
 $sideSeeAll = basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'collab.php'; // on Home: a "See All" link beside the Recent posts title

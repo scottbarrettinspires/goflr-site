@@ -14,6 +14,13 @@ function cb_db() {
     $pdo->exec('CREATE TABLE IF NOT EXISTS celeb_posts (k TEXT PRIMARY KEY, post_id INTEGER, created TEXT)');
     return $pdo;
 }
+// Celebration posts whose day hasn't passed yet (today included). Home leaves these out of its Lounge lists, since
+// the Home celebration card already links to them; the Collaboration Lounge page itself shows them as usual.
+function cb_current_post_ids() {
+    $out = []; $today = date('Y-m-d');
+    foreach (cb_db()->query('SELECT k, post_id FROM celeb_posts WHERE post_id > 0') as $r) { $d = substr($r['k'], strrpos($r['k'], '|') + 1); if ($d >= $today) $out[] = (int)$r['post_id']; }
+    return $out;
+}
 function cb_key($D) { return $D['type'] . '|' . $D['agent_id'] . '|' . $D['date']; }
 // The Collaboration Lounge post for one celebration ($D from ar_upcoming_dates), or 0.
 function cb_post_id($D) {

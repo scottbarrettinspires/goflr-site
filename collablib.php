@@ -91,8 +91,8 @@ function co_single($id) { $p = co_post($id); return $p ? co_decorate([$p])[0] : 
 
 // Side lists. Recent: the 3 newest posts. Most active: the posts with the most likes + comments in the last 30
 // days (comments count double, since they're a conversation), not repeating anything already in Recent.
-function co_recent($n = 3) {
-    return co_side_rows(co_db()->query('SELECT * FROM co_posts WHERE deleted = 0 ORDER BY id DESC LIMIT ' . (int)$n)->fetchAll());
+function co_recent($n = 3, array $skipIds = []) {
+    return co_side_rows(co_db()->query('SELECT * FROM co_posts WHERE deleted = 0' . ($skipIds ? ' AND id NOT IN (' . implode(',', array_map('intval', $skipIds)) . ')' : '') . ' ORDER BY id DESC LIMIT ' . (int)$n)->fetchAll());
 }
 function co_active($n = 3, array $skipIds = []) {
     $since = date('c', strtotime('-30 days')); $pdo = co_db();
