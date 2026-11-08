@@ -142,18 +142,6 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
     <a href="forms.php" class="srcbtn">&#128196; Forms</a>
   </div>
 <?php if ($view === 'overview'): ?>
-  <div class="stats">
-    <a class="stat<?= $dlNow ? ' urgent' : ' hot' ?>" href="#deadlines"><b><?= $dlNow ?></b><span>Deadlines due in 3 days</span></a>
-    <a class="stat<?= $signedNew ? ' urgent' : '' ?>" href="#signed"><b><?= count($signedNew) ?></b><span>Newly signed documents</span></a>
-    <div class="stat hot"><b><?= $cnt['under'] ?></b><span>Under contract</span></div>
-    <a class="stat teal" href="my-transactions.php?side=buyer"><b><?= $cnt['buyers'] ?></b><span>Active buyers</span></a>
-    <a class="stat teal" href="my-transactions.php?side=seller"><b><?= $cnt['sellers'] ?></b><span>Active sellers</span></a>
-    <div class="stat"><b><?= $cnt['listings'] ?></b><span>Active listings</span></div>
-    <div class="stat"><b><?= $cnt['pre'] ?></b><span>Prelisting prep</span></div>
-    <div class="stat"><b><?= $cnt['shopping'] ?></b><span>Buyers shopping (not under contract)</span></div>
-    <div class="stat"><b><?= $waiting ?></b><span>Waiting for signatures</span></div>
-    <div class="stat green"><b><?= $cnt['closed'] ?></b><span>Closed</span></div>
-  </div>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
 <?php
     // A week strip like a calendar row: today plus 6 days, each item under the day it's actually due (a deadline on
