@@ -83,7 +83,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <main class="wrap">
   <div class="lpanel" id="closed"><div class="cbh"><h2>Closed Business</h2>
     <div class="pp">
-<?php foreach (['month' => 'Current Month', 'quarter' => 'Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?>#closed" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
+<?php foreach (['month' => 'Current Month', 'quarter' => 'Current Quarter', 'ytd' => 'Year To Date', 'prev' => 'Previous Years'] as $k => $t): ?>      <a href="performance.php?p=<?= $k ?>#closed" class="<?= $p === $k ? 'on' : '' ?>"><?= $t ?></a>
 <?php endforeach; ?>
     </div></div>
 <?php if ($p === 'prev' && $years): ?>    <div class="pp yrs"><?php foreach ($years as $y): ?><a href="performance.php?p=prev&amp;y=<?= $y ?>#closed" class="<?= $y === $yr ? 'on' : '' ?>"><?= $y ?></a><?php endforeach; ?></div>
