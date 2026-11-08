@@ -23,7 +23,7 @@ function pf_handle_post($me, $self) {
     return $err;
 }
 
-function pf_active_html($me, $note = 'right now', $showList = true) {
+function pf_active_html($me, $note = 'right now', $showList = true, $title = 'Active Business') {
     $money = 'pf_money';
 // Active Business snapshot (today's pipeline; the period menu doesn't change it).
 $act = ab_active($me); $at = ab_active_totals($act);
@@ -35,7 +35,7 @@ foreach ($pend as $r) { if ($r['close'] === '') { $pNoDate++; continue; } $hit =
     foreach ($pb as &$bk) if ($r['close'] >= $bk['from'] && $r['close'] <= $bk['to']) { $k = $r['side'] === 'buyer' ? 'b' : 's'; $bk[$k]++; $bk[$k . 'v'] += (int)$r['price']; $hit = true; } unset($bk);
     if (!$hit && $r['close'] > end($pb)['to']) $pLater++; }
     ob_start(); ?>
-  <div class="lpanel" id="active"><h2>Active Business <span class="cbc"><?= htmlspecialchars($note) ?></span></h2>
+  <div class="lpanel" id="active"><h2><?= htmlspecialchars($title) ?><?php if ($note !== ''): ?> <span class="cbc"><?= htmlspecialchars($note) ?></span><?php endif; ?></h2>
     <div class="tiles">
       <div class="tile"><span class="tl"><i class="sw b"></i>Active buyers</span><b><?= $at['active_buyers'] ?></b><span class="ts"><?= $at['pending_buyer_sides'] ?> under contract</span></div>
       <div class="tile"><span class="tl"><i class="sw s"></i>Active sellers</span><b><?= $at['active_sellers'] ?></b><span class="ts"><?= $at['pending_seller_sides'] ?> under contract</span></div>
