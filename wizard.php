@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/offerlib.php";
 @set_time_limit(120);
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -78,9 +79,43 @@ $pre = (string)($_GET['tx'] ?? '');
 <?php endforeach; if ($g !== '') echo "      </optgroup>\n"; ?>
     </select></p>
     <div id="bsum" class="wsum"></div>
-    <div class="bi wprop">
-      <label for="paddr"><strong>Property address</strong> (required: fills the forms and creates the contract offer record)<input type="text" id="paddr" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="Street, city, state, zip"></label>
-      <label for="pprice"><strong>Purchase price</strong> (fills the contract)<input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000" style="max-width:260px"></label>
+    <style>
+    .od{margin:0 0 16px}.od h3{margin:14px 0 8px;font-size:1rem;color:#036f72;display:flex;align-items:center;gap:10px}.od h3:after{content:"";flex:1;height:1px;background:#dfe6e7}
+    .odg{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}.odg label{display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0}.odg .s2{grid-column:span 2}.odg .s3{grid-column:span 3}.odg .s4{grid-column:span 4}.odg .s6{grid-column:span 6}.odg .s12{grid-column:span 12}
+    .odg input,.odg select{display:block;width:100%;max-width:none!important;box-sizing:border-box;margin-top:3px;padding:9px 11px;border:1px solid #d7e2e2;border-radius:9px;font:inherit;font-weight:400;font-size:.95rem;background:#fff;color:#1f2a2c}
+    .odb{background:#f0f8f8;border:1px solid #cfe5e5;border-radius:10px;padding:10px 14px;font-size:.92rem}.odb b{font-weight:700}.odb .m{color:#5a6a6c;font-size:.84rem;margin-top:2px}
+    @media(max-width:640px){.odg .s2,.odg .s3,.odg .s4{grid-column:span 6}.odg .s6{grid-column:span 12}}
+    </style>
+    <div class="od" id="od">
+      <h3>Property</h3>
+      <div class="odg">
+        <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s3">Unit #<input type="text" id="of_unit" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">City<input type="text" id="of_city" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Zip code<input type="text" id="of_zip" inputmode="numeric" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4"><strong>Purchase price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
+        <label class="s4">MLS ID<input type="text" id="of_mls_id" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
+        <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
+      </div>
+      <input type="hidden" id="paddr">
+      <h3>Buyer</h3>
+      <div class="odb" id="of_buyer">Loading the buyer from this record...</div>
+      <h3>Agents</h3>
+      <div class="odb" style="margin-bottom:8px"><b>Your side:</b> <span id="of_me"></span></div>
+      <div class="odg">
+        <label class="s12" style="font-weight:700;color:#036f72">Other agent (listing side, if known)</label>
+        <label class="s4">First name<input type="text" id="of_oa_first" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Last name<input type="text" id="of_oa_last" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Brokerage<input type="text" id="of_oa_brokerage" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Email<input type="text" id="of_oa_email" inputmode="email" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Phone<input type="text" id="of_oa_phone" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+      </div>
+      <div class="odb" id="of_comp" style="margin-top:10px" hidden></div>
     </div>
     <div id="qs"></div>
     <p class="sgerr" id="err" hidden></p>
@@ -139,11 +174,37 @@ function loadInfo(){
 }
 txSel.addEventListener('change',loadInfo);
 loadInfo();
+// Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
+var OFK=['street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+function ofEl(k){return document.getElementById('of_'+k);}
+function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
+function ofSync(){document.getElementById('paddr').value=ofAddr();}
+function ofCompText(c){if(!c||!c.agreement)return '';var p=[];function f(k){return c[k]||'';}
+  if(f('Comp_Purchase_Percent'))p.push(f('Comp_Purchase_Percent')+'% of the purchase price');if(f('Comp_Purchase_Amount'))p.push('$'+f('Comp_Purchase_Amount'));if(f('Comp_PurchasePlus_FlatFee'))p.push(f('Comp_PurchasePlus_FlatFee'));
+  return '<b>Your commission (from the '+(c.agreement==='showing'?'Showing':'Exclusive Buyer')+' Agreement):</b> '+(p.length?esc(p.join(' + ')):'on file')+'<div class="m">Used for the transaction record. Change it on the Buyer Agreement if it differs.</div>';}
+function ofLoad(){var id=txSel.value;if(!id)return;
+  fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+    if(!j||!j.ok||txSel.value!==id)return;
+    OFK.forEach(function(k){ofEl(k).value=j.offer[k]||'';});document.getElementById('pprice').value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'';
+    var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
+    document.getElementById('of_buyer').innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
+    document.getElementById('of_me').textContent=[j.agent.name,j.agent.license?'License '+j.agent.license:'',j.agent.email].filter(Boolean).join(' · ');
+    var ct=ofCompText(j.comp),ce=document.getElementById('of_comp');ce.innerHTML=ct;ce.hidden=!ct;ofSync();
+  }).catch(function(){});}
+OFK.forEach(function(k){ofEl(k).addEventListener('input',ofSync);});
+txSel.addEventListener('change',ofLoad);ofLoad();
+async function ofSave(){ofSync();var o={};OFK.forEach(function(k){o[k]=ofEl(k).value;});o.price=document.getElementById('pprice').value;
+  var r=await fetch('offer_api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,action:'save',tx:txSel.value,offer:o})}).then(function(x){return x.json();}).catch(function(){return {ok:false,msg:'Could not save the offer details. Please try again.'};});
+  return r.ok?'':(r.msg||'Could not save the offer details.');}
 function fail(m){err.textContent=m;err.hidden=false;btn.disabled=false;btn.textContent='Build contract packet';}
 function num(v){return String(v||'').replace(/[$,%\s,]/g,'');}
 btn.addEventListener('click',async function(){
   err.hidden=true;res.hidden=true;
   if(!txSel.value)return fail('Please choose the buyer first.');
+  ofSync();
+  if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim())return fail('Please enter the property address (street number, street name, city and zip).');
+  if(!String(document.getElementById('pprice').value||'').trim())return fail('Please enter the purchase price.');
+  var oe=await ofSave();if(oe)return fail(oe);
   var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
   if(!pa0)return fail('Please enter the property address first.');
   if(pa0.length>120||/[\\\/:*?"<>|]/.test(pa0))return fail('Please check the property address (no slashes or special characters).');
