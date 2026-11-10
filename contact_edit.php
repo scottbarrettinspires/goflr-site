@@ -69,7 +69,7 @@ sp_head('Edit Contact Info', $tx);
       <label>Email<input type="email" name="f_email" value="<?= $v($px . '_email') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
     </div>
     <div class="ceact"><button type="submit" class="btn">Update</button>
-    <button type="button" class="btn ghost" id="cerm" style="color:#b71c1c;border-color:#e6b4b0">Remove This <?= htmlspecialchars($label) ?></button><span class="goal" id="cernote">Removes them from this Active Business record only. They stay in Leads &amp; Contacts.</span></div>
+    <button type="button" class="btn ghost" id="cerm" style="color:#b71c1c;border-color:#e6b4b0">Remove This <?= htmlspecialchars($label) ?></button><span class="goal" id="cernote">Removes them from this Active Business record only.</span></div>
   </form>
   <form method="post" id="cerf" hidden>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><input type="hidden" name="side" value="<?= htmlspecialchars($side) ?>"><input type="hidden" name="n" value="<?= $n ?>"><input type="hidden" name="op" value="remove">
