@@ -152,7 +152,11 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if ($buyer || $pastStage1): ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
 <?php else: ?>
-  <form method="post" class="panel sigbox bi" autocomplete="off" data-lpignore="true" data-form-type="other">
+<?php $autoGo = !empty($_GET['auto']) && $lead && !$err && $_SERVER['REQUEST_METHOD'] !== 'POST' && bi_missing($info) === ''; // from a lead's Buyer Consultation: create the record now and land on the Buyer Agreement ?>
+<?php if ($autoGo): ?>  <p class="note" id="autonote">Creating <?= htmlspecialchars(trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? ''))) ?>'s buyer record in Active Business&hellip; you'll land on the Buyer Agreement.</p>
+<?php elseif (!empty($_GET['auto']) && $lead && !$err): ?>  <p class="note">Fill in what's missing below, then create the record. You'll land on the Buyer Agreement to send, download or upload it.</p>
+<?php endif; ?>
+  <form method="post" class="panel sigbox bi" id="newbuyer" autocomplete="off" data-lpignore="true" data-form-type="other"<?= $autoGo ? ' hidden style="display:none"' : '' ?>>
     <h2><?= htmlspecialchars($lead ? 'From your lead: ' . trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')) : 'New buyer') ?></h2>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
@@ -181,6 +185,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     </fieldset>
     <p><button type="submit" class="btn">Create buyer record</button></p>
   </form>
+<?php if ($autoGo): ?><script>document.getElementById("newbuyer").submit();</script><?php endif; ?>
 <?php endif; ?>
 <?php endif; ?>
 </main>
