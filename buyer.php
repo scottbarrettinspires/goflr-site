@@ -133,7 +133,8 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </nav>
 </div></header>
 <?php if ($buyer || $pastStage1): ?><section class="hero rvhero"><p><a href="my-transactions.php">&larr; Back to Active Business</a></p></section>
-<?php else: ?><section class="hero"><h1><?= $isNew && !$buyer ? 'Create New Buyer Record' : 'Buyer Info' ?></h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
+<?php else: ?><?php $autoGo = !empty($_GET['auto']) && $lead && !$err && $_SERVER['REQUEST_METHOD'] !== 'POST' && bi_missing($info) === ''; // from a lead's Buyer Consultation: create the record now and land on the Buyer Agreement ?>
+<section class="hero"><h1><?= $autoGo ? 'Creating Active Business Record' : ($isNew && !$buyer ? 'Create New Buyer Record' : 'Buyer Info') ?></h1><?php if (!$autoGo): ?><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p><?php endif; ?></section>
 <?php endif; ?>
 <main class="wrap">
 <?php if (!$buyer && !$pastStage1 && !$isNew): ?>
@@ -152,8 +153,8 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <?php if ($buyer || $pastStage1): ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
 <?php else: ?>
-<?php $autoGo = !empty($_GET['auto']) && $lead && !$err && $_SERVER['REQUEST_METHOD'] !== 'POST' && bi_missing($info) === ''; // from a lead's Buyer Consultation: create the record now and land on the Buyer Agreement ?>
-<?php if ($autoGo): ?>  <p class="note" id="autonote">Creating <?= htmlspecialchars(trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? ''))) ?>'s buyer record in Active Business&hellip; you'll land on the Buyer Agreement.</p>
+<?php if ($autoGo): ?>  <style>@keyframes flrspin{to{transform:rotate(360deg)}}.autospin{display:flex;align-items:center;gap:16px}.autospin i{flex:none;width:34px;height:34px;border:4px solid #d6ebeb;border-top-color:#036f72;border-radius:50%;animation:flrspin .9s linear infinite}</style>
+  <div class="note autospin" id="autonote"><i aria-hidden="true"></i><span>Please be patient while I create a new Active Business Record for <?= htmlspecialchars(trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? ''))) ?>.</span></div>
 <?php elseif (!empty($_GET['auto']) && $lead && !$err): ?>  <p class="note">Fill in what's missing below, then create the record. You'll land on the Buyer Agreement to send, download or upload it.</p>
 <?php endif; ?>
   <form method="post" class="panel sigbox bi" id="newbuyer" autocomplete="off" data-lpignore="true" data-form-type="other"<?= $autoGo ? ' hidden style="display:none"' : '' ?>>
