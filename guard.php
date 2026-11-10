@@ -31,8 +31,8 @@ ob_start(function ($buf) use ($email) {
     // Notifications / Messages / Settings icons (with red counts) on every signed-in page, in the same spot as on
     // Home: the top right of the page title, just under the menu bar. Home places its own.
     if (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'home.php') {
-        if (strpos($out, '<section class="hero">') !== false) {
-            $out = preg_replace_callback('#<section class="hero">#', function () use ($email) { return '<section class="hero hashi">' . flr_header_icons($email); }, $out, 1);
+        if (preg_match('#<section class="hero( [a-z0-9 -]+)?">#', $out)) {
+            $out = preg_replace_callback('#<section class="hero( [a-z0-9 -]+)?">#', function ($m) use ($email) { return '<section class="hero hashi' . ($m[1] ?? '') . '">' . flr_header_icons($email); }, $out, 1);
         } elseif (strpos($out, '</div></header>') !== false) { // a page with no title area: a slim row under the menu bar
             $out = preg_replace_callback('#</div></header>#', function () use ($email) { return '</div></header><div class="hirow">' . flr_header_icons($email) . '</div>'; }, $out, 1);
         }

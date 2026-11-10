@@ -64,7 +64,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Seller Info - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -81,7 +81,9 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Seller Info</h1><p>The seller's details for the listing, and everything you learned about them as a lead.</p></section>
+<?php if ($rec): ?><section class="hero rvhero"><p><a href="my-transactions.php">&larr; Back to Active Business</a></p></section>
+<?php else: ?><section class="hero"><h1>Seller Info</h1><p>The seller's details for the listing, and everything you learned about them as a lead.</p></section>
+<?php endif; ?>
 <main class="wrap">
 <?php if (!$rec): ?>
   <div class="panel sigbox">
@@ -93,7 +95,6 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
   </div>
 <?php else: ?>
 <?php require_once __DIR__ . '/recview.php'; echo rv_css(); ?>
-  <p class="rvback"><a href="my-transactions.php">&larr; Back to Active Business</a></p>
 <?= rv_header($me, 'seller', $tx, $rec, $info) ?>
 <?= ps_box('seller', $tx, (int)($rec['stage'] ?? 0), (string)($rec['name'] ?? ''), $info, false) ?>
 <?= dl_box($me, 'seller', $tx, 'seller.php?tx=' . urlencode($tx)) ?>

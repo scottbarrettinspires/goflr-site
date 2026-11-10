@@ -115,7 +115,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Buyer Info - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 <header class="top"><div class="in">
@@ -132,7 +132,9 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
-<section class="hero"><h1><?= $isNew && !$buyer ? 'Create New Buyer Record' : 'Buyer Info' ?></h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
+<?php if ($buyer || $pastStage1): ?><section class="hero rvhero"><p><a href="my-transactions.php">&larr; Back to Active Business</a></p></section>
+<?php else: ?><section class="hero"><h1><?= $isNew && !$buyer ? 'Create New Buyer Record' : 'Buyer Info' ?></h1><p>Enter the buyer once. The Contract Forms Wizard fills it into the packet for you.</p></section>
+<?php endif; ?>
 <main class="wrap">
 <?php if (!$buyer && !$pastStage1 && !$isNew): ?>
   <div class="panel sigbox">
@@ -144,7 +146,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
     <p style="margin-top:14px"><a class="btn ghost" href="my-transactions.php">Create a new buyer record in Active Business</a></p>
   </div>
 <?php else: ?>
-<?php if ($buyer || $pastStage1) { require_once __DIR__ . '/recview.php'; echo rv_css(); echo '<p class="rvback"><a href="my-transactions.php">&larr; Back to Active Business</a></p>'; echo rv_header($me, 'buyer', $tx, (array)($recAny ?? $buyer ?? []), $info); } ?>
+<?php if ($buyer || $pastStage1) { require_once __DIR__ . '/recview.php'; echo rv_css(); echo rv_header($me, 'buyer', $tx, (array)($recAny ?? $buyer ?? []), $info); } ?>
 <?php if ($buyer || $pastStage1) echo ps_box('buyer', $tx, (int)($recAny['stage'] ?? ($buyer ? 1 : 0)), (string)($buyer['name'] ?? $recAny['name'] ?? ''), $info, false); ?>
 <?php if ($buyer || $pastStage1) { require_once __DIR__ . '/signed_panel.php'; echo sg_panel($me, $tx, (string)($buyer['name'] ?? $recAny['name'] ?? '')); } ?>
 <?php if ($buyer || $pastStage1): ?>

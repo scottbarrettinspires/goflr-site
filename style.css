@@ -20,6 +20,7 @@ nav a:hover,nav a[aria-current=page]{background:rgba(255,255,255,.16)}
 .hero{max-width:1080px;margin:0 auto;padding:44px 20px 8px}
 .hero h1{margin:0 0 6px;font-size:clamp(1.7rem,4vw,2.4rem);font-weight:600;letter-spacing:-.01em}
 .hero p{margin:0;color:var(--muted);max-width:60ch}
+.hero.rvhero{padding-top:18px;padding-bottom:10px;min-height:56px;display:flex;align-items:center}.hero.rvhero p{font-size:.98rem}.hero.hashi.rvhero{padding-right:20px;justify-content:space-between;gap:12px;flex-wrap:wrap}.hero.hashi.rvhero .hicons{position:static!important;order:2;margin:0 0 0 auto!important}.hero.rvhero p{order:1}
 .wrap{max-width:1080px;margin:0 auto;padding:20px}
 .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .card{display:block;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:20px;text-decoration:none;color:var(--ink);transition:border-color .15s,transform .15s}
