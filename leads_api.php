@@ -25,7 +25,7 @@ if ($act === 'wants') {
         if (is_array($v)) { $clean[$k] = ld_clean_tags($v); } else { $clean[$k] = ld_clean(is_scalar($v) ? $v : '', 600); }
         if (count($clean) >= 40) break;
     }
-    $id = (string)($j['id'] ?? ''); $fld = ($j['field'] ?? '') === 'home' ? 'home' : 'wants';
+    $id = (string)($j['id'] ?? ''); $fld = in_array(($j['field'] ?? ''), ['home', 'client'], true) ? $j['field'] : 'wants';
     ld_update($me, function (&$db) use ($id, $clean, $fld) { foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') === $id) { $L[$fld] = $clean; $L[$fld]['updated'] = ld_today(); } } });
     out(['ok' => true, 'leads' => ld_view($me, $agent, $phone)]);
 }

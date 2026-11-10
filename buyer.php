@@ -47,8 +47,13 @@ $info = []; $msg = ''; $err = '';
 if ($isNew && $lead && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $info = ['b1_name' => trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')), 'b1_phone' => (string)($lead['phone'] ?? ''), 'b1_email' => (string)($lead['email'] ?? '')];
     $w = (array)($lead['wants'] ?? []); $fin = (array)($w['fin'] ?? []);
-    if (!empty($w['lender'])) $info['lender'] = (string)$w['lender'];
-    if (!empty($w['preamt'])) $info['preapproval'] = (string)$w['preamt'];
+    $cd = (array)($lead['client'] ?? []); // Client Details on the lead come first, then the older Property Details entries
+    $fin = !empty($cd['fin']) ? (array)$cd['fin'] : $fin;
+    $lend = trim((string)($cd['lender'] ?? '')) !== '' ? $cd['lender'] : ($w['lender'] ?? ''); $pre = trim((string)($cd['preamt'] ?? '')) !== '' ? $cd['preamt'] : ($w['preamt'] ?? '');
+    if (!empty($lend)) $info['lender'] = (string)$lend;
+    if (!empty($pre)) $info['preapproval'] = (string)$pre;
+    if (!empty($cd['mailing'])) $info['mailing'] = (string)$cd['mailing'];
+    if (!empty($cd['co_name'])) { $info['b2_name'] = (string)$cd['co_name']; $info['b2_phone'] = (string)($cd['co_phone'] ?? ''); $info['b2_email'] = (string)($cd['co_email'] ?? ''); }
     $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava'];
     if (!empty($fin[0]) && isset($pm[$fin[0]])) $info['payment'] = $pm[$fin[0]];
 }

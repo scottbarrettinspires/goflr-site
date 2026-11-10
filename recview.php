@@ -71,7 +71,7 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
         $L = $d['lead']; $lid = (string)$L['id'];
         $nn = trim((string)($L['notes'] ?? '')) === '' ? 0 : count(preg_split('/\r?\n/', trim((string)$L['notes']))); $hn = count((array)($L['log'] ?? []));
         $pane = $side === 'seller' ? 'home' : 'wants';
-        foreach ([[$pane, 'Property Details', null], ['notes', 'Notes', $nn], ['hist', 'History', $hn]] as $t)
+        foreach ([['client', 'Client Details', null], [$pane, 'Property Details', null], ['notes', 'Notes', $nn], ['hist', 'History', $hn]] as $t)
             $o .= '<button type="button" class="rvtab" data-pane="' . $t[0] . '" aria-expanded="false">' . $h($t[1]) . ($t[2] !== null ? ' <span class="rvn">' . (int)$t[2] . '</span>' : '') . ' <span class="rvcar">&#9662;</span></button>';
         $dd = '<div class="rvpanes" data-lead="' . $h($lid) . '" hidden><iframe class="rvframe" title="Lead details" style="width:100%;border:0;min-height:120px"></iframe></div>'
             . '<script>(function(){var box=document.querySelector(".rvpanes");if(!box)return;var fr=box.querySelector("iframe"),cur="";'

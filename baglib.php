@@ -87,7 +87,9 @@ function bag_prefill($me, $tx, $kind) {
     $n1 = $g('b1_name'); $p1 = $g('b1_phone'); $e1 = $g('b1_email');
     if ($lead) { if ($n1 === '') $n1 = trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')); if ($p1 === '') $p1 = trim((string)($lead['phone'] ?? '')); if ($e1 === '') $e1 = trim((string)($lead['email'] ?? '')); }
     $n2 = $g('b2_name'); $p2 = $g('b2_phone'); $e2 = $g('b2_email');
-    $mail = $g('mailing'); $street = $mail; $zip = '';
+    $cd = (array)($lead['client'] ?? []); // Client Details on the lead fill any gaps
+    if ($n2 === '') { $n2 = trim((string)($cd['co_name'] ?? '')); $p2 = $p2 !== '' ? $p2 : trim((string)($cd['co_phone'] ?? '')); $e2 = $e2 !== '' ? $e2 : trim((string)($cd['co_email'] ?? '')); }
+    $mail = $g('mailing'); if ($mail === '') $mail = trim((string)($cd['mailing'] ?? '')); $street = $mail; $zip = '';
     if (preg_match('/^(.*?)[,\s]*(\d{5})(?:-\d{4})?\s*$/', $mail, $m)) { $street = trim($m[1], " ,"); $zip = $m[2]; }
     $f = []; $used = [];
     $set = function ($k, $v, $label) use (&$f, &$used) { if ($v !== '') { $f[$k] = $v; $used[$label] = true; } };

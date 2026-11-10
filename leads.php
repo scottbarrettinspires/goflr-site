@@ -356,9 +356,6 @@ function hwForm(w){w=w||{};var n=[1,2,3,4,5,6],b=["1","1.5","2","2.5","3","3.5",
    +'<div class="full"><label>Must-haves</label><textarea id="hw_must" rows="2">'+esc(w.must||"")+'</textarea></div>'
    +'<div class="full"><label>Nice to have</label><textarea id="hw_nice" rows="2">'+esc(w.nice||"")+'</textarea></div>'
    +'<div class="full"><label>Deal-breakers</label><textarea id="hw_no" rows="2">'+esc(w.no||"")+'</textarea></div>'
-   +'<div class="full"><label>Paying with</label>'+hwChips("fin",HW.fin,w.fin,false)+'</div>'
-   +'<div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,w.pre,false)+'</div>'
-   +'<div><label>Lender</label><input id="hw_lender" value="'+esc(w.lender||"")+'"></div><div><label>Pre-approved amount</label><input id="hw_preamt" inputmode="numeric" value="'+esc(w.preamt||"")+'"></div>'
    +'<div><label>Move by</label><input id="hw_move_by" type="date" value="'+esc(w.move_by||"")+'"></div><div><label>Lease ends (if renting)</label><input id="hw_lease" type="date" value="'+esc(w.lease||"")+'"></div>'
    +'<div class="full"><label>Current home</label>'+hwChips("home",HW.home,w.home,false)+'</div>'
    +'<div class="full"><label>Why they are moving</label><input id="hw_why" value="'+esc(w.why||"")+'"></div>'
@@ -520,7 +517,7 @@ function openLead(L,preset,inl){
       pw2.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(g.dataset.multi!=="1"&&!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
       pw2.querySelector(".mclose2").onclick=close;
       document.getElementById("hw_copy").onclick=function(){var t=hwSummary(hwRead(pw2));var b=this;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy:",t);});};
-      document.getElementById("hw_save").onclick=async function(){var b=this,m=document.getElementById("hw_msg");b.disabled=true;var w=hwRead(pw2);
+      document.getElementById("hw_save").onclick=async function(){var b=this,m=document.getElementById("hw_msg");b.disabled=true;var w=hwRead(pw2);["lender","preamt","fin","pre"].forEach(function(k){if(L.wants&&L.wants[k]!=null&&w[k]==null)w[k]=L.wants[k];});
         try{await api({action:"wants",id:L.id,wants:w});L.wants=w;document.getElementById("hw_sum").textContent=hwSummary(w)||"Nothing recorded yet.";m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
     if(L.roles&&L.roles.seller){ // Property Details tab for sellers
@@ -535,6 +532,24 @@ function openLead(L,preset,inl){
       document.getElementById("sp_copy").onclick=function(){var t=spSummary(spRead(ps));var b=this;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Copied";},function(){prompt("Copy:",t);});};
       document.getElementById("sp_save").onclick=async function(){var b=this,m=document.getElementById("sp_msg");b.disabled=true;var w=spRead(ps);
         try{await api({action:"wants",field:"home",id:L.id,wants:w});L.home=w;document.getElementById("sp_sum").textContent=spSummary(w)||"Nothing recorded yet.";m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+    }
+    if(L.roles&&(L.roles.buyer||L.roles.seller)){ // Client Details tab: the facts the contract screens need, kept once on the lead
+      var isBuy=!!L.roles.buyer,cd=L.client||{},w0=L.wants||{};
+      function cdv(k,alt){return cd[k]!=null&&cd[k]!==""?cd[k]:(alt!=null?alt:"");}
+      var pc=document.createElement("div");pc.dataset.pane="client";pc.hidden=true;
+      pc.innerHTML='<p class="goal" style="margin:0 0 8px">Enter these once. They fill the buyer agreement, the offer and the transaction record for you.</p><div class="fgrid">'
+        +'<div class="full"><label>Current mailing address (street, city, state, zip)</label><input id="cd_mailing" value="'+esc(cdv("mailing"))+'" placeholder="e.g. 123 Palm Ave, Trinity, FL 34655"></div>'
+        +'<div class="full"><label>'+(isBuy?"Second buyer":"Second seller")+' (if any)</label></div>'
+        +'<div><label>Name</label><input id="cd_co_name" value="'+esc(cdv("co_name"))+'"></div><div><label>Phone</label><input id="cd_co_phone" inputmode="tel" value="'+esc(cdv("co_phone"))+'"></div><div class="full"><label>Email</label><input id="cd_co_email" type="email" value="'+esc(cdv("co_email"))+'"></div>'
+        +(isBuy?'<div class="full"><label>Paying with</label>'+hwChips("fin",HW.fin,cd.fin||w0.fin,false)+'</div><div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,cd.pre||w0.pre,false)+'</div>'
+          +'<div><label>Lender</label><input id="cd_lender" value="'+esc(cdv("lender",w0.lender))+'"></div><div><label>Pre-approved amount</label><input id="cd_preamt" inputmode="numeric" value="'+esc(cdv("preamt",w0.preamt))+'"></div>':'')
+        +'</div><div class="btns"><button type="button" class="btn" id="cd_save">Save client details</button><span class="goal" id="cd_msg"></span></div>';
+      modal.appendChild(pc);var cbt=document.createElement("button");cbt.type="button";cbt.dataset.p="client";cbt.textContent="Client Details";bar.insertBefore(cbt,bar.children[1]);
+      pc.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
+      document.getElementById("cd_save").onclick=async function(){var b=this,m=document.getElementById("cd_msg");b.disabled=true;var o={};
+        ["mailing","co_name","co_phone","co_email","lender","preamt"].forEach(function(k){var el=pc.querySelector("#cd_"+k);if(el)o[k]=el.value.trim();});
+        pc.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;});});
+        try{await api({action:"wants",field:"client",id:L.id,wants:o});L.client=o;m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
     if(preset&&preset.pane)showPane(preset.pane);
   }
