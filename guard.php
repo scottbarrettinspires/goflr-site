@@ -10,16 +10,11 @@ if (time() - ($_SESSION['checked'] ?? 0) > RECHECK_SECONDS) {
     elseif (($st = flr_staff_info($email))) { $_SESSION['checked'] = time(); $_SESSION['perm'] = flr_perms($st); $_SESSION['staff'] = $st['position'] ?: 'Staff'; }
     else { flr_logout(); header('Location: index.php?e=1'); exit; }
 }
-// Small "Powered by Hynri" badge, bottom-right of every signed-in HTML page (never JSON/image/PDF responses, which never
-// contain a </body> tag to anchor it to). Centralized here instead of in every page's own markup.
+// Output filter for every signed-in HTML page (adds the Login As banner and the header icons below).
 ob_start(function ($buf) use ($email) {
-    // Pages that send a loading screen early (e.g. the Contract Forms Wizard) reach here in pieces, so each change
-    // below applies to whichever piece holds its anchor: the top bar and <body> in the first, </body> in the last.
+    // Pages that send a loading screen early (e.g. the Make A Contract Offer wizard) reach here in pieces, so each change
+    // below applies to whichever piece holds its anchor.
     $out = $buf;
-    if (stripos($buf, '</body>') !== false) {
-    $badge = '<a href="https://hynri.ai" target="_blank" rel="noopener" style="position:fixed;right:12px;bottom:12px;z-index:9999;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.92);border:1px solid #d7e2e2;border-radius:999px;padding:5px 12px;box-shadow:0 2px 8px rgba(0,0,0,.08);font-family:sans-serif;font-size:.74rem;color:#5a6a6c;text-decoration:none">Powered by <strong style="color:#036f72">Hynri</strong></a>';
-    $out = preg_replace('/<\/body>/i', $badge . '</body>', $out, 1);
-    }
     // "Login As" banner: visible on every page while a staff/broker account is viewing as an agent.
     if (!empty($_SESSION['impersonator']) && stripos($out, '<body') !== false) {
         $who = htmlspecialchars($_SESSION['name'] ?? $email);
