@@ -84,7 +84,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fgrid label{font-size:.82rem;font-weight:600;color:#4b5b5d;display:block}
 .fgrid input,.fgrid select,.fgrid textarea,.touch textarea,.touch input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box}
-.fgrid .full{grid-column:1/-1}
+.fgrid .full{grid-column:1/-1}.cmprow{display:flex;flex-wrap:wrap;gap:10px}.cmprow>div{min-width:0}.cmprow label{white-space:nowrap}.cmprow select,.cmprow input{padding:9px 8px!important;background-color:#fff}
 .touch{border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
 .touch .hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:700;margin:0 0 6px}
 .touch .goal{font-size:.82rem;color:#5a6a6c;margin:6px 0}
@@ -348,14 +348,14 @@ function hwSummary(w){if(!w)return "";var p=[];
   if(w.sqft)p.push(w.sqft+"+ sq ft");if((w.types||[]).length)p.push(w.types.join("/"));if((w.garage||[]).length)p.push(w.garage.join("/")+" garage");
   if((w.pool||[]).length&&w.pool[0]!=="No pool")p.push("pool: "+w.pool[0].toLowerCase());if(w.areas)p.push("in "+w.areas);if((w.feats||[]).length)p.push(w.feats.join(", "));
   if((w.fin||[]).length)p.push((w.fin||[]).join("/")+((w.pre||[]).length?" ("+w.pre[0].toLowerCase()+")":""));if(w.move_by)p.push("move by "+w.move_by);return p.join(" · ");}
-function hwForm(w){w=w||{};var n=[1,2,3,4,5,6],b=["1","1.5","2","2.5","3","3.5","4+"];
+function hwForm(w){w=w||{};var n=[1,2,3,4,5,6,7],b=["1","1.5","2","2.5","3","3.5","4+"];
   return '<div class="fgrid">'
    +'<div class="full"><label>Areas, cities or ZIP codes</label><input id="hw_areas" value="'+esc(w.areas||"")+'" placeholder="e.g. Trinity, Land O Lakes, 34655"></div>'
    +'<div><label>Price from</label><input id="hw_price_min" inputmode="numeric" value="'+esc(w.price_min||"")+'" placeholder="e.g. 350,000"></div><div><label>Price to</label><input id="hw_price_max" inputmode="numeric" value="'+esc(w.price_max||"")+'" placeholder="e.g. 500,000"></div>'
    +'<div class="full"><label>Property type</label>'+hwChips("types",HW.types,w.types,true)+'</div>'
-   +'<div><label>Bedrooms (at least)</label>'+hwSel("hw_beds",n,w.beds)+'</div><div><label>Bathrooms (at least)</label>'+hwSel("hw_baths",b,w.baths)+'</div>'
-   +'<div><label>Living area, sq ft (at least)</label><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div><label>Lot size (at least)</label><input id="hw_lot" value="'+esc(w.lot||"")+'" placeholder="e.g. 1/4 acre"></div>'
-   +'<div><label>Year built (newer than)</label><input id="hw_year" inputmode="numeric" value="'+esc(w.year||"")+'"></div><div><label>Stories</label>'+hwSel("hw_stories",["1 story","2 story","Either"],w.stories)+'</div>'
+   +'<div class="full cmprow"><div style="width:76px"><label>Beds (min)</label>'+hwSel("hw_beds",n,w.beds,"-")+'</div><div style="width:84px"><label>Baths (min)</label>'+hwSel("hw_baths",b,w.baths,"-")+'</div>'
+   +'<div style="width:104px"><label>Sq ft (min)</label><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div style="width:130px"><label>Lot (min)</label><input id="hw_lot" value="'+esc(w.lot||"")+'" placeholder="1/4 acre"></div>'
+   +'<div style="width:96px"><label>Built after</label><input id="hw_year" inputmode="numeric" value="'+esc(w.year||"")+'" placeholder="Year"></div><div style="width:112px"><label>Stories</label>'+hwSel("hw_stories",["1 story","2 story","Either"],w.stories,"-")+'</div></div>'
    +'<div class="full"><label>Garage</label>'+hwChips("garage",HW.garage,w.garage,false)+'</div>'
    +'<div class="full"><label>Pool</label>'+hwChips("pool",HW.pool,w.pool,false)+'</div>'
    +'<div class="full"><label>Features and lifestyle</label>'+hwChips("feats",HW.feats,w.feats,true)+'</div>'
@@ -378,13 +378,14 @@ var SP={types:["Single family","Condo","Townhome","Villa","Manufactured","Multi-
   upd:["Kitchen","Bathrooms","Flooring","Interior paint","Exterior paint","Roof","AC / HVAC","Water heater","Windows / doors","Electrical panel","Plumbing","Pool resurfaced","Solar (owned)","Solar (leased)","Generator","Smart home"],
   hoa:["No HOA","HOA","CDD","55+ community","Gated"],occ:["Owner lives there","Tenant","Vacant","Second home"],insp:["Wind mitigation","4-point inspection","Recent home inspection","Survey on hand","Elevation certificate"],
   flood:["Flood zone X","Flood zone AE / VE","Not sure"],next:["Buying with me","Buying elsewhere","Renting next","Not sure"]};
-function spForm(w){w=w||{};var n=[1,2,3,4,5,6],b=["1","1.5","2","2.5","3","3.5","4+"];
+function spForm(w){w=w||{};var n=[1,2,3,4,5,6,7],b=["1","1.5","2","2.5","3","3.5","4+"];
   var t=function(id,lab,ph,full,im){return '<div'+(full?' class="full"':'')+'><label>'+lab+'</label><input id="sp_'+id+'"'+(im?' inputmode="numeric"':'')+' value="'+esc(w[id]||"")+'" placeholder="'+esc(ph||"")+'"></div>';};
   var c=function(grp,lab,opts,multi){return '<div class="full"><label>'+lab+'</label>'+hwChips(grp,opts,w[grp],multi)+'</div>';};
   return '<div class="fgrid">'+t("addr","Property address","Street, city, ZIP",true)
    +c("types","Property type",SP.types,false)
-   +'<div><label>Bedrooms</label>'+hwSel("sp_beds",n,w.beds,"Choose")+'</div><div><label>Bathrooms</label>'+hwSel("sp_baths",b,w.baths,"Choose")+'</div>'
-   +t("sqft","Living area, sq ft","",false,1)+t("lot","Lot size","e.g. 0.25 acre, 80 x 120")+t("year","Year built","",false,1)+'<div><label>Stories</label>'+hwSel("sp_stories",["1 story","2 story","3+"],w.stories,"Choose")+'</div>'
+   +'<div class="full cmprow"><div style="width:76px"><label>Beds</label>'+hwSel("sp_beds",n,w.beds,"-")+'</div><div style="width:84px"><label>Baths</label>'+hwSel("sp_baths",b,w.baths,"-")+'</div>'
+   +'<div style="width:104px"><label>Sq ft</label><input id="sp_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div style="width:150px"><label>Lot size</label><input id="sp_lot" value="'+esc(w.lot||"")+'" placeholder="e.g. 0.25 acre"></div>'
+   +'<div style="width:96px"><label>Year built</label><input id="sp_year" inputmode="numeric" value="'+esc(w.year||"")+'"></div><div style="width:112px"><label>Stories</label>'+hwSel("sp_stories",["1 story","2 story","3+"],w.stories,"-")+'</div></div>'
    +c("garage","Garage",SP.garage,false)+c("pool","Pool",SP.pool,true)+c("water","Waterfront and view",SP.water,true)+c("dock","On the water",SP.dock,true)
    +c("roof","Roof type",SP.roof,false)+t("roof_year","Roof installed (year)","",false,1)+t("ac_year","AC / HVAC installed (year)","",false,1)
    +t("wh_year","Water heater installed (year)","",false,1)+t("panel","Electrical panel (brand / year)","")
