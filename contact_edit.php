@@ -3,6 +3,7 @@
 // (Buyer 1 & 2, or Seller 1 & 2) at once, saved in place -- works even once the main info form elsewhere is locked.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/sigtools.php";
+require_once __DIR__ . "/flrdb.php";
 require_once __DIR__ . "/leadbox.php";
 require_once __DIR__ . "/subpage.php";
 $me = $_SESSION['email'];
