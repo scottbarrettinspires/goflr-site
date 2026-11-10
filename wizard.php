@@ -65,6 +65,10 @@ $pre = (string)($_GET['tx'] ?? '');
   <p class="note">You need a buyer folder first. Create a folder named for the buyer(s) inside <strong>Active Business &rsaquo; 1 BUYERS &rsaquo; 1 Buyers</strong>, then come back to this page.</p>
   <p class="note">Looked in: <?= htmlspecialchars($GLOBALS['sg_folders_root'] ?? '') ?>. Folders found: <?= count($all) ?><?= $all ? ' (' . htmlspecialchars(implode('; ', array_unique(array_map(function ($f) { return $f['group']; }, $all)))) . ')' : '' ?>.</p>
 <?php else: ?>
+<?php $preOk = false; foreach ($folders as $f) { if ($pre !== '' && $f['id'] === $pre) $preOk = true; }
+      if ($emb && $preOk): // inside a client record: the buyer and their info are already shown above, so the picker and summary stay hidden (still in the page so the wizard can read them) ?>
+  <style>#wz>p:first-child,#bsum{display:none!important}</style>
+<?php endif; ?>
   <div class="panel sigbox wz" id="wz">
     <p><label for="tx"><strong>Which buyer is this for?</strong></label><br>
     <select id="tx" class="txsel">
