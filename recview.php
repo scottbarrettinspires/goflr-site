@@ -61,7 +61,7 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
             . ($pp['phone'] === '' && $pp['email'] === '' ? '<span class="rvnone">No phone or email saved.</span>' : '') . '</div><span class="qa">'
             . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
             . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span>'
-            . '<div class="rvep" hidden data-n="' . (int)$pp['n'] . '"><iframe title="Edit contact info" data-src="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;n=' . (int)$pp['n'] . '&amp;embed=1" style="width:100%;border:0;min-height:120px"></iframe></div></div>';
+            . '<div class="rvep" hidden data-n="' . (int)$pp['n'] . '"><iframe title="Edit contact info" data-src="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;n=' . (int)$pp['n'] . '&amp;embed=1" style="width:100%;border:0;min-height:60px"></iframe></div></div>';
     }
     $o .= '</div>' . $epjs;
     // Actions row.
@@ -75,7 +75,7 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
         $pane = $side === 'seller' ? 'home' : 'wants';
         foreach ([['client', 'Client Details', null], [$pane, 'Property Details', null], ['notes', 'Notes', $nn], ['hist', 'History', $hn]] as $t)
             $o .= '<button type="button" class="rvtab" data-pane="' . $t[0] . '" aria-expanded="false">' . $h($t[1]) . ($t[2] !== null ? ' <span class="rvn">' . (int)$t[2] . '</span>' : '') . ' <span class="rvcar">&#9662;</span></button>';
-        $dd = '<div class="rvpanes" data-lead="' . $h($lid) . '" data-tx="' . $h($tx) . '" data-side="' . $h($side) . '" hidden><iframe class="rvframe" title="Lead details" style="width:100%;border:0;min-height:120px"></iframe></div>'
+        $dd = '<div class="rvpanes" data-lead="' . $h($lid) . '" data-tx="' . $h($tx) . '" data-side="' . $h($side) . '" hidden><iframe class="rvframe" title="Lead details" style="width:100%;border:0;min-height:60px"></iframe></div>'
             . '<script>(function(){var box=document.querySelector(".rvpanes");if(!box)return;var fr=box.querySelector("iframe"),cur="";'
             . 'document.querySelectorAll(".rvtab").forEach(function(b){b.onclick=function(){var p=b.dataset.pane;if(cur===p){cur="";box.hidden=true;b.setAttribute("aria-expanded","false");b.classList.remove("on");return;}'
             . 'document.querySelectorAll(".rvtab").forEach(function(x){x.classList.remove("on");x.setAttribute("aria-expanded","false");});cur=p;b.classList.add("on");b.setAttribute("aria-expanded","true");box.hidden=false;'
@@ -107,7 +107,7 @@ function rv_css() {
     return '<style>
 .rvback{margin:0 0 14px}
 .rvedit{font:inherit;font-weight:700;font-size:.9rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvedit.on{text-decoration:underline}.rvpen{display:inline-block;transform:scaleX(-1)}
-.rvep{flex:0 0 100%;margin:4px 0 0;padding:10px 0 0;border-top:1px solid var(--line,#dfe7e7)}
+.rvep{flex:0 0 100%;margin:4px 0 0;padding:10px 0 0;border-top:1px solid var(--line,#dfe7e7)}.rvep iframe{display:block}
 .rvtab{font:inherit;font-weight:700;font-size:.92rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvtab.on{text-decoration:underline}.rvtab .rvn{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px}.rvtab .rvcar{font-size:.75rem}
 .rvpanes{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line,#dfe7e7)}
 .rvh{background:var(--white,#fff);border:1px solid var(--line,#dfe7e7);border-radius:14px;padding:16px;margin:0 0 14px}

@@ -640,8 +640,8 @@ mback.addEventListener("click",function(e){if(e.target===mback)close();});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
 render();
 var op=new URLSearchParams(location.search).get("open");if(op){var oL=LEADS.filter(function(x){return x.id===op;})[0];if(oL){view.tab=["buyer","seller","sphere"].filter(function(k){return oL.roles&&oL.roles[k];})[0]||"new";if(view.tab!=="new")view.sub=oL.roles[view.tab].sub;render();openLead(oL,EMB?{pane:new URLSearchParams(location.search).get("pane")||"notes"}:undefined);
-  if(EMB){render=function(){};var tell=function(){try{parent.postMessage({flrpane:op,pane:new URLSearchParams(location.search).get("pane"),h:document.body.scrollHeight},location.origin);}catch(e){}};
-    tell();try{new ResizeObserver(tell).observe(document.body);}catch(e){setInterval(tell,600);}}}}
+  if(EMB){render=function(){};var tell=function(){try{parent.postMessage({flrpane:op,pane:new URLSearchParams(location.search).get("pane"),h:Math.ceil((document.querySelector('.modal.inl')||document.body).getBoundingClientRect().height)+4},location.origin);}catch(e){}};
+    tell();try{new ResizeObserver(tell).observe(document.querySelector('.modal.inl')||document.body);}catch(e){setInterval(tell,600);}}}}
 })();
 </script>
 <script>try{fetch("tx_sync.php",{credentials:"same-origin"}).catch(function(){});}catch(e){}</script>
