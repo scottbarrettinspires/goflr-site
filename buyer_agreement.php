@@ -130,7 +130,7 @@ async function getBytes(mode){if(!editable)return bytes;var raw=await doc.save()
   try{var g=f2.getRadioGroup("Rad_ReturnedBy");g.select(mode==="send"?"Email":"PersonalDelivery");}catch(e){}
   try{var t=f2.getTextField("Date_CopyReturned");
     if(mode==="send"){var w=t.acroField.getWidgets()[0],r=w.getRectangle(),pg=d2.getPages().find(function(x){return x.ref===w.P();})||d2.getPages()[d2.getPageCount()-1];f2.removeField(t);pg.drawText("[d:agent]",{x:r.x+2,y:r.y+3,size:8});}
-    else t.setText(today());}catch(e){}
+    else{t.setFontSize(10);t.setText(today());}}catch(e){}
   return await d2.save();}
 window.BAG_GET=getBytes;
 function sizeInputs(){v.querySelectorAll(".bagpg").forEach(function(w){var k=w.clientWidth/parseFloat(w.dataset.pw);w.querySelectorAll("[data-h]").forEach(function(i){var h=parseFloat(i.dataset.h)*k;i.style.fontSize=Math.max(8,Math.min(h*0.62,15*k+2))+"px";});});}
