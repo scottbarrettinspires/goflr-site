@@ -149,3 +149,6 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .bspin{display:inline-block;width:14px;height:14px;margin-right:9px;vertical-align:-2px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;animation:flrspin .8s linear infinite}
 .btn.ghost .bspin{border-color:rgba(0,107,104,.3);border-top-color:#006b68}
 @keyframes flrspin{to{transform:rotate(360deg)}}
+
+/* One rounded look for every text box, drop-down and notes box across the site (specific rules above still win). */
+input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],input[type=url],input[type=search],input[type=password],select,textarea{border-radius:10px}

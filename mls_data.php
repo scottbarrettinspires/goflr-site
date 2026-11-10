@@ -33,7 +33,7 @@ $cached = mls_db()->query('SELECT data, updated FROM mls_listings ORDER BY updat
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>MLS Data - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 <header class="top"><div class="in">

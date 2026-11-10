@@ -74,7 +74,7 @@ $joinedCount = count(array_filter($recruits, function ($R) { return ($R['status'
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Recruiting CRM - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 <style>
 .ltabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
 .ltabs a{padding:8px 14px;border-radius:999px;border:1px solid var(--line);color:#1b4b4d;text-decoration:none;font-size:.9rem;font-weight:600}

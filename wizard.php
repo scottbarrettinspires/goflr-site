@@ -24,7 +24,7 @@ $fullUrl = 'wizard.php' . (!empty($_GET['tx']) ? '?tx=' . urlencode((string)$_GE
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Make A Contract Offer - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 <?php if ($emb): ?><base target="_top"><style>body{margin:0;background:#fff}.embedwrap{padding:14px}.embedwrap .wrap{padding:0;max-width:none}</style><?php endif; ?>
 </head>
 <body>

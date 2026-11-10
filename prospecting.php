@@ -98,7 +98,7 @@ $when = function ($d) use ($today) { if ($d === $today) return 'Today'; if ($d =
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Prospecting - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 <style>
 .ltabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
 .ltabs a{font-weight:700;padding:8px 13px;font-size:.88rem;border-radius:10px;border:1px solid var(--line);background:var(--white);color:var(--teal);text-decoration:none;display:flex;gap:8px;align-items:center}
