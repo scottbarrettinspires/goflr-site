@@ -11,6 +11,12 @@ $intake = ld_intake($me, $agent, $phone);
 $intakeUrl = 'https://goflr.com/lead_in.php?k=' . ($intake['key'] ?? '');
 $ldb = ld_load($me); $mySources = ld_src_names((array)($ldb['sources'] ?? [])); $myInterests = (array)($ldb['interests'] ?? []);
 $emb = !empty($_GET['embed']);
+$recTx = $emb ? (string)($_GET['tx'] ?? '') : ''; $recSide = ($_GET['side'] ?? '') === 'seller' ? 'seller' : 'buyer'; $recCd = [];
+if ($recTx !== '' && preg_match('/^[A-Za-z0-9_-]{10,80}$/', $recTx)) { // opened from an Active Business record: that record's own details come first
+    require_once __DIR__ . '/sigtools.php'; $ri = $recSide === 'seller' ? sg_seller_info($me, $recTx) : sg_buyer_info($me, $recTx); $ri = (!empty($ri['ok']) && is_array($ri['info'] ?? null)) ? $ri['info'] : []; $q = $recSide === 'seller' ? 's2' : 'b2';
+    $recCd = array_filter(['co_name' => $ri[$q . '_name'] ?? '', 'co_phone' => $ri[$q . '_phone'] ?? '', 'co_email' => $ri[$q . '_email'] ?? '', 'mailing' => $ri['mailing'] ?? '', 'lender' => $ri['lender'] ?? '', 'preamt' => $ri['preapproval'] ?? '',
+        'fin' => isset($ri['payment']) && $ri['payment'] !== '' ? [['cash' => 'Cash', 'conventional' => 'Conventional', 'fhava' => 'FHA'][$ri['payment']] ?? ''] : ''], function ($v) { return $v !== '' && $v !== [''] ; });
+} else { $recTx = ''; }
 $cats = [];
 foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs'], 'stage' => LD_STAGE[$k]]; }
 ?>
@@ -147,7 +153,7 @@ var WEEK=<?php $wk = []; for ($i = 0; $i < 7; $i++) { $dd = date('Y-m-d', strtot
 var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=ALLSRC;
 var view={tab:"overview",sub:null,q:""};
-var EMB=<?= $emb ? "true" : "false" ?>;var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal"),MODAL=modal;
+var EMB=<?= $emb ? "true" : "false" ?>,RECTX=<?= json_encode($recTx) ?>,RECSIDE=<?= json_encode($recSide) ?>,RECCD=<?= json_encode((object)$recCd) ?>;var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal"),MODAL=modal;
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
@@ -534,22 +540,25 @@ function openLead(L,preset,inl){
         try{await api({action:"wants",field:"home",id:L.id,wants:w});L.home=w;document.getElementById("sp_sum").textContent=spSummary(w)||"Nothing recorded yet.";m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
     if(L.roles&&(L.roles.buyer||L.roles.seller)){ // Client Details tab: the facts the contract screens need, kept once on the lead
-      var isBuy=!!L.roles.buyer,cd=L.client||{},w0=L.wants||{};
+      var isBuy=RECTX?RECSIDE==='buyer':!!L.roles.buyer,cd=Object.assign({},L.client||{},RECCD),w0=L.wants||{};
+      var hasCo=!!(cd.co_name&&String(cd.co_name).trim());
       function cdv(k,alt){return cd[k]!=null&&cd[k]!==""?cd[k]:(alt!=null?alt:"");}
       var pc=document.createElement("div");pc.dataset.pane="client";pc.hidden=true;
       pc.innerHTML='<p class="goal" style="margin:0 0 8px">Enter these once. They fill the buyer agreement, the offer and the transaction record for you.</p><div class="fgrid">'
         +'<div class="full"><label>Current mailing address (street, city, state, zip)</label><input id="cd_mailing" value="'+esc(cdv("mailing"))+'" placeholder="e.g. 123 Palm Ave, Trinity, FL 34655"></div>'
-        +'<div class="full"><label>'+(isBuy?"Second buyer":"Second seller")+' (if any)</label></div>'
-        +'<div><label>Name</label><input id="cd_co_name" value="'+esc(cdv("co_name"))+'"></div><div><label>Phone</label><input id="cd_co_phone" inputmode="tel" value="'+esc(cdv("co_phone"))+'"></div><div class="full"><label>Email</label><input id="cd_co_email" type="email" value="'+esc(cdv("co_email"))+'"></div>'
+        +'<div class="full" id="cd_coslot">'+(hasCo?'':'<button type="button" class="btn sm ghost" id="cd_addco">+ Add a second '+(isBuy?'buyer':'seller')+'</button>')+'</div>'
+        +'<div class="full" id="cd_cobox"'+(hasCo&&!RECTX?'':' hidden')+'><div class="fgrid"><div class="full"><label>'+(isBuy?"Second buyer":"Second seller")+'</label></div>'
+        +'<div><label>Name</label><input id="cd_co_name" value="'+esc(cdv("co_name"))+'"></div><div><label>Phone</label><input id="cd_co_phone" inputmode="tel" value="'+esc(cdv("co_phone"))+'"></div><div class="full"><label>Email</label><input id="cd_co_email" type="email" value="'+esc(cdv("co_email"))+'"></div></div></div>'
         +(isBuy?'<div class="full"><label>Paying with</label>'+hwChips("fin",HW.fin,cd.fin||w0.fin,false)+'</div><div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,cd.pre||w0.pre,false)+'</div>'
           +'<div><label>Lender</label><input id="cd_lender" value="'+esc(cdv("lender",w0.lender))+'"></div><div><label>Pre-approved amount</label><input id="cd_preamt" inputmode="numeric" value="'+esc(cdv("preamt",w0.preamt))+'"></div>':'')
         +'</div><div class="btns"><button type="button" class="btn" id="cd_save">Save client details</button><span class="goal" id="cd_msg"></span></div>';
       modal.appendChild(pc);var cbt=document.createElement("button");cbt.type="button";cbt.dataset.p="client";cbt.textContent="Client Details";bar.insertBefore(cbt,bar.children[1]);
+      var ac=pc.querySelector("#cd_addco");if(ac)ac.onclick=function(){pc.querySelector("#cd_cobox").hidden=false;ac.remove();var n=pc.querySelector("#cd_co_name");if(n)n.focus();};
       pc.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
       document.getElementById("cd_save").onclick=async function(){var b=this,m=document.getElementById("cd_msg");b.disabled=true;var o={};
         ["mailing","co_name","co_phone","co_email","lender","preamt"].forEach(function(k){var el=pc.querySelector("#cd_"+k);if(el)o[k]=el.value.trim();});
         pc.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;});});
-        try{await api({action:"wants",field:"client",id:L.id,wants:o});L.client=o;m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+        try{var rj=await api({action:"wants",field:"client",id:L.id,wants:o,tx:RECTX,side:RECSIDE});L.client=o;m.textContent=rj.note||"Saved";if(RECTX&&!rj.note)setTimeout(function(){try{parent.postMessage({flrcontact:1,saved:true},location.origin);}catch(e){}},500);render();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
     if(preset&&preset.pane)showPane(preset.pane);
   }

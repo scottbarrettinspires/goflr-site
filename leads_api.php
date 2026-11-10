@@ -27,7 +27,23 @@ if ($act === 'wants') {
     }
     $id = (string)($j['id'] ?? ''); $fld = in_array(($j['field'] ?? ''), ['home', 'client'], true) ? $j['field'] : 'wants';
     ld_update($me, function (&$db) use ($id, $clean, $fld) { foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') === $id) { $L[$fld] = $clean; $L[$fld]['updated'] = ld_today(); } } });
-    out(['ok' => true, 'leads' => ld_view($me, $agent, $phone)]);
+    $recNote = '';
+    $tx = (string)($j['tx'] ?? '');
+    if ($fld === 'client' && preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx)) { // saved from inside an Active Business record: keep that record in step so nothing is entered twice
+        $side = ($j['side'] ?? '') === 'seller' ? 'seller' : 'buyer'; $p2 = $side === 'seller' ? 's2' : 'b2';
+        $f = [$p2 . '_name' => $clean['co_name'] ?? '', $p2 . '_phone' => $clean['co_phone'] ?? '', $p2 . '_email' => $clean['co_email'] ?? ''];
+        if ($side === 'buyer') {
+            $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava'];
+            $f += ['mailing' => $clean['mailing'] ?? '', 'lender' => $clean['lender'] ?? '', 'preapproval' => $clean['preamt'] ?? ''];
+            $fin0 = (array)($clean['fin'] ?? []); if (!empty($fin0[0]) && isset($pm[$fin0[0]])) $f['payment'] = $pm[$fin0[0]];
+            if (!sg_buyer_info_merge($me, $tx, $f)) $recNote = 'Saved on the lead, but the buyer record could not be updated.';
+        } else {
+            $r0 = sg_seller_info($me, $tx);
+            if (!empty($r0['ok'])) { $inf = is_array($r0['info'] ?? null) ? $r0['info'] : []; foreach ($f as $k => $v) { if ($v !== '') $inf[$k] = mb_substr((string)$v, 0, 200); } $w0 = sg_seller_info_save($me, $tx, $inf); if (empty($w0['ok'])) $recNote = 'Saved on the lead, but the seller record could not be updated.'; }
+            else $recNote = 'Saved on the lead, but the seller record could not be updated.';
+        }
+    }
+    out(['ok' => true, 'leads' => ld_view($me, $agent, $phone), 'note' => $recNote]);
 }
 if ($act === 'intake_reset') { $ik = ld_intake_reset($me); out(['ok' => true, 'intake' => 'https://goflr.com/lead_in.php?k=' . ($ik['key'] ?? ''), 'leads' => ld_view($me, $agent, $phone)]); }
 // Steps that talk to the office script (create a record, move a record folder) run before the lead file is locked.

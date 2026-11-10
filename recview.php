@@ -73,11 +73,11 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
         $pane = $side === 'seller' ? 'home' : 'wants';
         foreach ([['client', 'Client Details', null], [$pane, 'Property Details', null], ['notes', 'Notes', $nn], ['hist', 'History', $hn]] as $t)
             $o .= '<button type="button" class="rvtab" data-pane="' . $t[0] . '" aria-expanded="false">' . $h($t[1]) . ($t[2] !== null ? ' <span class="rvn">' . (int)$t[2] . '</span>' : '') . ' <span class="rvcar">&#9662;</span></button>';
-        $dd = '<div class="rvpanes" data-lead="' . $h($lid) . '" hidden><iframe class="rvframe" title="Lead details" style="width:100%;border:0;min-height:120px"></iframe></div>'
+        $dd = '<div class="rvpanes" data-lead="' . $h($lid) . '" data-tx="' . $h($tx) . '" data-side="' . $h($side) . '" hidden><iframe class="rvframe" title="Lead details" style="width:100%;border:0;min-height:120px"></iframe></div>'
             . '<script>(function(){var box=document.querySelector(".rvpanes");if(!box)return;var fr=box.querySelector("iframe"),cur="";'
             . 'document.querySelectorAll(".rvtab").forEach(function(b){b.onclick=function(){var p=b.dataset.pane;if(cur===p){cur="";box.hidden=true;b.setAttribute("aria-expanded","false");b.classList.remove("on");return;}'
             . 'document.querySelectorAll(".rvtab").forEach(function(x){x.classList.remove("on");x.setAttribute("aria-expanded","false");});cur=p;b.classList.add("on");b.setAttribute("aria-expanded","true");box.hidden=false;'
-            . 'fr.src="leads.php?embed=1&open="+encodeURIComponent(box.dataset.lead)+"&pane="+encodeURIComponent(p);};});'
+            . 'fr.src="leads.php?embed=1&open="+encodeURIComponent(box.dataset.lead)+"&pane="+encodeURIComponent(p)+"&tx="+encodeURIComponent(box.dataset.tx)+"&side="+encodeURIComponent(box.dataset.side);};});'
             . 'window.addEventListener("message",function(e){if(e.origin!==location.origin||!e.data||!e.data.flrpane)return;if(e.data.pane===cur&&e.data.h)fr.style.height=(e.data.h+8)+"px";});})();</script>';
     }
     $o .= rv_outcome_ui($side, $tx, $oc) . '</div>' . $dd . rv_price_ui($d['stage'], $tx, $info);
