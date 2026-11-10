@@ -107,6 +107,16 @@ function ps_get($folder, $side, $driveStage = 0) {
     $d = ps_default($side, $driveStage);
     return in_array($d, $keys, true) ? $d : ($keys[0] ?? '');
 }
+// A buyer whose Buyer Agreement (Exclusive or Showing) is signed and filed has moved past that stage: the current stage becomes Shop Homes.
+// Safe to call any time; does nothing unless the record is a buyer still sitting on the Buyer Agreement stage.
+function ps_advance_after_agreement($me, $folder, $side = 'buyer', $driveStage = 0) {
+    if ($side !== 'buyer' || ps_get($folder, $side, $driveStage) !== 'agreement') return false;
+    $prev = $_SESSION['email'] ?? null; if (!$prev) $_SESSION['email'] = $me;
+    $signed = bag_agreement_type($folder) !== null;
+    if (!$prev) unset($_SESSION['email']);
+    if (!$signed) return false;
+    return ps_set($me, $folder, $side, 'shopping');
+}
 function ps_set($me, $folder, $side, $key) {
     ps_ensure_column();
     if (!in_array($key, ps_keys($side), true)) return false;
@@ -165,6 +175,7 @@ function ps_contact_bar($side, $tx, array $info) {
 function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $contact = true) {
     $h = function ($s) { return htmlspecialchars((string)$s); };
     $cur = ps_get($tx, $side, $driveStage);
+    if ($side === 'buyer' && $cur === 'agreement' && ps_advance_after_agreement(strtolower((string)($_SESSION['email'] ?? '')), $tx, $side, $driveStage)) $cur = 'shopping';
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
     $o .= $contact ? ps_contact_bar($side, $tx, $info) : '<h2 style="margin:0 0 12px;font-size:1.15rem">Progress To A Closed Sale</h2>';
     $o .= '<style>.psrow{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.psrow>*{flex:1 1 0;min-width:min-content;scroll-snap-align:start}.psrow>*{font-size:.8rem!important;gap:4px!important}.psrow a,.psrow button{line-height:1.25}.psrow a{padding:3px 6px 3px 4px!important}.psrow>div>button{padding:3px 0 3px 7px!important}.psrow>button{padding:5px 10px!important}.psrow span[title]{min-width:18px!important;height:18px!important}@media(max-width:700px){.psrow>*{flex:0 0 150px}}</style>';
@@ -182,11 +193,15 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
         $merged = ($side === 'buyer' && $k === 'offer') ? ps_offer_contract_state($tx) : null;
         $storeKey = $merged ? $merged['key'] : $k;
         $on = $i === $curPos; $done = $i < $curPos;
-        $bg = ps_color($side, $k); $fg = ps_fg($side, $k);
+        // Current stage: bold teal. Completed stages: a light tint with a check. Stages not reached yet: light grey.
+        $isLast = $i === count($rungKeys);
+        if ($on) { $bg = ($isLast && $on) ? '#1b5e20' : '#036f72'; $fg = '#fff'; $cb = 'rgba(255,255,255,.28)'; }
+        elseif ($done) { $bg = '#d6ebeb'; $fg = '#2c6466'; $cb = 'rgba(3,111,114,.16)'; }
+        else { $bg = '#eceff0'; $fg = '#8b979a'; $cb = 'rgba(0,0,0,.07)'; }
         $label = $merged ? $merged['label'] : ps_label($side, $k, $tx);
         $dest = $merged ? $merged['dest'] : ps_dest($side, $k, $tx);
-        $pillStyle = 'display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:700;font-size:.85rem;border-radius:10px;border:1.5px solid rgba(0,0,0,.1);text-align:left' . ($on ? ';outline:3px solid #1f2a2c;outline-offset:1px' : ($done ? '' : ';opacity:.6'));
-        $circle = '<span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;flex:none" title="' . ($done ? 'Completed' : 'Set as current stage') . '">' . ($done ? '&#10003;' : $i) . '</span>';
+        $pillStyle = 'display:flex;align-items:center;gap:8px;background:' . $bg . ';color:' . $fg . ';font-weight:' . ($on ? '800' : '600') . ';font-size:.85rem;border-radius:10px;border:1.5px solid ' . ($on ? 'rgba(0,0,0,.25)' : 'rgba(0,0,0,.06)') . ';text-align:left' . ($on ? ';box-shadow:0 0 0 3px rgba(3,111,114,.3)' : '');
+        $circle = '<span style="background:' . $cb . ';color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;flex:none" title="' . ($done ? 'Completed' : 'Set as current stage') . '">' . ($done ? '&#10003;' : $i) . '</span>';
         if ($dest !== null) {
             // Split control: the numbered circle sets this as the current stage; the label opens that stage's screen in
             // the panel below (except Make An Offer, which still opens the full Wizard page).

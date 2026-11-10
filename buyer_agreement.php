@@ -21,6 +21,7 @@ $mine = array_values(array_filter($all, function ($r) use ($tx) { return (string
 if ($mine) { sg_refresh_many($mine); }
 $st = bag_state($me, $tx);
 $sig = $st['signed']; $kind = $sig ? bag_kind_of($sig['form']) : null;
+$advanced = $sig ? ps_advance_after_agreement($me, $tx) : false; // signed: the record's current stage moves on to Shop Homes
 $k = isset(BAG_FORMS[$_GET['k'] ?? '']) ? $_GET['k'] : 'exclusive';
 $pend = $sig ? null : ($st['pending'][0] ?? null); // out for signature: the screen waits for the signers
 if ($pend) $k = bag_kind_of($pend['form']) ?: $k;
@@ -168,4 +169,5 @@ go.onclick=async function(){go.disabled=true;go.textContent="Sending...";er.hidd
     if(!j.ok)throw new Error(j.msg||"Could not send it.");location.href=<?= json_encode($self) ?>+"&ok=sent";}
   catch(e){er.textContent=e.message;er.hidden=false;go.disabled=false;go.textContent="Send now";}};})();</script>
 <script>(function(){var b=document.getElementById("bagupbtn"),u=document.getElementById("bagup");if(b)b.onclick=function(){u.hidden=!u.hidden;if(!u.hidden)u.scrollIntoView({behavior:"smooth",block:"nearest"});};<?php if ($err): ?>u.hidden=false;<?php endif; ?>})();</script>
+<?php if ($advanced && sp_embed()): ?><script>try{window.top.location.reload();}catch(e){}</script><?php endif; ?>
 <?php sp_foot(); ?>
