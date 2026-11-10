@@ -60,8 +60,21 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     $o .= '</div>';
     // Actions row.
     $o .= '<div class="rvact"><a href="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;embed=1" target="pscontent" onclick="var f=document.getElementById(\'pscontent\');if(f)setTimeout(function(){f.scrollIntoView({behavior:\'smooth\',block:\'start\'})},50)">&#9998; Edit contact info</a>';
-    if ($d['lead']) $o .= '<a href="leads.php?open=' . urlencode($d['lead']['id']) . '">Open in Leads &amp; Contacts</a>';
-    $o .= '<a href="https://drive.google.com/drive/folders/' . urlencode($tx) . '" target="_blank" rel="noopener">Open the ' . ($side === 'seller' ? 'listing' : 'buyer') . ' folder</a>' . rv_outcome_ui($side, $tx, $oc) . '</div>' . rv_price_ui($d['stage'], $tx, $info);
+    $dd = '';
+    if ($d['lead']) { // the lead's own Property Details, Notes and History, opened right here (same panes as the lead record)
+        $L = $d['lead']; $lid = (string)$L['id'];
+        $nn = trim((string)($L['notes'] ?? '')) === '' ? 0 : count(preg_split('/\r?\n/', trim((string)$L['notes']))); $hn = count((array)($L['log'] ?? []));
+        $pane = $side === 'seller' ? 'home' : 'wants';
+        foreach ([[$pane, 'Property Details', null], ['notes', 'Notes', $nn], ['hist', 'History', $hn]] as $t)
+            $o .= '<button type="button" class="rvtab" data-pane="' . $t[0] . '" aria-expanded="false">' . $h($t[1]) . ($t[2] !== null ? ' <span class="rvn">' . (int)$t[2] . '</span>' : '') . ' <span class="rvcar">&#9662;</span></button>';
+        $dd = '<div class="rvpanes" data-lead="' . $h($lid) . '" hidden><iframe class="rvframe" title="Lead details" style="width:100%;border:0;min-height:120px"></iframe></div>'
+            . '<script>(function(){var box=document.querySelector(".rvpanes");if(!box)return;var fr=box.querySelector("iframe"),cur="";'
+            . 'document.querySelectorAll(".rvtab").forEach(function(b){b.onclick=function(){var p=b.dataset.pane;if(cur===p){cur="";box.hidden=true;b.setAttribute("aria-expanded","false");b.classList.remove("on");return;}'
+            . 'document.querySelectorAll(".rvtab").forEach(function(x){x.classList.remove("on");x.setAttribute("aria-expanded","false");});cur=p;b.classList.add("on");b.setAttribute("aria-expanded","true");box.hidden=false;'
+            . 'fr.src="leads.php?embed=1&open="+encodeURIComponent(box.dataset.lead)+"&pane="+encodeURIComponent(p);};});'
+            . 'window.addEventListener("message",function(e){if(e.origin!==location.origin||!e.data||!e.data.flrpane)return;if(e.data.pane===cur&&e.data.h)fr.style.height=(e.data.h+8)+"px";});})();</script>';
+    }
+    $o .= rv_outcome_ui($side, $tx, $oc) . '</div>' . $dd . rv_price_ui($d['stage'], $tx, $info);
     $o .= lb_strip($me, $side, $tx, $info, $d['lead']);
     return $o . '</div>';
 }
@@ -85,6 +98,8 @@ function lb_strip($me, $side, $tx, array $info, $link) {
 function rv_css() {
     return '<style>
 .rvback{margin:0 0 14px}
+.rvtab{font:inherit;font-weight:700;font-size:.92rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvtab.on{text-decoration:underline}.rvtab .rvn{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px}.rvtab .rvcar{font-size:.75rem}
+.rvpanes{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line,#dfe7e7)}
 .rvh{background:var(--white,#fff);border:1px solid var(--line,#dfe7e7);border-radius:14px;padding:16px;margin:0 0 14px}
 .rvtop{display:flex;gap:12px;align-items:center}.rvh .dot{width:14px;height:14px;border-radius:50%;flex:0 0 14px;border:1px solid rgba(0,0,0,.15)}
 .rvwho{flex:1;min-width:0}.rvnm{font-weight:800;font-size:1.35rem;line-height:1.2}.rvmeta{font-size:.88rem;color:#5a6a6c;margin-top:2px}

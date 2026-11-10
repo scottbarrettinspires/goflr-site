@@ -10,6 +10,7 @@ $leads = ld_view($me, $agent, $phone);
 $intake = ld_intake($me, $agent, $phone);
 $intakeUrl = 'https://goflr.com/lead_in.php?k=' . ($intake['key'] ?? '');
 $ldb = ld_load($me); $mySources = ld_src_names((array)($ldb['sources'] ?? [])); $myInterests = (array)($ldb['interests'] ?? []);
+$emb = !empty($_GET['embed']);
 $cats = [];
 foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs'], 'stage' => LD_STAGE[$k]]; }
 ?>
@@ -113,9 +114,11 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .hist.pane{max-height:none;border-top:0;margin-top:0;padding-top:0;font-size:.9rem;line-height:1.7}
 #mvbox.mvnew{border:2px solid #d32f2f;background:#fff6f5;box-shadow:0 2px 10px rgba(211,47,47,.12)}
 .stat.urgent{background:#d32f2f;border-color:#d32f2f;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(211,47,47,.25)}.stat.urgent span{color:#fff;font-weight:600}.stat.urgent b{font-size:2rem}.stat.urgent:hover{background:#b71c1c}
+body.emb .top,body.emb .hero,body.emb .ltabs,body.emb .lside,body.emb .mclose,body.emb .mclose2,body.emb .mclose3,body.emb .modal.inl>:not([data-pane]){display:none!important}
+body.emb{background:transparent}body.emb .wrap{padding:0;margin:0;max-width:none}body.emb .modal.inl{border:0!important;padding:0!important;box-shadow:none!important;background:transparent!important}
 </style>
 </head>
-<body>
+<body<?= $emb ? ' class="emb"' : '' ?>>
 <header class="top"><div class="in">
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Virtual Broker Office</span></a>
   <nav>
@@ -144,7 +147,7 @@ var WEEK=<?php $wk = []; for ($i = 0; $i < 7; $i++) { $dd = date('Y-m-d', strtot
 var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=ALLSRC;
 var view={tab:"overview",sub:null,q:""};
-var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal"),MODAL=modal;
+var EMB=<?= $emb ? "true" : "false" ?>;var tabs=document.getElementById("tabs"),body=document.getElementById("body"),mback=document.getElementById("mback"),modal=document.getElementById("modal"),MODAL=modal;
 function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
@@ -428,7 +431,7 @@ function openLead(L,preset,inl){
     var host=body.querySelector(".lwrap")?body.querySelector(".lwrap").lastElementChild:body;
     host.innerHTML='<div class="modal inl" id="inlDetail" style="max-width:none;margin:0;border:1px solid var(--line)"></div>';
     inl=document.getElementById("inlDetail");
-    setTimeout(function(){var t=document.getElementById("tabs");if(t)window.scrollTo({top:Math.max(0,t.getBoundingClientRect().top+window.pageYOffset-12),behavior:"smooth"});},30);
+    if(!EMB)setTimeout(function(){var t=document.getElementById("tabs");if(t)window.scrollTo({top:Math.max(0,t.getBoundingClientRect().top+window.pageYOffset-12),behavior:"smooth"});},30);
   }
   modal=inl;
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
@@ -612,7 +615,9 @@ function close(){mback.classList.remove("show");if(modal!==MODAL){modal=MODAL;re
 mback.addEventListener("click",function(e){if(e.target===mback)close();});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});
 render();
-var op=new URLSearchParams(location.search).get("open");if(op){var oL=LEADS.filter(function(x){return x.id===op;})[0];if(oL){view.tab=["buyer","seller","sphere"].filter(function(k){return oL.roles&&oL.roles[k];})[0]||"new";if(view.tab!=="new")view.sub=oL.roles[view.tab].sub;render();openLead(oL);}}
+var op=new URLSearchParams(location.search).get("open");if(op){var oL=LEADS.filter(function(x){return x.id===op;})[0];if(oL){view.tab=["buyer","seller","sphere"].filter(function(k){return oL.roles&&oL.roles[k];})[0]||"new";if(view.tab!=="new")view.sub=oL.roles[view.tab].sub;render();openLead(oL,EMB?{pane:new URLSearchParams(location.search).get("pane")||"notes"}:undefined);
+  if(EMB){render=function(){};var tell=function(){try{parent.postMessage({flrpane:op,pane:new URLSearchParams(location.search).get("pane"),h:document.body.scrollHeight},location.origin);}catch(e){}};
+    tell();try{new ResizeObserver(tell).observe(document.body);}catch(e){setInterval(tell,600);}}}}
 })();
 </script>
 <script>try{fetch("tx_sync.php",{credentials:"same-origin"}).catch(function(){});}catch(e){}</script>
