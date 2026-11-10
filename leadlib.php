@@ -242,7 +242,8 @@ function ld_wants_text($w) {
     $w = (array)$w; $p = []; $a = function ($k) use ($w) { return array_values(array_filter((array)($w[$k] ?? []), 'strlen')); };
     $m = function ($v) { $d = preg_replace('/[^\d.]/', '', (string)$v); return $d !== '' && is_numeric($d) ? number_format((float)$d) : (string)$v; };
     if (!empty($w['price_min']) || !empty($w['price_max'])) { $p[] = '$' . (!empty($w['price_min']) ? $m($w['price_min']) : '0') . ' to ' . (!empty($w['price_max']) ? '$' . $m($w['price_max']) : 'open'); }
-    if (!empty($w['beds'])) $p[] = $w['beds'] . '+ beds'; if (!empty($w['baths'])) $p[] = $w['baths'] . '+ baths'; if (!empty($w['sqft'])) $p[] = $w['sqft'] . '+ sq ft';
+    $rg = function ($lo, $hi, $u) { $lo = (string)$lo; $hi = (string)$hi; return $lo !== '' && $hi !== '' ? ($lo === $hi ? $lo : $lo . ' to ' . $hi) . ' ' . $u : ($lo !== '' ? $lo . '+ ' . $u : ($hi !== '' ? 'up to ' . $hi . ' ' . $u : '')); };
+    foreach ([$rg($w['beds'] ?? '', $w['beds_max'] ?? '', 'beds'), $rg($w['baths'] ?? '', $w['baths_max'] ?? '', 'baths'), $rg($w['sqft'] ?? '', $w['sqft_max'] ?? '', 'sq ft')] as $x) { if ($x !== '') $p[] = $x; }
     if ($a('types')) $p[] = implode('/', $a('types')); if ($a('garage')) $p[] = implode('/', $a('garage')) . ' garage';
     if ($a('pool') && $a('pool')[0] !== 'No pool') $p[] = 'pool: ' . strtolower($a('pool')[0]); if (!empty($w['areas'])) $p[] = 'in ' . $w['areas'];
     if ($a('feats')) $p[] = implode(', ', $a('feats')); if ($a('fin')) $p[] = implode('/', $a('fin')) . ($a('pre') ? ' (' . strtolower($a('pre')[0]) . ')' : '');

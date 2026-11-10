@@ -344,8 +344,8 @@ var HW={types:["Single family","Condo","Townhome","Villa","Manufactured","Multi-
 function hwSel(id,opts,cur,ph){return '<select id="'+id+'"><option value="">'+(ph||"Any")+'</option>'+opts.map(function(o){return '<option'+(String(cur)===String(o)?" selected":"")+'>'+esc(o)+'</option>';}).join("")+'</select>';}
 function hwChips(grp,opts,cur,multi){cur=cur||[];if(!Array.isArray(cur))cur=cur?[cur]:[];return '<div class="chips" data-grp="'+grp+'" data-multi="'+(multi?1:0)+'">'+opts.map(function(o){return '<button type="button" class="chip'+(cur.indexOf(o)>-1?" on":"")+'" data-v="'+esc(o)+'">'+esc(o)+'</button>';}).join("")+'</div>';}
 function hwSummary(w){if(!w)return "";var p=[];
-  if(w.price_min||w.price_max)p.push("$"+(w.price_min||"0")+" to $"+(w.price_max||"open"));if(w.beds)p.push(w.beds+"+ beds");if(w.baths)p.push(w.baths+"+ baths");
-  if(w.sqft)p.push(w.sqft+"+ sq ft");if((w.types||[]).length)p.push(w.types.join("/"));if((w.garage||[]).length)p.push(w.garage.join("/")+" garage");
+  if(w.price_min||w.price_max)p.push("$"+(w.price_min||"0")+" to $"+(w.price_max||"open"));var rg=function(lo,hi,u){return lo&&hi?(lo===hi?lo:lo+" to "+hi)+" "+u:lo?lo+"+ "+u:hi?"up to "+hi+" "+u:"";};
+  [rg(w.beds,w.beds_max,"beds"),rg(w.baths,w.baths_max,"baths"),rg(w.sqft,w.sqft_max,"sq ft")].forEach(function(x){if(x)p.push(x);});if((w.types||[]).length)p.push(w.types.join("/"));if((w.garage||[]).length)p.push(w.garage.join("/")+" garage");
   if((w.pool||[]).length&&w.pool[0]!=="No pool")p.push("pool: "+w.pool[0].toLowerCase());if(w.areas)p.push("in "+w.areas);if((w.feats||[]).length)p.push(w.feats.join(", "));
   if((w.fin||[]).length)p.push((w.fin||[]).join("/")+((w.pre||[]).length?" ("+w.pre[0].toLowerCase()+")":""));if(w.move_by)p.push("move by "+w.move_by);return p.join(" · ");}
 function hwForm(w){w=w||{};var n=[1,2,3,4,5,6,7],b=["1","1.5","2","2.5","3","3.5","4+"];
@@ -353,9 +353,11 @@ function hwForm(w){w=w||{};var n=[1,2,3,4,5,6,7],b=["1","1.5","2","2.5","3","3.5
    +'<div class="full"><label>Areas, cities or ZIP codes</label><input id="hw_areas" value="'+esc(w.areas||"")+'" placeholder="e.g. Trinity, Land O Lakes, 34655"></div>'
    +'<div><label>Price from</label><input id="hw_price_min" inputmode="numeric" value="'+esc(w.price_min||"")+'" placeholder="e.g. 350,000"></div><div><label>Price to</label><input id="hw_price_max" inputmode="numeric" value="'+esc(w.price_max||"")+'" placeholder="e.g. 500,000"></div>'
    +'<div class="full"><label>Property type</label>'+hwChips("types",HW.types,w.types,true)+'</div>'
-   +'<div class="full cmprow"><div style="width:76px"><label>Beds (min)</label>'+hwSel("hw_beds",n,w.beds,"-")+'</div><div style="width:84px"><label>Baths (min)</label>'+hwSel("hw_baths",b,w.baths,"-")+'</div>'
-   +'<div style="width:104px"><label>Sq ft (min)</label><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div style="width:130px"><label>Lot (min)</label><input id="hw_lot" value="'+esc(w.lot||"")+'" placeholder="1/4 acre"></div>'
-   +'<div style="width:96px"><label>Built after</label><input id="hw_year" inputmode="numeric" value="'+esc(w.year||"")+'" placeholder="Year"></div><div style="width:112px"><label>Stories</label>'+hwSel("hw_stories",["1 story","2 story","Either"],w.stories,"-")+'</div></div>'
+   +'<div class="full cmprow"><div style="width:68px"><label>Beds min</label>'+hwSel("hw_beds",n,w.beds,"-")+'</div><div style="width:68px"><label>Beds max</label>'+hwSel("hw_beds_max",n,w.beds_max,"-")+'</div>'
+   +'<div style="width:74px"><label>Baths min</label>'+hwSel("hw_baths",b,w.baths,"-")+'</div><div style="width:74px"><label>Baths max</label>'+hwSel("hw_baths_max",b,w.baths_max,"-")+'</div>'
+   +'<div style="width:92px"><label>Sq ft min</label><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div style="width:92px"><label>Sq ft max</label><input id="hw_sqft_max" inputmode="numeric" value="'+esc(w.sqft_max||"")+'"></div>'
+   +'<div style="width:110px"><label>Lot (min)</label><input id="hw_lot" value="'+esc(w.lot||"")+'" placeholder="1/4 acre"></div>'
+   +'<div style="width:88px"><label>Built after</label><input id="hw_year" inputmode="numeric" value="'+esc(w.year||"")+'" placeholder="Year"></div><div style="width:100px"><label>Stories</label>'+hwSel("hw_stories",["1 story","2 story","Either"],w.stories,"-")+'</div></div>'
    +'<div class="full"><label>Garage</label>'+hwChips("garage",HW.garage,w.garage,false)+'</div>'
    +'<div class="full"><label>Pool</label>'+hwChips("pool",HW.pool,w.pool,false)+'</div>'
    +'<div class="full"><label>Features and lifestyle</label>'+hwChips("feats",HW.feats,w.feats,true)+'</div>'
@@ -366,7 +368,7 @@ function hwForm(w){w=w||{};var n=[1,2,3,4,5,6,7],b=["1","1.5","2","2.5","3","3.5
    +'<div class="full"><label>Current home</label>'+hwChips("home",HW.home,w.home,false)+'</div>'
    +'<div class="full"><label>Why they are moving</label><input id="hw_why" value="'+esc(w.why||"")+'"></div>'
    +'<div class="full"><label>Who else decides</label><input id="hw_who" value="'+esc(w.who||"")+'" placeholder="e.g. spouse, parents"></div></div>';}
-function hwRead(root){var o={};["areas","price_min","price_max","beds","baths","sqft","lot","year","stories","must","nice","no","lender","preamt","move_by","lease","why","who"].forEach(function(k){var el=root.querySelector("#hw_"+k);if(el)o[k]=el.value.trim();});
+function hwRead(root){var o={};["areas","price_min","price_max","beds","beds_max","baths","baths_max","sqft","sqft_max","lot","year","stories","must","nice","no","lender","preamt","move_by","lease","why","who"].forEach(function(k){var el=root.querySelector("#hw_"+k);if(el)o[k]=el.value.trim();});
   root.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(b){return b.dataset.v;});});return o;}
 
 // ---- Seller "Property Details": the seller's home, for pricing and the listing appointment ----
