@@ -52,7 +52,7 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     foreach ($d['people'] as $pp) {
         $dig = preg_replace('/[^0-9+]/', '', $pp['phone']);
         $o .= '<div class="rvp"><div class="rvpi"><b>' . $h($pp['name'] ?: ucfirst($w)) . '</b>'
-            . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . '<button type="button" class="rvedit" aria-expanded="false" title="Edit contact info">&#9998; Edit</button>' . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '')
+            . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . '<button type="button" class="rvedit" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>' . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '')
             . ($pp['phone'] === '' && $pp['email'] === '' ? '<span class="rvnone">No phone or email saved.</span>' : '') . '</div><span class="qa">'
             . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
             . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span></div>';
@@ -104,7 +104,7 @@ function lb_strip($me, $side, $tx, array $info, $link) {
 function rv_css() {
     return '<style>
 .rvback{margin:0 0 14px}
-.rvedit{font:inherit;font-weight:700;font-size:.9rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvedit.on{text-decoration:underline}
+.rvedit{font:inherit;font-weight:700;font-size:.9rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvedit.on{text-decoration:underline}.rvpen{display:inline-block;transform:scaleX(-1)}
 .rvep{margin:0 0 10px;padding:6px 14px;border:1px solid var(--line,#dfe7e7);border-radius:12px;background:#fff}
 .rvtab{font:inherit;font-weight:700;font-size:.92rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvtab.on{text-decoration:underline}.rvtab .rvn{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px}.rvtab .rvcar{font-size:.75rem}
 .rvpanes{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line,#dfe7e7)}
