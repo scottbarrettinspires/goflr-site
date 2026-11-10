@@ -19,7 +19,7 @@ function rv_data($me, $side, $tx, array $rec, array $info) {
             if ($ph === '') $ph = trim((string)($lead['phone'] ?? ''));
             if ($em === '') $em = trim((string)($lead['email'] ?? ''));
         }
-        if ($nm !== '' || ($n === 1 && ($ph !== '' || $em !== ''))) $people[] = ['name' => $nm, 'phone' => $ph, 'email' => $em];
+        if ($nm !== '' || ($n === 1 && ($ph !== '' || $em !== ''))) $people[] = ['n' => $n, 'name' => $nm, 'phone' => $ph, 'email' => $em];
     }
     $k = ps_get($tx, $side, (int)($rec['stage'] ?? 0));
     $addr = trim((string)($info['property'] ?? ''));
@@ -46,22 +46,24 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     if ($oc !== '') $tag = '<span class="due over">' . $h((AB_OUTCOMES[$oc] ?? 'Cancelled') . ($ocOn ? ' · ' . date('M j, Y', strtotime($ocOn)) : '')) . '</span>';
     $o = (!empty($GLOBALS['rvErr']) ? '<p class="sigerr">' . $h($GLOBALS['rvErr']) . '</p>' : '') . '<div class="rvh"><div class="rvtop"><span class="dot" style="background:' . $h(ps_color($side, $d['stage'])) . '"></span>'
         . '<div class="rvwho"><div class="rvnm">' . $h($d['title']) . '</div><div class="rvmeta">' . $h(implode(' · ', $meta)) . '</div></div>' . $tag . '</div>';
+    $epjs = '<script>(function(){var eps=document.querySelectorAll(".rvep"),btns=document.querySelectorAll(".rvedit");if(!eps.length)return;'
+        . 'btns.forEach(function(b){b.onclick=function(){var box=document.querySelector(".rvep[data-n=\'"+b.dataset.n+"\']"),open=box.hidden;'
+        . 'eps.forEach(function(x){x.hidden=true;});btns.forEach(function(x){x.setAttribute("aria-expanded","false");x.classList.remove("on");});'
+        . 'if(open){box.hidden=false;b.classList.add("on");b.setAttribute("aria-expanded","true");var fr=box.querySelector("iframe");if(!fr.src)fr.src=fr.dataset.src;box.scrollIntoView({behavior:"smooth",block:"nearest"});}};});'
+        . 'window.addEventListener("message",function(e){if(e.origin!==location.origin||!e.data||!e.data.flrcontact)return;eps.forEach(function(x){var fr=x.querySelector("iframe");if(fr.contentWindow===e.source){if(e.data.h)fr.style.height=(e.data.h+8)+"px";}});if(e.data.saved)setTimeout(function(){location.reload();},900);});})();</script>';
     // One line per person, each with its own Call / Text / Email.
     $o .= '<div class="rvppl">';
     if (!$d['people']) $o .= '<div class="rvp"><span class="rvnone">No phone or email saved yet.</span></div>';
     foreach ($d['people'] as $pp) {
         $dig = preg_replace('/[^0-9+]/', '', $pp['phone']);
         $o .= '<div class="rvp"><div class="rvpi"><b>' . $h($pp['name'] ?: ucfirst($w)) . '</b>'
-            . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '') . '<button type="button" class="rvedit" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>'
+            . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '') . '<button type="button" class="rvedit" data-n="' . (int)$pp['n'] . '" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>'
             . ($pp['phone'] === '' && $pp['email'] === '' ? '<span class="rvnone">No phone or email saved.</span>' : '') . '</div><span class="qa">'
             . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
-            . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span></div>';
+            . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span></div>'
+            . '<div class="rvep" hidden data-n="' . (int)$pp['n'] . '"><iframe title="Edit contact info" data-src="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;n=' . (int)$pp['n'] . '&amp;embed=1" style="width:100%;border:0;min-height:180px"></iframe></div>';
     }
-    $o .= '</div><div class="rvep" hidden><iframe title="Edit contact info" data-src="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;embed=1" style="width:100%;border:0;min-height:200px"></iframe></div>'
-        . '<script>(function(){var box=document.querySelector(".rvep");if(!box)return;var fr=box.querySelector("iframe"),btns=document.querySelectorAll(".rvedit");'
-        . 'var rows=document.querySelector(".rvppl");btns.forEach(function(b){b.onclick=function(){var open=box.hidden;box.hidden=!open;btns.forEach(function(x){x.setAttribute("aria-expanded",open?"true":"false");x.classList.toggle("on",open);});'
-        . 'if(open){if(!fr.src)fr.src=fr.dataset.src;box.scrollIntoView({behavior:"smooth",block:"nearest"});}};});'
-        . 'window.addEventListener("message",function(e){if(e.origin!==location.origin||!e.data||!e.data.flrcontact)return;if(e.data.h)fr.style.height=(e.data.h+8)+"px";if(e.data.saved)setTimeout(function(){location.reload();},900);});})();</script>';
+    $o .= '</div>' . $epjs;
     // Actions row.
 
     // Actions row.
