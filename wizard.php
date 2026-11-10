@@ -5,6 +5,8 @@ require_once __DIR__ . "/sigtools.php";
 header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
+$emb = !empty($_GET['embed']); // shown inside the Make An Offer panel on a buyer record: no site header or footer
+$fullUrl = 'wizard.php' . (!empty($_GET['tx']) ? '?tx=' . urlencode((string)$_GET['tx']) : '');
 ?>
 <!doctype html>
 <html lang="en">
@@ -20,10 +22,12 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Contract Forms Wizard - FLR Agent Back Office</title>
+<title>Make A Contract Offer - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=16">
+<?php if ($emb): ?><base target="_top"><style>body{margin:0;background:#fff}.embedwrap{padding:14px}.embedwrap .wrap{padding:0;max-width:none}</style><?php endif; ?>
 </head>
 <body>
+<?php if (!$emb): ?>
 <header class="top"><div class="in">
   <a class="brand" href="home.php"><img src="logo-white.png" alt="Florida Luxury Realty"><span>Virtual Broker Office</span></a>
   <nav>
@@ -37,10 +41,14 @@ header('X-Accel-Buffering: no'); while (ob_get_level() > 0) { @ob_end_flush(); }
 </div></header>
 <?php // This page turns off output buffering (to show its loading screen at once), so guard.php can't add the
       // Notifications / Messages / Settings icons for it; print them here directly, in the usual spot.
-?><section class="hero hashi"><?= flr_header_icons($_SESSION['email'] ?? '') ?><h1>Contract Forms Wizard</h1><p>Buyer contract packet: answer the questions and the right forms are merged for you.</p></section>
+?><section class="hero hashi"><?= flr_header_icons($_SESSION['email'] ?? '') ?><h1>Make A Contract Offer</h1><p>Buyer contract packet: answer the questions and the right forms are merged for you.</p></section>
 <main class="wrap">
+<?php else: ?>
+<div class="embedwrap"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px"><h2 style="margin:0;font-size:1.1rem">Make A Contract Offer</h2><a href="<?= htmlspecialchars($fullUrl) ?>" target="_top" style="font-size:.82rem;white-space:nowrap">Open full page &#8599;</a></div>
+<main class="wrap">
+<?php endif; ?>
 <style>#flrload{display:flex;align-items:center;gap:14px;padding:22px 4px;color:#006b68;font-weight:600}#flrload i{width:26px;height:26px;border:4px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite}@keyframes flrspin{to{transform:rotate(360deg)}}</style>
-<div id="flrload" role="status"><i></i><span>Opening the Contract Forms Wizard... loading your buyers and the form rules.</span></div>
+<div id="flrload" role="status"><i></i><span>Opening Make A Contract Offer... loading your buyers and the form rules.</span></div>
 <?php echo str_repeat(' ', 1024); @flush();
 $rules = sg_wizard_rules();
 $all = sg_folders($_SESSION['email'], (string)($_GET['tx'] ?? ''));
@@ -177,7 +185,7 @@ btn.addEventListener('click',async function(){
     if(j.ok&&j.offer)out+='<p>Contract offer record: <strong>1 BUYERS / 2 Contract Offers / '+esc(j.offer)+'</strong>'+(j.offerNote?' ('+esc(j.offerNote)+')':'')+'.</p>';
     var canEdit=false;
     if(packBytes){try{await FLRDraft.put(txSel.value,{packet:packBytes,disc:discBytes,property:((document.getElementById('paddr')||{}).value||'').trim(),t:Date.now()});canEdit=true;}catch(e4){out+='<p class="sigerr">This browser could not hold the packet for editing. Use Download instead.</p>';}}
-    if(canEdit&&!warn.length&&(j.ok||!j.offer)){btn.innerHTML='<span class="bspin"></span>Preparing...';location.href='editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1';return;} // nothing to review here: go straight to completing the forms
+    if(canEdit&&!warn.length&&(j.ok||!j.offer)){btn.innerHTML='<span class="bspin"></span>Preparing...';window.top.location.href='editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1';return;} // nothing to review here: go straight to completing the forms
     out+='<p>';
     if(packBytes)out+='<a class="btn" href="'+URL.createObjectURL(new Blob([packBytes],{type:'application/pdf'}))+'" download="Contract Packet.pdf">Download Packet</a> ';
     if(canEdit)out+='<a class="btn" href="editor.php?tx='+encodeURIComponent(txSel.value)+'&draft=1" id="cfs">Complete For Signing</a>';
@@ -190,6 +198,6 @@ btn.addEventListener('click',async function(){
 </script>
 <?php endif; ?>
 </main>
-<footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
+<?php if ($emb): ?></div><?php else: ?><footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer><?php endif; ?>
 </body>
 </html>

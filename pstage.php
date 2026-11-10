@@ -29,7 +29,7 @@ function ps_dest($side, $key, $tx) {
 }
 // Every buyer stage's screen shows in the panel beside the ladder except Make An Offer, which opens the full Buyer Form
 // Wizard as its own page (it's too large and too important a tool to shrink into a side panel).
-function ps_embeddable($key) { return $key !== 'offer'; }
+function ps_embeddable($key) { return true; }
 // Whether an executed contract/offer/addendum has been signed and filed to this transaction (same match used by
 // signed_filed.php's "Executed Contract" screen). Used to merge the "Make An Offer" and "Executed Contract" rungs: one
 // rung shows "Make An Offer" until a contract is filed, then switches to "Executed Contract" on its own.
@@ -47,7 +47,7 @@ function ps_contract_filed($tx) {
 // and which underlying pstage key it represents.
 function ps_offer_contract_state($tx) {
     if (ps_contract_filed($tx)) return ['label' => 'Executed Contract', 'dest' => 'signed_filed.php?tx=' . urlencode($tx) . '&kind=contract', 'embeddable' => true, 'key' => 'contract'];
-    return ['label' => 'Make An Offer', 'dest' => 'wizard.php?tx=' . urlencode($tx), 'embeddable' => false, 'key' => 'offer'];
+    return ['label' => 'Make An Offer', 'dest' => 'wizard.php?tx=' . urlencode($tx), 'embeddable' => true, 'key' => 'offer'];
 }
 // The rungs shown in the buyer ladder: "offer" stands in for both "offer" and "contract" (see ps_offer_contract_state).
 function ps_buyer_rungs() { return ['agreement', 'shopping', 'offer', 'contingencies', 'closingready', 'closed']; }
