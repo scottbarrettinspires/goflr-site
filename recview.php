@@ -73,16 +73,9 @@ function lb_strip($me, $side, $tx, array $info, $link) {
         return '<form method="post" style="display:inline"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="linklead"><input type="hidden" name="lid" value="' . $h($lid) . '"><button type="submit" class="rvbtn' . $cls . '">' . $h($label) . '</button></form>';
     };
     if ($link) {
-        $pk = ld_pack_for_record($link, ld_load($me)['leads']);
-        $nl = array_slice(array_values(array_filter(preg_split('/\r?\n/', (string)($link['notes'] ?? '')), 'strlen')), -3);
-        $bits = array_filter([($pk['lead_ref'] ?? '') ? 'Referred by ' . $pk['lead_ref'] : '', ($pk['lead_added'] ?? '') ? 'Lead since ' . $pk['lead_added'] : '']);
-        $t = $side === 'seller' ? ld_home_text($link['home'] ?? []) : ld_wants_text($link['wants'] ?? []);
-        $o = '<div class="rvlead">';
-        if (!empty($_GET['linked'])) $o .= '<p class="rvok">Linked. This ' . $w . ' now shows in Leads &amp; Contacts.</p>';
-        if ($bits) $o .= '<p>' . $h(implode(' · ', $bits)) . '</p>';
-        $o .= '<p><strong>' . ($side === 'seller' ? 'The home:' : 'Looking for:') . '</strong> ' . ($t !== '' ? $h($t) : '<span class="rvnone">Nothing recorded yet.</span>') . '</p>';
-        if ($nl) $o .= '<p><strong>Latest notes:</strong> ' . implode(' · ', array_map($h, $nl)) . '</p>';
-        return $o . '</div>';
+        $o = '';
+        if (!empty($_GET['linked'])) $o .= '<div class="rvlead"><p class="rvok">Linked. This ' . $w . ' now shows in Leads &amp; Contacts.</p></div>';
+        return $o;
     }
     $m = ld_find_match($me, $side, $info[$p . '_email'] ?? '', $info[$p . '_phone'] ?? '');
     if ($m) return '<div class="rvlink"><span>Same contact as your lead <b>' . $h(trim(($m['first'] ?? '') . ' ' . ($m['last'] ?? ''))) . '</b>. Link them?</span>' . $form($m['id'], 'Yes, link them', '') . $form('new', 'Add as new contact', ' ghost') . '</div>';
