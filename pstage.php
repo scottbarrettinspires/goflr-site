@@ -215,7 +215,11 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
     }
     $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="width:100%;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
     if ($src === '') { $o .= ' srcdoc="<body style=\'font-family:sans-serif;color:#6a777a;padding:20px;margin:0\'>Click a stage, or Edit contact info, to view it here.</body>"'; }
-    $o .= '></iframe>';
+    $o .= ' scrolling="no"></iframe>';
+    // Grow the panel to fit its screen, so the page scrolls instead of the panel (only a document viewer inside keeps its own scroll).
+    $o .= '<script>(function(){var f=document.getElementById("pscontent");if(!f)return;var ro=null;
+function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
+f.addEventListener("load",function(){fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});})();</script>';
     $o .= '</div></div>';
     return $o;
 }
