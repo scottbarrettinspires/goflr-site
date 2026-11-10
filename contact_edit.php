@@ -79,3 +79,4 @@ sp_head('Edit Contact Info', $tx);
   </form>
 </div>
 <?php sp_foot(); ?>
+<?php if (!empty($_GET['embed'])): ?><script>(function(){function t(s){try{parent.postMessage({flrcontact:1,h:document.documentElement.scrollHeight,saved:s||false},location.origin);}catch(e){}}t(<?= $msg ? 'true' : 'false' ?>);try{new ResizeObserver(function(){t(false);}).observe(document.body);}catch(e){}})();</script><?php endif; ?>
