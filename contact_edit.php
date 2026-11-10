@@ -42,7 +42,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             if (!$err) {
                 $new['updated'] = gmdate('c');
                 $r = $side === 'seller' ? sg_seller_info_save($me, $tx, $new) : sg_buyer_info_save($me, $tx, $new);
-                if (!empty($r['ok'])) { $info = $new; $msg = 'Saved.'; lb_fill_contact($me, $tx, $side, $new); }
+                if (!empty($r['ok'])) { $info = $new; $msg = 'Updated.'; lb_fill_contact($me, $tx, $side, $new); }
                 else { $err = 'Could not save: ' . ($r['note'] ?? ''); }
             } else { $info = $new; }
         }
@@ -51,6 +51,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '')); };
 sp_head('Edit Contact Info', $tx);
 ?>
+<style>.panel.sigbox{max-width:none!important;width:auto!important;margin:0!important;box-shadow:none!important;border:0!important;padding:4px 0!important}
+#cef .cerow{display:flex;gap:14px;flex-wrap:wrap}#cef .cerow label{flex:1 1 200px;display:flex;flex-direction:column;gap:4px;font-size:.88rem;font-weight:600;margin:0}#cef .cerow input{width:100%;box-sizing:border-box;margin:0;padding:8px 10px;font:inherit;font-weight:400}
+#cef .ceact{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 4px}#cef .ceact .btn{width:auto;min-width:0;padding:7px 16px;font-size:.9rem}</style>
 <div class="panel sigbox">
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
@@ -60,16 +63,18 @@ sp_head('Edit Contact Info', $tx);
     <input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>">
     <input type="hidden" name="side" value="<?= htmlspecialchars($side) ?>">
     <input type="hidden" name="n" value="<?= $n ?>">
-    <label><?= htmlspecialchars($label) ?> full name<input type="text" name="f_name" value="<?= $v($px . '_name') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
-    <label>Phone<input type="text" name="f_phone" value="<?= $v($px . '_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
-    <label>Email<input type="email" name="f_email" value="<?= $v($px . '_email') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
-    <p style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><button type="submit" class="btn">Save</button>
-    <button type="button" class="btn ghost" id="cerm" style="color:#b71c1c;border-color:#e6b4b0">Remove client</button><span class="goal" id="cernote">Removes them from this Active Business record only. They stay in Leads &amp; Contacts.</span></p>
+    <div class="cerow">
+      <label><?= htmlspecialchars($label) ?> full name<input type="text" name="f_name" value="<?= $v($px . '_name') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Phone<input type="text" name="f_phone" value="<?= $v($px . '_phone') ?>" inputmode="tel" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+      <label>Email<input type="email" name="f_email" value="<?= $v($px . '_email') ?>" autocomplete="off" data-lpignore="true" data-1p-ignore></label>
+    </div>
+    <div class="ceact"><button type="submit" class="btn">Update</button>
+    <button type="button" class="btn ghost" id="cerm" style="color:#b71c1c;border-color:#e6b4b0">Remove This <?= htmlspecialchars($label) ?></button><span class="goal" id="cernote">Removes them from this Active Business record only. They stay in Leads &amp; Contacts.</span></div>
   </form>
   <form method="post" id="cerf" hidden>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="tx" value="<?= htmlspecialchars($tx) ?>"><input type="hidden" name="side" value="<?= htmlspecialchars($side) ?>"><input type="hidden" name="n" value="<?= $n ?>"><input type="hidden" name="op" value="remove">
   </form>
-<script>(function(){var b=document.getElementById("cerm");if(!b)return;b.onclick=function(){if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Tap again to remove";setTimeout(function(){delete b.dataset.sure;b.textContent="Remove client";},4000);return;}document.getElementById("cerf").submit();};})();</script>
+<script>(function(){var b=document.getElementById("cerm");if(!b)return;b.onclick=function(){if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Tap again to remove";setTimeout(function(){delete b.dataset.sure;b.textContent=<?= json_encode("Remove This " . $label) ?>;},4000);return;}document.getElementById("cerf").submit();};})();</script>
 <?php endif; ?>
 </div>
 <?php sp_foot(); ?>
