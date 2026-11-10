@@ -130,8 +130,8 @@ function rv_css() {
 .rvlink{margin:12px 0 0;padding:10px 12px;background:#fff8ec;border:1px solid #f3dfb8;border-radius:10px;font-size:.9rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.rvlink span{flex:1;min-width:200px}
 .rvbtn{font:inherit;font-size:.82rem;font-weight:700;padding:5px 12px;border-radius:8px;border:1px solid var(--teal,#036f72);background:var(--teal,#036f72);color:#fff;cursor:pointer}.rvbtn.ghost{background:#fff;color:var(--teal,#036f72)}
 .rvh~.panel.sigbox,.rvh~details.panel{max-width:none;border-radius:14px}
-.rvoc{display:inline}.rvoc summary{cursor:pointer;color:#b71c1c;font-weight:700;list-style:none}.rvoc summary::-webkit-details-marker{display:none}
-.rvoc[open]{display:block;flex-basis:100%}.rvoc form{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;margin:8px 0 0;padding:10px 12px;border:1px solid #f3c7c4;background:#fff6f5;border-radius:10px}
+.rvoc{display:inline;margin-left:auto}.rvoc summary{cursor:pointer;color:#b71c1c;font-weight:700;font-size:.82rem;list-style:none;display:block;width:max-content;margin-left:auto;padding:5px 12px;border:1px solid #e6b4b0;border-radius:8px;background:#fff}.rvoc summary:hover{background:#fff6f5}.rvoc summary::-webkit-details-marker{display:none}
+.rvoc[open]{display:block;flex-basis:100%}.rvoc[open] summary{background:#fff6f5}.rvoc form{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;margin:8px 0 0;padding:10px 12px;border:1px solid #f3c7c4;background:#fff6f5;border-radius:10px}
 .rvoc label{display:flex;flex-direction:column;font-size:.75rem;font-weight:700;color:#4b5b5d;gap:2px}.rvoc select,.rvoc input{font:inherit;font-size:.88rem;padding:6px 8px;border:1px solid var(--line,#dfe7e7);border-radius:8px;background:#fff}
 .rvoc form p{flex-basis:100%;margin:0;font-size:.8rem;color:#5a6a6c}.rvlnk{font:inherit;font-weight:700;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}
 .rvpr{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 0;padding:10px 12px;border:1px solid var(--line,#dfe7e7);border-radius:10px}.rvprl{font-size:.85rem;font-weight:700;color:#4b5b5d}.rvpr .prx{margin:0}
