@@ -272,7 +272,7 @@ function sg_send_pdf($pdf, $filename, $subject, $message, $signers) {
     $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); @unlink($tmp);
     $d = json_decode((string)$r, true);
     if ($code < 200 || $code >= 300 || empty($d['document_id'])) return ['ok' => false, 'msg' => 'DigiSigner did not accept the packet (code ' . $code . ').'];
-    $sg = []; foreach ($signers as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; }
+    $sg = []; foreach ($signers as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => (int)($s['order'] ?? 1)]; }
     $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => [['document_id' => $d['document_id'], 'subject' => $subject, 'message' => $message, 'signers' => $sg]]];
     $ch = curl_init('https://api.digisigner.com/v1/signature_requests');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($req), CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);

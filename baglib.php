@@ -137,7 +137,7 @@ function bag_signers($me, $tx) {
         if (!filter_var($e2, FILTER_VALIDATE_EMAIL)) $missing = $missing ?: 'Add ' . $n2 . '\'s email address so both buyers can sign.';
         elseif (strtolower($e2) !== strtolower($e1)) $out[] = ['email' => strtolower($e2), 'role' => 'buyer2', 'name' => $n2, 'label' => 'Buyer 2'];
     }
-    $out[] = ['email' => strtolower($me), 'role' => 'agent', 'name' => trim((string)($_SESSION['name'] ?? '')) ?: $me, 'label' => 'You (agent)'];
+    $out[] = ['email' => strtolower($me), 'role' => 'agent', 'name' => trim((string)($_SESSION['name'] ?? '')) ?: $me, 'label' => 'You (agent, signs last)', 'order' => 2];
     return ['signers' => $out, 'missing' => $missing];
 }
 // Send the (filled) agreement to DigiSigner with the buyer's own contact details as the signers. Returns [request id, ''] or ['', error].
@@ -150,7 +150,7 @@ function bag_send($me, $tx, $kind, $pdf) {
     foreach (bag_state($me, $tx)['pending'] as $p) { if (bag_kind_of($p['form']) === $kind) return ['', 'This agreement is already out for signature. Wait for it, or upload a signed copy.']; }
     $sg = bag_signers($me, $tx); if ($sg['missing'] !== '') return ['', $sg['missing']];
     $title = BAG_FORMS[$kind]['title']; $agent = trim((string)($_SESSION['name'] ?? '')) ?: 'Your agent';
-    $signers = array_map(function ($s) { return ['email' => $s['email'], 'role' => $s['role'], 'name' => $s['name']]; }, $sg['signers']);
+    $signers = array_map(function ($s) { return ['email' => $s['email'], 'role' => $s['role'], 'name' => $s['name'], 'order' => $s['order'] ?? 1]; }, $sg['signers']);
     $r = sg_send_pdf($pdf, $title . '.pdf', 'Florida Luxury Realty: please sign ' . $title,
         $agent . ' (Florida Luxury Realty) has sent you "' . $title . '" to review and sign. If you have questions, reply to ' . $me . '.', $signers);
     if (empty($r['ok'])) return ['', $r['msg'] ?? 'DigiSigner could not send it. Please try again.'];
