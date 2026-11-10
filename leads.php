@@ -84,7 +84,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fgrid label{font-size:.82rem;font-weight:600;color:#4b5b5d;display:block}
 .fgrid input,.fgrid select,.fgrid textarea,.touch textarea,.touch input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box}
-.fgrid .full{grid-column:1/-1}.cmprow{display:flex;flex-wrap:wrap;gap:10px}.cmprow>div{min-width:0}.cmprow label{white-space:nowrap}.cmprow select,.cmprow input{padding:9px 8px!important;background-color:#fff}
+.fgrid .full{grid-column:1/-1}.cmprow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.cmprow>div{min-width:0}.cmprow label{white-space:nowrap}.mmg{border:1px solid var(--line);border-radius:12px;padding:6px 8px 8px;background:#f7fafa}.mmg>label{margin:0 0 3px 2px}.mmr{display:flex;align-items:center;gap:5px}.mmr i{font-style:normal;font-size:.78rem;color:#6a777a}.mmr select{width:74px}.mmg.wide .mmr input{width:76px}.cmprow select,.cmprow input{padding:9px 8px!important;background-color:#fff}
 .touch{border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
 .touch .hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:700;margin:0 0 6px}
 .touch .goal{font-size:.82rem;color:#5a6a6c;margin:6px 0}
@@ -353,9 +353,9 @@ function hwForm(w){w=w||{};var n=[1,2,3,4,5,6,7],b=["1","1.5","2","2.5","3","3.5
    +'<div class="full"><label>Areas, cities or ZIP codes</label><input id="hw_areas" value="'+esc(w.areas||"")+'" placeholder="e.g. Trinity, Land O Lakes, 34655"></div>'
    +'<div><label>Price from</label><input id="hw_price_min" inputmode="numeric" value="'+esc(w.price_min||"")+'" placeholder="e.g. 350,000"></div><div><label>Price to</label><input id="hw_price_max" inputmode="numeric" value="'+esc(w.price_max||"")+'" placeholder="e.g. 500,000"></div>'
    +'<div class="full"><label>Property type</label>'+hwChips("types",HW.types,w.types,true)+'</div>'
-   +'<div class="full cmprow"><div style="width:68px"><label>Beds min</label>'+hwSel("hw_beds",n,w.beds,"-")+'</div><div style="width:68px"><label>Beds max</label>'+hwSel("hw_beds_max",n,w.beds_max,"-")+'</div>'
-   +'<div style="width:74px"><label>Baths min</label>'+hwSel("hw_baths",b,w.baths,"-")+'</div><div style="width:74px"><label>Baths max</label>'+hwSel("hw_baths_max",b,w.baths_max,"-")+'</div>'
-   +'<div style="width:92px"><label>Sq ft min</label><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'"></div><div style="width:92px"><label>Sq ft max</label><input id="hw_sqft_max" inputmode="numeric" value="'+esc(w.sqft_max||"")+'"></div>'
+   +'<div class="full cmprow"><div class="mmg"><label>Beds</label><div class="mmr">'+hwSel("hw_beds",n,w.beds,"Min")+'<i>to</i>'+hwSel("hw_beds_max",n,w.beds_max,"Max")+'</div></div>'
+   +'<div class="mmg"><label>Baths</label><div class="mmr">'+hwSel("hw_baths",b,w.baths,"Min")+'<i>to</i>'+hwSel("hw_baths_max",b,w.baths_max,"Max")+'</div></div>'
+   +'<div class="mmg wide"><label>Square feet</label><div class="mmr"><input id="hw_sqft" inputmode="numeric" value="'+esc(w.sqft||"")+'" placeholder="Min"><i>to</i><input id="hw_sqft_max" inputmode="numeric" value="'+esc(w.sqft_max||"")+'" placeholder="Max"></div></div>'
    +'<div style="width:110px"><label>Lot (min)</label><input id="hw_lot" value="'+esc(w.lot||"")+'" placeholder="1/4 acre"></div>'
    +'<div style="width:88px"><label>Built after</label><input id="hw_year" inputmode="numeric" value="'+esc(w.year||"")+'" placeholder="Year"></div><div style="width:100px"><label>Stories</label>'+hwSel("hw_stories",["1 story","2 story","Either"],w.stories,"-")+'</div></div>'
    +'<div class="full"><label>Garage</label>'+hwChips("garage",HW.garage,w.garage,false)+'</div>'
