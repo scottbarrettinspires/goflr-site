@@ -44,6 +44,11 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     flr_outcome_columns(); $oc = (string)($rec['outcome'] ?? ''); $ocOn = (string)($rec['outcome_on'] ?? '');
     if ($oc === '') { $q = flr_db()->prepare('SELECT outcome, outcome_on FROM transactions WHERE folder = ?'); $q->execute([$tx]); $x = $q->fetch() ?: []; $oc = (string)($x['outcome'] ?? ''); $ocOn = (string)($x['outcome_on'] ?? ''); }
     if ($oc !== '') $tag = '<span class="due over">' . $h((AB_OUTCOMES[$oc] ?? 'Cancelled') . ($ocOn ? ' · ' . date('M j, Y', strtotime($ocOn)) : '')) . '</span>';
+    if ($side === 'buyer' && $oc === '') { // the agreement's expiration, with a reminder pill from 14 days out
+        require_once __DIR__ . '/offerlib.php'; $ex = of_expiration($tx);
+        if ($ex) { $meta[] = 'Agreement expires ' . date('M j, Y', strtotime($ex['date']));
+            if ($ex['left'] <= OF_EXPIRE_REMIND_DAYS) $tag = '<span class="due ' . ($ex['left'] < 0 ? 'over' : 'today') . '">' . $h(of_expire_text($ex['left'])) . '</span> ' . $tag; }
+    }
     $o = (!empty($GLOBALS['rvErr']) ? '<p class="sigerr">' . $h($GLOBALS['rvErr']) . '</p>' : '') . '<div class="rvh"><div class="rvtop"><span class="dot" style="background:' . $h(ps_color($side, $d['stage'])) . '"></span>'
         . '<div class="rvwho"><div class="rvnm">' . $h($d['title']) . '</div><div class="rvmeta">' . $h(implode(' · ', $meta)) . '</div></div>' . $tag . '</div>';
     $epjs = '<script>(function(){var eps=document.querySelectorAll(".rvep"),btns=document.querySelectorAll(".rvedit");if(!eps.length)return;'
@@ -141,7 +146,7 @@ function rv_outcome_ui($side, $tx, $oc) {
     $hid = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf'] ?? '') . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setoutcome">';
     if ($oc !== '') return '<form method="post" class="rvoc">' . $hid . '<input type="hidden" name="outcome" value=""><button type="submit" class="rvlnk">Make active again</button></form>';
     $opts = ''; foreach (ab_outcomes_for($side) as $k => $l) $opts .= '<option value="' . $h($k) . '">' . $h($l) . '</option>';
-    return '<details class="rvoc"><summary>Mark cancelled or expired</summary><form method="post">' . $hid
+    return '<details class="rvoc"><summary>Cancel Client Agreement</summary><form method="post">' . $hid
         . '<label>What happened<select name="outcome">' . $opts . '</select></label><label>Date<input type="date" name="on" value="' . date('Y-m-d') . '" max="' . date('Y-m-d') . '"></label>'
         . '<button type="submit" class="rvbtn">Save</button><p>The file moves to Performance &rsaquo; Cancelled &amp; Expired and leaves Active Business. You can make it active again.</p></form></details>';
 }

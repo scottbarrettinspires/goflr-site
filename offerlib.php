@@ -77,9 +77,33 @@ function of_save($me, $tx, array $in) {
 function of_save_comp($me, $tx, $kind, array $comp) {
     if (!of_own_buyer($me, $tx)) return 'That buyer record was not found in your business.';
     $keep = [];
-    foreach ($comp as $k => $v) { if (preg_match('/^(Comp_[A-Za-z0-9_]+|Price_Retainer|Price_CancellationFee|Term_ProtectionDays)$/', (string)$k)) { $v = mb_substr(trim((string)$v), 0, 200); if ($v !== '') $keep[$k] = $v; } }
-    $raw = of_raw($tx); $raw['comp'] = $keep + ['agreement' => (string)$kind, 'captured' => date('c')];
+    foreach ($comp as $k => $v) { if (preg_match('/^(Comp_[A-Za-z0-9_]+|Price_Retainer|Price_CancellationFee|Term_ProtectionDays|Date_Termination)$/', (string)$k)) { $v = mb_substr(trim((string)$v), 0, 200); if ($v !== '') $keep[$k] = $v; } }
+    $raw = of_raw($tx); $old = (string)($raw['comp']['expires'] ?? '');
+    $exp = of_parse_date((string)($keep['Date_Termination'] ?? ''));
+    $raw['comp'] = $keep + ['agreement' => (string)$kind, 'captured' => date('c'), 'expires' => $exp !== '' ? $exp : $old];
     of_put($tx, $raw);
     flr_audit(flr_akey($me), 'offer', $tx, 'Compensation captured from the ' . ($kind === 'showing' ? 'Showing' : 'Exclusive Buyer') . ' Agreement');
     return '';
+}
+
+// The agreement's termination date as typed on the form (03/04/2027, March 4 2027, 2027-03-04) -> YYYY-MM-DD, or '' if it is not a clear date.
+function of_parse_date($s) {
+    $s = trim((string)$s); if ($s === '') return '';
+    if (preg_match('/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2}|\d{4})$/', $s, $m)) { $y = (int)$m[3]; if ($y < 100) $y += 2000; return checkdate((int)$m[1], (int)$m[2], $y) ? sprintf('%04d-%02d-%02d', $y, $m[1], $m[2]) : ''; }
+    $t = strtotime($s); return $t ? date('Y-m-d', $t) : '';
+}
+// When this buyer's agreement expires (taken from the agreement the agent sent or downloaded), and the days left from today (America/New_York).
+function of_expiration($tx) {
+    $d = (string)(of_raw($tx)['comp']['expires'] ?? ''); if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) return null;
+    $today = (new DateTime('now', new DateTimeZone('America/New_York')))->format('Y-m-d');
+    return ['date' => $d, 'left' => (int)round((strtotime($d . ' 12:00') - strtotime($today . ' 12:00')) / 86400)];
+}
+const OF_EXPIRE_REMIND_DAYS = 14;
+function of_expire_text($left) { return $left < 0 ? 'Expired ' . -$left . ' day' . ($left === -1 ? '' : 's') . ' ago' : ($left === 0 ? 'Expires today' : ($left === 1 ? 'Expires tomorrow' : 'Expires in ' . $left . ' days')); }
+// The agent's live buyer records whose agreement expires within the reminder window (or has expired), soonest first.
+function of_expiring($me, $days = OF_EXPIRE_REMIND_DAYS) {
+    $out = [];
+    foreach (flr_tx_live($me) as $t) { if (($t['side'] ?? '') !== 'buyer') continue; $e = of_expiration($t['folder']); if ($e && $e['left'] <= $days) $out[] = $e + ['folder' => $t['folder'], 'name' => (string)($t['name'] ?? '')]; }
+    usort($out, function ($a, $b) { return $a['left'] - $b['left']; });
+    return $out;
 }

@@ -114,6 +114,12 @@ function nt_sections($email, $isStaff, $remote = true) {
             'url' => ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']), 'level' => $d['left'] < 0 ? 'red' : 'amber'];
     }
     $S[] = ['key' => 'deadlines', 'title' => 'Contract deadlines in the next ' . NT_DEADLINE_DAYS . ' days', 'empty' => 'Nothing due in the next ' . NT_DEADLINE_DAYS . ' days.', 'items' => $items, 'more' => ['deadlines.php', 'See all upcoming deadlines']];
+    // Buyer agreements expiring within 14 days (or already expired): the date comes from the agreement the agent sent or downloaded.
+    $items = [];
+    try { require_once __DIR__ . '/offerlib.php';
+        foreach (of_expiring($email) as $e) { $items[] = ['title' => 'Buyer agreement: ' . ($e['name'] ?: 'untitled record'), 'sub' => of_expire_text($e['left']) . ' · ' . date('D, M j, Y', strtotime($e['date'])) . ' · renew it or let the client go', 'url' => 'buyer.php?tx=' . urlencode($e['folder']), 'level' => $e['left'] < 0 ? 'red' : 'amber']; }
+    } catch (Throwable $e) {}
+    $S[] = ['key' => 'agreements', 'title' => 'Buyer agreements expiring in the next ' . OF_EXPIRE_REMIND_DAYS . ' days', 'empty' => 'No buyer agreements expiring soon.', 'items' => $items];
     // Newly signed documents: fully signed requests the agent hasn't looked at yet. Opening the record clears them;
     // ones not filed in any record yet stay until they are (they link to signed.php to choose the record).
     $items = [];

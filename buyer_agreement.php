@@ -128,7 +128,7 @@ function today(){var d=new Date();return ("0"+(d.getMonth()+1)).slice(-2)+"/"+("
 // the date is the last signer's signing date (the agent signs last, so a date tag is placed on that line for DigiSigner to fill).
 async function getBytes(mode){if(!editable)return bytes;var raw=await doc.save();if(!mode)return raw;
   var d2=await PDFLib.PDFDocument.load(raw),f2=d2.getForm();
-  try{var comp={};f2.getFields().forEach(function(f){var n=f.getName();if(/^(Comp_|Price_Retainer$|Price_CancellationFee$|Term_ProtectionDays$)/.test(n)&&f.getText){var t=(f.getText()||"").trim();if(t)comp[n]=t;}});
+  try{var comp={};f2.getFields().forEach(function(f){var n=f.getName();if(/^(Comp_|Price_Retainer$|Price_CancellationFee$|Term_ProtectionDays$|Date_Termination$)/.test(n)&&f.getText){var t=(f.getText()||"").trim();if(t)comp[n]=t;}});
     var cp=fetch("offer_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,action:"savecomp",tx:<?= json_encode($tx) ?>,kind:<?= json_encode($k) ?>,comp:comp})}).catch(function(){});
     if(mode==="send")await cp;}catch(e){} // the commission agreed here is kept on the record for the offer and the transaction
   try{var g=f2.getRadioGroup("Rad_ReturnedBy");g.select(mode==="send"?"Email":"PersonalDelivery");}catch(e){}
