@@ -12,11 +12,16 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 function sign_fail($m) { return ['ok' => false, 'msg' => $m]; }
 
 function sign_send($fid, $title, $signers, $agentName, $agentEmail, $tx) {
-    // 1. Get the PDF from the Forms folder through the office script.
+    // 1. Get the PDF: the agreement already filled in on the Buyer Agreement screen (?pf=), else the blank form from the Forms folder.
+    $pfTok = (string)($_POST['pf'] ?? '');
+    if ($pfTok !== '') { require_once __DIR__ . '/baglib.php'; $pfPdf = bag_pf_get($agentEmail, $pfTok); }
+    if (!empty($pfPdf)) { $j = ['ok' => true, 'b64' => base64_encode($pfPdf), 'name' => $title . '.pdf']; }
+    else {
     $ch = curl_init(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=file&id=' . urlencode($fid));
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);
     $body = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
     $j = ($body !== false && $code >= 200 && $code < 300) ? json_decode($body, true) : null;
+    }
     if (!is_array($j) || empty($j['ok']) || empty($j['b64'])) return sign_fail('Could not load that form from the Forms folder. Please try again, or contact the office.');
     $pdf = base64_decode($j['b64'], true);
     if ($pdf === false || strlen($pdf) < 500) return sign_fail('That form could not be read. Please contact the office.');
@@ -48,6 +53,7 @@ function sign_send($fid, $title, $signers, $agentName, $agentEmail, $tx) {
     if (!is_dir($dir)) { @mkdir($dir, 0755, true); }
     if (!is_file($dir . '/.htaccess')) { @file_put_contents($dir . '/.htaccess', "Require all denied\n"); }
     @file_put_contents($dir . '/signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $agentEmail, 'form' => $title, 'form_id' => $fid, 'signers' => array_map(function ($s) { return $s['email'] . ' (' . $s['role'] . ')'; }, $signers), 'request' => $q['signature_request_id']]) . "\n", FILE_APPEND | LOCK_EX);
+    if (!empty($pfPdf)) bag_pf_drop($pfTok);
     return ['ok' => true, 'id' => $q['signature_request_id']];
 }
 
@@ -142,8 +148,10 @@ if ($title !== null && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="post" class="panel sigbox" id="sf">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="f" value="<?= htmlspecialchars($fid) ?>">
+    <input type="hidden" name="pf" value="<?= htmlspecialchars(preg_replace('/[^a-f0-9]/', '', (string)($_GET['pf'] ?? ($_POST['pf'] ?? '')))) ?>">
     <input type="hidden" name="s" value="<?= $side ?>">
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
+    <?php if (preg_match('/^[a-f0-9]{24}$/', (string)($_GET['pf'] ?? ($_POST['pf'] ?? '')))): ?><p class="note">Sending the agreement as filled in on the Buyer Agreement screen (buyer names, contact details and the other fields it filled).</p><?php endif; ?>
     <p>Enter each person who must sign and the role they hold on this form. Each one gets an email from DigiSigner with a link to sign. The signature, initial and date spots are already placed in the form.</p>
     <div id="signers">
 <?php foreach ($rows as $row): ?>

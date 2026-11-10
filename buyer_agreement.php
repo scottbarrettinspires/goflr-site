@@ -43,7 +43,7 @@ sp_head('Buyer Agreement', $tx);
 .bagpend{margin:0 0 12px;padding:10px 12px;border-left:4px solid #d49a00;background:#fdf6e3;border-radius:8px;font-size:.9rem}
 .bagok{margin:0 0 12px;padding:10px 12px;border-left:4px solid #2e7d32;background:#e8f5ea;border-radius:8px;font-size:.92rem}
 .bagwarn{margin:0 0 12px;padding:10px 12px;border-left:4px solid #b26a00;background:#fff4e5;border-radius:8px;font-size:.9rem}
-.bagview{width:100%;max-height:820px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#e9eeee;padding:12px;box-sizing:border-box}.bagview canvas{display:block;width:100%;height:auto;margin:0 auto 12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}.bagview iframe{width:100%;height:760px;border:0}.bagload{margin:0;color:#5a6a6c;padding:20px;text-align:center}
+.bagview{width:100%;max-height:820px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#e9eeee;padding:12px;box-sizing:border-box}.bagview canvas{display:block;width:100%;height:auto;margin:0 auto 12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}.bagview iframe{width:100%;height:760px;border:0}.bagfill{margin:0 0 12px;padding:9px 12px;border-left:4px solid var(--teal);background:#eef7f7;border-radius:8px;font-size:.88rem;color:#2a3638}.bagload{margin:0;color:#5a6a6c;padding:20px;text-align:center}
 .bagmeta{font-size:.88rem;color:#4b5b5d;margin:0 0 12px}
 @media(max-width:640px){.bagview{max-height:600px;padding:6px}}
 </style>
@@ -72,8 +72,8 @@ sp_head('Buyer Agreement', $tx);
   <div class="bagt" role="tablist"><?php foreach (BAG_FORMS as $kk => $ff): ?><a role="tab" href="buyer_agreement.php?tx=<?= urlencode($tx) ?>&amp;k=<?= $kk ?><?= sp_embed() ? '&amp;embed=1' : '' ?>" class="<?= $kk === $k ? 'on' : '' ?>" aria-selected="<?= $kk === $k ? 'true' : 'false' ?>"><?= $h($ff['title']) ?></a><?php endforeach; ?></div>
   <p class="bagnote"><?= $h($f['note']) ?></p>
   <div class="bagact">
-    <a class="btn ghost" href="<?= $h($src) ?>&amp;dl=1">&#8681; Download</a>
-    <a class="btn" href="sign.php?f=<?= $h($f['id']) ?>&amp;s=b&amp;tx=<?= urlencode($tx) ?>" target="_top">&#9998; Send for Signing</a>
+    <a class="btn ghost" id="bagdl" href="<?= $h($src) ?>&amp;dl=1">&#8681; Download</a>
+    <a class="btn" id="bagsend" href="sign.php?f=<?= $h($f['id']) ?>&amp;s=b&amp;tx=<?= urlencode($tx) ?>" target="_top">&#9998; Send for Signing</a>
     <button type="button" class="btn up" id="bagupbtn">&#8679; Upload signed copy</button>
   </div>
 <?php endif; ?>
@@ -87,16 +87,33 @@ sp_head('Buyer Agreement', $tx);
       <p>Use this for an agreement signed in person or outside DigiSigner. It's saved to this buyer record and filed in the transaction folder.</p>
     </form>
   </div>
-  <div class="bagview" id="bagview" data-src="<?= $h($src) ?>" role="document" aria-label="<?= $h($sig ? 'Signed ' . $sig['form'] : BAG_FORMS[$k]['title']) ?>"><p class="bagload">Loading the agreement&hellip;</p></div>
+<?php if (!$sig): ?>  <p class="bagfill" id="bagfill" hidden></p>
+<?php endif; ?>
+  <div class="bagview" id="bagview"<?= $sig ? '' : ' data-fill="' . $h('bag_prefill.php?tx=' . urlencode($tx) . '&kind=' . $k) . '" data-name="' . $h(BAG_FORMS[$k]['title'] . ' - ' . date('Y-m-d') . '.pdf') . '"' ?> data-src="<?= $h($src) ?>" role="document" aria-label="<?= $h($sig ? 'Signed ' . $sig['form'] : BAG_FORMS[$k]['title']) ?>"><p class="bagload">Loading the agreement&hellip;</p></div>
   <p style="margin:12px 0 0"><a href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a></p>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script>(function(){var v=document.getElementById("bagview");if(!v)return;var src=v.dataset.src;
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>(async function(){var v=document.getElementById("bagview");if(!v)return;var src=v.dataset.src,fillUrl=v.dataset.fill,CSRF=<?= json_encode($_SESSION['csrf']) ?>,bytes=null;
 function fallback(){v.innerHTML='<iframe src="'+src+'#view=FitH" title="Agreement"></iframe>';}
-if(!window.pdfjsLib){fallback();return;}
-pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-pdfjsLib.getDocument({url:src,withCredentials:true}).promise.then(function(pdf){v.innerHTML="";var w=Math.max(300,v.clientWidth-24),dpr=Math.min(2,window.devicePixelRatio||1),n=1;
-  function next(){if(n>pdf.numPages)return;pdf.getPage(n++).then(function(pg){var vp=pg.getViewport({scale:1}),sc=w/vp.width*dpr,v2=pg.getViewport({scale:sc}),c=document.createElement("canvas");c.width=v2.width;c.height=v2.height;v.appendChild(c);return pg.render({canvasContext:c.getContext("2d"),viewport:v2}).promise;}).then(next);}
-  next();}).catch(fallback);})();</script>
+async function render(data){if(!window.pdfjsLib)throw new Error("no viewer");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  var pdf=await pdfjsLib.getDocument(data?{data:data.slice()}:{url:src,withCredentials:true}).promise;v.innerHTML="";var w=Math.max(300,v.clientWidth-24),dpr=Math.min(2,window.devicePixelRatio||1);
+  for(var n=1;n<=pdf.numPages;n++){var pg=await pdf.getPage(n),vp=pg.getViewport({scale:1}),v2=pg.getViewport({scale:w/vp.width*dpr}),c=document.createElement("canvas");c.width=v2.width;c.height=v2.height;v.appendChild(c);await pg.render({canvasContext:c.getContext("2d"),viewport:v2}).promise;}}
+try{
+  if(fillUrl&&window.PDFLib){ // fill in what the site knows about this buyer
+    var res=await Promise.all([fetch(src,{credentials:"same-origin"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();}),fetch(fillUrl,{credentials:"same-origin"}).then(function(r){return r.json();}).catch(function(){return null;})]);
+    var doc=await PDFLib.PDFDocument.load(res[0]),form=doc.getForm(),done=[],F=(res[1]&&res[1].ok)?res[1].fields:{};
+    Object.keys(F).forEach(function(k){try{var t=form.getTextField(k);if(!(t.getText()||"").trim()){t.setText(String(F[k]));done.push(k);}}catch(e){}});
+    bytes=await doc.save();
+    if(done.length){var fl=document.getElementById("bagfill");fl.innerHTML="<b>Filled in from this buyer's record:</b> "+res[1].filled.join(", ")+". Check it, and add the compensation and termination date before sending.";fl.hidden=false;}
+    var dl=document.getElementById("bagdl");dl.addEventListener("click",function(e){e.preventDefault();var u=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=v.dataset.name||"Buyer Agreement.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);});
+    var sd=document.getElementById("bagsend");sd.addEventListener("click",async function(e){e.preventDefault();var t=sd.textContent;sd.textContent="Preparing...";
+      try{var b64="",u8=new Uint8Array(bytes);for(var i=0;i<u8.length;i+=32768)b64+=String.fromCharCode.apply(null,u8.subarray(i,i+32768));b64=btoa(b64);
+        var j=await fetch("bag_prefill.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:CSRF,b64:b64})}).then(function(r){return r.json();});
+        if(!j.ok)throw new Error(j.msg);window.top.location.href=sd.getAttribute("href")+"&pf="+encodeURIComponent(j.token);}
+      catch(x){sd.textContent=t;window.top.location.href=sd.getAttribute("href");}});
+  }
+  await render(bytes);
+}catch(e){fallback();}})();</script>
 <script>(function(){var b=document.getElementById("bagupbtn"),u=document.getElementById("bagup");if(b)b.onclick=function(){u.hidden=!u.hidden;if(!u.hidden)u.scrollIntoView({behavior:"smooth",block:"nearest"});};<?php if ($err): ?>u.hidden=false;<?php endif; ?>})();</script>
 <?php sp_foot(); ?>

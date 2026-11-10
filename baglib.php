@@ -75,3 +75,48 @@ function bag_upload($me, $tx, $kind, array $file, $signedOn = '') {
     flr_audit(flr_akey($me), 'agreement', $tx, 'Uploaded signed ' . BAG_FORMS[$kind]['title'] . ($ok ? ' and filed it to the transaction folder' : ' (not filed to Drive)'));
     return [$id, ''];
 }
+
+// What the site already knows about this buyer, mapped onto the agreement's form fields (same field names on both
+// forms where they exist). Buyer Info first, then the linked lead. Never fills compensation, retainer, fees or the
+// termination date: those are the agent's call. Returns ['fields' => [name => text], 'filled' => [labels used]].
+function bag_prefill($me, $tx, $kind) {
+    require_once __DIR__ . '/leadlib.php';
+    $info = []; $r = sg_buyer_info($me, $tx); if (!empty($r['ok']) && is_array($r['info'] ?? null)) $info = $r['info'];
+    $lead = null; try { $lead = ld_find_by_folder($me, $tx); } catch (Throwable $e) {}
+    $g = function ($k) use ($info) { return trim((string)($info[$k] ?? '')); };
+    $n1 = $g('b1_name'); $p1 = $g('b1_phone'); $e1 = $g('b1_email');
+    if ($lead) { if ($n1 === '') $n1 = trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')); if ($p1 === '') $p1 = trim((string)($lead['phone'] ?? '')); if ($e1 === '') $e1 = trim((string)($lead['email'] ?? '')); }
+    $n2 = $g('b2_name'); $p2 = $g('b2_phone'); $e2 = $g('b2_email');
+    $mail = $g('mailing'); $street = $mail; $zip = '';
+    if (preg_match('/^(.*?)[,\s]*(\d{5})(?:-\d{4})?\s*$/', $mail, $m)) { $street = trim($m[1], " ,"); $zip = $m[2]; }
+    $f = []; $used = [];
+    $set = function ($k, $v, $label) use (&$f, &$used) { if ($v !== '') { $f[$k] = $v; $used[$label] = true; } };
+    $set('Buyer_Names', implode(' and ', array_filter([$n1, $n2])), 'Buyer names');
+    $set('Buyer1_Name', $n1, 'Buyer names'); $set('Buyer1_Phone', $p1, 'Phone'); $set('Buyer1_Email', $e1, 'Email');
+    $set('Buyer1_Address', $street, 'Mailing address'); $set('Buyer1_Zip', $zip, 'Mailing address');
+    if ($n2 !== '') { $set('Buyer2_Name', $n2, 'Buyer names'); $set('Buyer2_Phone', $p2, 'Phone'); $set('Buyer2_Email', $e2, 'Email'); $set('Buyer2_Address', $street, 'Mailing address'); $set('Buyer2_Zip', $zip, 'Mailing address'); }
+    $set('Date_Effective', date('m/d/Y'), 'Effective date (today)');
+    $w = (array)($lead['wants'] ?? []);
+    $types = array_values(array_filter((array)($w['types'] ?? []), 'strlen'));
+    $set('Search_PropertyType', implode(', ', $types), 'Property type');
+    $set('Search_Location', trim((string)($w['areas'] ?? '')), 'Location');
+    if ($kind === 'showing') { // homes scheduled to show, newest first
+        require_once __DIR__ . '/flrdb.php';
+        try { $q = flr_db()->prepare("SELECT address FROM shop_notes WHERE folder = ? AND akey = ? AND kind = 'scheduled' AND address <> '' ORDER BY id DESC"); $q->execute([$tx, flr_akey($me)]);
+            $i = 0; $seen = []; foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $a) { $a = trim($a); if ($a === '' || isset($seen[strtolower($a)]) || $i >= 7) continue; $seen[strtolower($a)] = 1; $set('Property_List_' . (++$i), $a, 'Homes scheduled to show'); }
+        } catch (Throwable $e) {}
+    }
+    return ['fields' => $f, 'filled' => array_keys($used)];
+}
+// A filled agreement handed from the Buyer Agreement screen to the send-for-signature page (sign.php ?pf=token).
+function bag_pf_dir() { $d = flr_db_dir() . '/prefill'; if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
+function bag_pf_put($me, $pdf) {
+    foreach (glob(bag_pf_dir() . '/*') ?: [] as $old) { if (filemtime($old) < time() - 86400) @unlink($old); }
+    $t = bin2hex(random_bytes(12)); @file_put_contents(bag_pf_dir() . '/' . $t . '.pdf', $pdf); @file_put_contents(bag_pf_dir() . '/' . $t . '.who', strtolower($me)); return $t;
+}
+function bag_pf_get($me, $t) {
+    if (!preg_match('/^[a-f0-9]{24}$/', (string)$t)) return null; $p = bag_pf_dir() . '/' . $t;
+    if (!is_file($p . '.pdf') || trim((string)@file_get_contents($p . '.who')) !== strtolower($me)) return null;
+    return (string)file_get_contents($p . '.pdf');
+}
+function bag_pf_drop($t) { if (preg_match('/^[a-f0-9]{24}$/', (string)$t)) { @unlink(bag_pf_dir() . '/' . $t . '.pdf'); @unlink(bag_pf_dir() . '/' . $t . '.who'); } }
