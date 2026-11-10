@@ -9,6 +9,11 @@ $me = strtolower($_SESSION['email']);
 if (isset($_GET['dl'])) {
     $rec = sg_load($_GET['dl']);
     if (!$rec || strtolower($rec['agent']) !== $me) { http_response_code(404); exit('Not found'); }
+    if (!empty($rec['local'])) { // a signed copy the agent uploaded (Buyer Agreement stage)
+        require_once __DIR__ . '/baglib.php'; $pdf = bag_signed_pdf($rec); if ($pdf === null) { http_response_code(404); exit('Not found'); }
+        while (ob_get_level()) { @ob_end_clean(); }
+        header('Content-Type: application/pdf'); header('Content-Disposition: attachment; filename="Signed - ' . preg_replace('/[^A-Za-z0-9 ._()-]/', '', $rec['form']) . '.pdf"'); echo $pdf; exit;
+    }
     if (empty($rec['completed']) || empty($rec['doc'])) { http_response_code(409); exit('The signed copy is not ready yet.'); }
     @set_time_limit(280); while (ob_get_level()) { @ob_end_clean(); }
     header('X-Accel-Buffering: no'); $fn = 'Signed - ' . preg_replace('/[^A-Za-z0-9 ._()-]/', '', $rec['form']); $started = false;

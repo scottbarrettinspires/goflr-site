@@ -120,6 +120,12 @@ function sg_file(&$rec) {
 }
 function sg_log_filed($rec, $r) { @file_put_contents(__DIR__ . '/logs/signature-requests.log', json_encode(['t' => gmdate('c'), 'filed' => $rec['id'], 'agent' => $rec['agent'], 'folder' => $r['folder'], 'file' => $r['name']]) . "\n", FILE_APPEND | LOCK_EX); }
 function sg_file_inner(&$rec) {
+    if (!empty($rec['local'])) { // uploaded signed copy: file the stored PDF (no DigiSigner document)
+        if (!empty($rec['filed']['url'])) return [true, 'Already filed.'];
+        require_once __DIR__ . '/baglib.php'; $pdf = bag_signed_pdf($rec); if ($pdf === null) return [false, 'The uploaded copy is missing.'];
+        list($ok, $r) = sg_save_bytes($rec, $pdf, 'Signed - ' . $rec['form'] . ' - ' . gmdate('Y-m-d') . '.pdf'); if (!$ok) return [false, $r];
+        $rec['filed'] = $r; sg_save($rec['id'], $rec); sg_log_filed($rec, $r); return [true, 'Filed in ' . $r['folder'] . '.'];
+    }
     $pending = false; foreach (($rec['extra'] ?? []) as $x) { if (empty($x['filed'])) $pending = true; }
     if (!empty($rec['filed']) && !$pending) return [true, 'Already filed.'];
     if (!sg_can_file($rec)) return [false, 'No transaction chosen.'];
