@@ -52,7 +52,7 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     foreach ($d['people'] as $pp) {
         $dig = preg_replace('/[^0-9+]/', '', $pp['phone']);
         $o .= '<div class="rvp"><div class="rvpi"><b>' . $h($pp['name'] ?: ucfirst($w)) . '</b>'
-            . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . '<button type="button" class="rvedit" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>' . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '')
+            . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '') . '<button type="button" class="rvedit" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>'
             . ($pp['phone'] === '' && $pp['email'] === '' ? '<span class="rvnone">No phone or email saved.</span>' : '') . '</div><span class="qa">'
             . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
             . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span></div>';
