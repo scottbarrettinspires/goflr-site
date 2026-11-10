@@ -167,7 +167,7 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
     $cur = ps_get($tx, $side, $driveStage);
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
     $o .= $contact ? ps_contact_bar($side, $tx, $info) : '<h2 style="margin:0 0 12px;font-size:1.15rem">Pipeline stage</h2>';
-    $o .= '<style>.psrow{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.psrow>*{flex:1 1 0;min-width:min-content;scroll-snap-align:start}.psrow>*{font-size:.8rem!important;gap:4px!important}.psrow a,.psrow button{line-height:1.25}.psrow a{padding:7px 6px 7px 4px!important}.psrow>div>button{padding:7px 0 7px 7px!important}@media(max-width:700px){.psrow>*{flex:0 0 150px}}</style>';
+    $o .= '<style>.psrow{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.psrow>*{flex:1 1 0;min-width:min-content;scroll-snap-align:start}.psrow>*{font-size:.8rem!important;gap:4px!important}.psrow a,.psrow button{line-height:1.25}.psrow a{padding:3px 6px 3px 4px!important}.psrow>div>button{padding:3px 0 3px 7px!important}.psrow>button{padding:5px 10px!important}.psrow span[title]{min-width:18px!important;height:18px!important}@media(max-width:700px){.psrow>*{flex:0 0 150px}}</style>';
     $o .= '<div style="display:flex;flex-direction:column;gap:14px">';
     // Top: the stages left to right (first stage on the left), acting as a menu.
     $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div class="psrow">';

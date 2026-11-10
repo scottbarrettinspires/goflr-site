@@ -29,15 +29,15 @@ sp_head('Buyer Agreement', $tx);
 <style>
 .bag{max-width:none}
 .bagh{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 12px}.bagh h2{margin:0;font-size:1.2rem}
-.bagt{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.bagt a{font-weight:700;font-size:.88rem;padding:7px 13px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--teal);text-decoration:none}
+.bagt{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.bagt a{font-weight:700;font-size:.85rem;padding:4px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--teal);text-decoration:none}
 .bagt a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
 .bagnote{margin:0 0 12px;font-size:.9rem;color:#4b5b5d}
 .bagact{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
-.bagact .btn{border:0;cursor:pointer;font:inherit;font-weight:700;padding:9px 16px;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.bagact .btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal)}
+.bagact .btn{border:0;cursor:pointer;font:inherit;font-size:.88rem;font-weight:700;padding:4px 14px;line-height:1.5;border-radius:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.bagact .btn.ghost{background:#fff;color:var(--teal);border:1.5px solid var(--teal);padding:2.5px 12.5px}
 .bagact .btn.up{background:#e07b39;color:#fff}
 .bagup{margin:0 0 12px;padding:12px 14px;border:1px solid #f0d2bd;background:#fff8f2;border-radius:12px}
-.bagup form{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}.bagup label{display:flex;flex-direction:column;font-size:.8rem;font-weight:700;color:#4b5b5d;gap:3px}
+.bagup .btn{padding:4px 14px!important;font-size:.88rem}.bagup form{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}.bagup label{display:flex;flex-direction:column;font-size:.8rem;font-weight:700;color:#4b5b5d;gap:3px}
 .bagup select,.bagup input{font:inherit;font-size:.9rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .bagup p{flex-basis:100%;margin:0;font-size:.82rem;color:#5a6a6c}
 .bagpend{margin:0 0 12px;padding:10px 12px;border-left:4px solid #d49a00;background:#fdf6e3;border-radius:8px;font-size:.9rem}
