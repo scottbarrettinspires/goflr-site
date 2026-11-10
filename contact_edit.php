@@ -51,7 +51,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '')); };
 sp_head('Edit Contact Info', $tx);
 ?>
-<style>.panel.sigbox{max-width:none!important;width:auto!important;margin:0!important;box-shadow:none!important;border:0!important;padding:4px 0!important}
+<style>.embedwrap{padding:0!important}.embedwrap>div:first-child{display:none!important}.panel.sigbox{max-width:none!important;width:auto!important;margin:0!important;box-shadow:none!important;border:0!important;padding:4px 0!important}
 #cef .cerow{display:flex;gap:14px;flex-wrap:wrap}#cef .cerow label{flex:1 1 200px;display:flex;flex-direction:column;gap:4px;font-size:.88rem;font-weight:600;margin:0}#cef .cerow input{width:100%;box-sizing:border-box;margin:0;padding:8px 10px;font:inherit;font-weight:400}
 #cef .ceact{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0 4px}#cef .ceact .btn{width:auto;min-width:0;padding:7px 16px;font-size:.9rem}</style>
 <div class="panel sigbox">

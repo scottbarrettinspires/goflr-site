@@ -60,8 +60,8 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
             . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '') . '<button type="button" class="rvedit" data-n="' . (int)$pp['n'] . '" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>'
             . ($pp['phone'] === '' && $pp['email'] === '' ? '<span class="rvnone">No phone or email saved.</span>' : '') . '</div><span class="qa">'
             . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
-            . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span></div>'
-            . '<div class="rvep" hidden data-n="' . (int)$pp['n'] . '"><iframe title="Edit contact info" data-src="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;n=' . (int)$pp['n'] . '&amp;embed=1" style="width:100%;border:0;min-height:180px"></iframe></div>';
+            . ($pp['email'] !== '' ? '<a href="mailto:' . $h($pp['email']) . '" title="Email">&#9993;</a>' : '') . '</span>'
+            . '<div class="rvep" hidden data-n="' . (int)$pp['n'] . '"><iframe title="Edit contact info" data-src="contact_edit.php?tx=' . urlencode($tx) . '&amp;side=' . urlencode($side) . '&amp;n=' . (int)$pp['n'] . '&amp;embed=1" style="width:100%;border:0;min-height:120px"></iframe></div></div>';
     }
     $o .= '</div>' . $epjs;
     // Actions row.
@@ -107,7 +107,7 @@ function rv_css() {
     return '<style>
 .rvback{margin:0 0 14px}
 .rvedit{font:inherit;font-weight:700;font-size:.9rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvedit.on{text-decoration:underline}.rvpen{display:inline-block;transform:scaleX(-1)}
-.rvep{margin:0 0 10px;padding:6px 14px;border:1px solid var(--line,#dfe7e7);border-radius:12px;background:#fff}
+.rvep{flex:0 0 100%;margin:4px 0 0;padding:10px 0 0;border-top:1px solid var(--line,#dfe7e7)}
 .rvtab{font:inherit;font-weight:700;font-size:.92rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvtab.on{text-decoration:underline}.rvtab .rvn{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px}.rvtab .rvcar{font-size:.75rem}
 .rvpanes{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line,#dfe7e7)}
 .rvh{background:var(--white,#fff);border:1px solid var(--line,#dfe7e7);border-radius:14px;padding:16px;margin:0 0 14px}
@@ -116,7 +116,7 @@ function rv_css() {
 .rvh .due{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
 .due.over{background:#fde2e1;color:#b71c1c}.due.today{background:#fff1d6;color:#8a5a00}.due.later{background:#eef3f3;color:#4b5b5d}
 .rvppl{margin:12px 0 0;display:flex;flex-direction:column;gap:8px}
-.rvp{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line,#dfe7e7);border-radius:12px}
+.rvp{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line,#dfe7e7);border-radius:12px}
 .rvpi{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}.rvpi span{color:#4b5b5d;font-size:.9rem}
 .rvh .qa{display:flex;flex:0 0 auto}.rvh .qa a{display:inline-flex;width:32px;height:32px;border-radius:9px;align-items:center;justify-content:center;background:var(--teal-soft,#e1f3f2);color:var(--teal,#036f72);text-decoration:none;font-size:.9rem;margin-left:4px}
 .rvnone{color:#8a9a9c}
