@@ -56,7 +56,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 @media(max-width:760px){.wkd.none{display:none}.wk.wkempty{display:none}.wk .wkd{border-top:0}.wk .wkd:not(.none)~.wkd:not(.none){border-top:1px solid var(--line)}}
 @media(max-width:760px){.wk{grid-template-columns:1fr}.wkd{border-left:0;border-top:1px solid var(--line);min-height:0;flex-direction:row;align-items:flex-start;gap:10px}.wkd:first-child{border-top:0}
   .wkh{flex:0 0 58px;border-bottom:0;margin:0}.wki{flex:1}.wnone{margin:10px 0 0;text-align:left}}
-.h0{background:#b71c1c;color:#fff}.h1{background:#e53935;color:#fff}.h2{background:#f6b1aa;color:#5c1410}.h3{background:#fff;color:#2b3a3c}.h4{background:#a9cbe9;color:#0f3558}.h5{background:#1f5fa8;color:#fff}.h6{background:#036f72;color:#fff}
+.hall{background:#fff;color:#2b3a3c}.h0{background:#b71c1c;color:#fff}.h1{background:#e53935;color:#fff}.h2{background:#f6b1aa;color:#5c1410}.h3{background:#fff;color:#2b3a3c}.h4{background:#a9cbe9;color:#0f3558}.h5{background:#1f5fa8;color:#fff}.h6{background:#036f72;color:#fff}
 .lpanel{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;min-height:200px}
 .lpanel h2{margin:0 0 12px;font-size:1.15rem}
 .lrow{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;margin:0 0 8px;cursor:pointer;background:var(--white)}
@@ -226,20 +226,22 @@ function renderOverview(){
 }
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
-  if(view.sub===null)view.sub=role==="new"?"all":"add"; // main categories open on the add-a-lead form
+  if(view.sub===null)view.sub="all"; // main categories open on every lead in that category; the + ADD button adds a new one
   var side="";
   if(role==="new"){side+='<button class="sb h1 on">'+ico("new")+'All NEW <span class="n">'+counts().new+'</span></button>';}
+  if(role!=="new"){var na=LEADS.filter(function(L){return L.roles&&L.roles[role];}).length;
+    side+='<button class="sb hall'+(view.sub==="all"?" on":"")+'" data-s="all"><span>All '+esc(CATS[role].label)+'</span> <span class="n">'+na+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
   if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
     side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client">'+ico("client")+'In Active Business <span class="n">'+nc+'</span></button>';}
-  var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub);});
+  var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(view.sub==="all"?!!(L.roles&&L.roles[role]):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub));});
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
-  var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+(view.sub==="client"?"In Active Business":subs[view.sub]);
+  var title=role==="new"?"NEW leads: call, then sort into Buyers, Sellers or Sphere":CATS[role].label+" · "+(view.sub==="all"?"All":(view.sub==="client"?"In Active Business":subs[view.sub]));
   if(view.sub==="client")CATS[role].stage.client=role==="buyer"?"Signed or signing a buyer broker agreement. The record lives in Active Business until the sale closes.":"Signed or signing a listing agreement. The record lives in Active Business until the sale closes.";
   var main=view.sub==="add"?'<div class="lpanel">'+(view.flash?'<p class="note" style="margin:0 0 10px">'+esc(view.flash)+'</p>':'')+'<p style="margin:0 0 10px;color:#5a6a6c;font-size:.9rem">'+(role==="sphere"?"Add a new Sphere contact below":"Add a new "+esc(CATS[role].label.replace(/s$/,"").toLowerCase())+" lead below")+', or tap a category to see who is in it.</p><div class="modal inl" id="inlAdd" style="padding:0;max-width:none;margin:0;background:none"></div></div>':'<div class="lpanel"><h2>'+esc(title)+'</h2>'+(role!=="new"&&CATS[role].stage[view.sub]?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">'+esc(CATS[role].stage[view.sub])+'</p>':(role==="new"?'<p style="margin:-6px 0 12px;color:#5a6a6c;font-size:.9rem">Leads from your website, landing pages and social media. Reach them, learn what they need, then move them to Buyers, Sellers or Sphere.</p>':''))+'<input class="lsearch" id="lq" placeholder="Search name, phone, email" value="'+esc(view.q)+'">'
-    +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet.</p>')+'</div>';
+    +(list.length?list.map(function(L){return row(L,vfor(L,role));}).join(""):'<p class="empty">No leads here yet. Use + ADD to add one.</p>')+'</div>';
   body.innerHTML='<div class="lwrap"><div class="lside">'+side+'</div><div>'+main+'</div></div>';
   body.querySelectorAll(".sb[data-s]").forEach(function(b){b.onclick=function(){view.sub=b.dataset.s;render();};});
   view.flash="";
