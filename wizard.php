@@ -48,7 +48,7 @@ $fullUrl = 'wizard.php' . (!empty($_GET['tx']) ? '?tx=' . urlencode((string)$_GE
 <main class="wrap">
 <?php endif; ?>
 <style>#flrload{display:flex;align-items:center;gap:14px;padding:22px 4px;color:#006b68;font-weight:600}#flrload i{width:26px;height:26px;border:4px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite}@keyframes flrspin{to{transform:rotate(360deg)}}</style>
-<div id="flrload" role="status"><i></i><span>Opening Make A Contract Offer... loading your buyers and the form rules.</span></div>
+<div id="flrload" role="status"><i></i><span>Opening Make A Contract Offer...</span></div>
 <?php echo str_repeat(' ', 1024); @flush();
 $rules = sg_wizard_rules();
 $all = sg_folders($_SESSION['email'], (string)($_GET['tx'] ?? ''));
