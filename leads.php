@@ -36,8 +36,8 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs button .n{font-size:.78rem;font-weight:700;background:rgba(0,0,0,.08);border-radius:99px;padding:1px 8px}
 .ltabs button.on .n{background:rgba(255,255,255,.25)}
 .ltabs .ov{color:#5a6a6c;font-weight:600}
-.lwrap{display:grid;grid-template-columns:220px 1fr;gap:18px;align-items:start}
-.lside{display:flex;flex-direction:column;gap:8px;position:sticky;top:12px}
+.lwrap{display:flex;flex-direction:column;gap:14px}
+.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.lside>.sb{flex:1 1 0;min-width:max-content;scroll-snap-align:start;margin-top:0!important}
 .sb{font:inherit;font-weight:700;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
 .sb.on{outline:3px solid #1f2a2c;outline-offset:2px}
@@ -93,7 +93,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs .srcbtn{margin-left:auto;font-weight:600;color:#4b5b5d}
 .bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#f4f8f8;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 12px}
 .lsearch{width:100%;max-width:340px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;margin:0 0 12px}
-@media(max-width:800px){.lwrap{grid-template-columns:1fr}.lside{position:static;flex-direction:row;flex-wrap:wrap}.sb{flex:1 1 45%}.fgrid{grid-template-columns:1fr}}
+@media(max-width:800px){.fgrid{grid-template-columns:1fr}}
 
 /* compact controls across the Leads page */
 .chip{font-size:.76rem;padding:4px 9px;border-radius:99px}.chip .n{margin-left:3px}
@@ -232,7 +232,7 @@ function renderCat(){
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
     side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
   if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
-    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client" style="margin-top:10px">'+ico("client")+'In Active Business <span class="n">'+nc+'</span></button>';}
+    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client">'+ico("client")+'In Active Business <span class="n">'+nc+'</span></button>';}
   var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub);});
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
