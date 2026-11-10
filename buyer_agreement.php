@@ -46,7 +46,7 @@ sp_head('Buyer Agreement', $tx);
 .bagpend{margin:0 0 12px;padding:10px 12px;border-left:4px solid #d49a00;background:#fdf6e3;border-radius:8px;font-size:.9rem}
 .bagok{margin:0 0 12px;padding:10px 12px;border-left:4px solid #2e7d32;background:#e8f5ea;border-radius:8px;font-size:.92rem}
 .bagwarn{margin:0 0 12px;padding:10px 12px;border-left:4px solid #b26a00;background:#fff4e5;border-radius:8px;font-size:.9rem}
-.bagview{width:100%;max-height:820px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#e9eeee;padding:12px;box-sizing:border-box}.bagview canvas{display:block;width:100%;height:auto;margin:0 auto 12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}.bagview iframe{width:100%;height:760px;border:0}.bagfill{margin:0 0 12px;padding:9px 12px;border-left:4px solid var(--teal);background:#eef7f7;border-radius:8px;font-size:.88rem;color:#2a3638}.bagload{margin:0;color:#5a6a6c;padding:20px;text-align:center}
+.bagview{width:100%;max-height:820px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#e9eeee;padding:12px;box-sizing:border-box}.bagpg{position:relative;margin:0 0 12px}.bagview .bagpg canvas{margin:0!important}.bagfld{position:absolute;box-sizing:border-box;margin:0;padding:0 3px;border:1px solid rgba(3,111,114,.45);background:rgba(224,244,244,.55);font-family:Helvetica,Arial,sans-serif;color:#111;border-radius:2px;resize:none;line-height:1.15}.bagfld:focus{outline:2px solid var(--teal);background:#fff}textarea.bagfld{padding:2px 3px}input[type=checkbox].bagfld{padding:0;accent-color:var(--teal)}.bagview canvas{display:block;width:100%;height:auto;margin:0 auto 12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}.bagview iframe{width:100%;height:760px;border:0}.bagfill{margin:0 0 12px;padding:9px 12px;border-left:4px solid var(--teal);background:#eef7f7;border-radius:8px;font-size:.88rem;color:#2a3638}.bagload{margin:0;color:#5a6a6c;padding:20px;text-align:center}
 .bagmeta{font-size:.88rem;color:#4b5b5d;margin:0 0 12px}
 .bagwait{margin:0 0 12px;padding:12px 14px;border:1px solid #f0dca8;background:#fdf8ea;border-radius:12px}.bagwh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}.bagwh h2{margin:0;font-size:1.1rem}
 .bagdot{width:10px;height:10px;border-radius:50%;background:#d49a00;box-shadow:0 0 0 0 rgba(212,154,0,.6);animation:bagp 1.6s infinite}@keyframes bagp{70%{box-shadow:0 0 0 8px rgba(212,154,0,0)}100%{box-shadow:0 0 0 0 rgba(212,154,0,0)}}
@@ -119,29 +119,40 @@ sp_head('Buyer Agreement', $tx);
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script>(async function(){var v=document.getElementById("bagview");if(!v)return;var src=v.dataset.src,fillUrl=v.dataset.fill,CSRF=<?= json_encode($_SESSION['csrf']) ?>,bytes=null;
+<script>(async function(){var v=document.getElementById("bagview");if(!v)return;var src=v.dataset.src,fillUrl=v.dataset.fill,bytes=null,doc=null,form=null,editable=false;
 function fallback(){v.innerHTML='<iframe src="'+src+'#view=FitH" title="Agreement"></iframe>';}
-async function render(data){if(!window.pdfjsLib)throw new Error("no viewer");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  var pdf=await pdfjsLib.getDocument(data?{data:data.slice()}:{url:src,withCredentials:true}).promise;v.innerHTML="";var w=Math.max(300,v.clientWidth-24),dpr=Math.min(2,window.devicePixelRatio||1);
-  for(var n=1;n<=pdf.numPages;n++){var pg=await pdf.getPage(n),vp=pg.getViewport({scale:1}),v2=pg.getViewport({scale:w/vp.width*dpr}),c=document.createElement("canvas");c.width=v2.width;c.height=v2.height;v.appendChild(c);await pg.render({canvasContext:c.getContext("2d"),viewport:v2}).promise;}}
+function nice(n){return n.replace(/[_.]+/g," ").replace(/([a-z])([A-Z])/g,"$1 $2").trim();}
+async function getBytes(){return editable?await doc.save():bytes;}
+window.BAG_GET=getBytes;
+function sizeInputs(){v.querySelectorAll(".bagpg").forEach(function(w){var k=w.clientWidth/parseFloat(w.dataset.pw);w.querySelectorAll("[data-h]").forEach(function(i){var h=parseFloat(i.dataset.h)*k;i.style.fontSize=Math.max(8,Math.min(h*0.62,15*k+2))+"px";});});}
+function widgetsOf(){var out=[],pages=doc.getPages();form.getFields().forEach(function(f){var t=(f instanceof PDFLib.PDFTextField)?"PDFTextField":(f instanceof PDFLib.PDFCheckBox)?"PDFCheckBox":"";if(!t)return;f.acroField.getWidgets().forEach(function(w){var r=w.getRectangle(),pr=w.P(),pi=pages.findIndex(function(pg){return pg.ref===pr;});if(pi<0&&pages.length===1)pi=0;if(pi>=0)out.push({f:f,t:t,r:r,pi:pi});});});return out;}
+async function render(data,withFields){if(!window.pdfjsLib)throw new Error("no viewer");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  var pdf=await pdfjsLib.getDocument(data?{data:data.slice()}:{url:src,withCredentials:true}).promise;v.innerHTML="";var w=Math.max(300,v.clientWidth-24),dpr=Math.min(2,window.devicePixelRatio||1),W=withFields?widgetsOf():[];
+  for(var n=1;n<=pdf.numPages;n++){var pg=await pdf.getPage(n),vp=pg.getViewport({scale:1}),v2=pg.getViewport({scale:w/vp.width*dpr}),wrap=document.createElement("div"),c=document.createElement("canvas");wrap.className="bagpg";wrap.dataset.pw=vp.width;c.width=v2.width;c.height=v2.height;wrap.appendChild(c);v.appendChild(wrap);
+    await pg.render({canvasContext:c.getContext("2d"),viewport:v2,annotationMode:withFields?0:1}).promise;
+    W.filter(function(x){return x.pi===n-1;}).forEach(function(x){var r=x.r,i;
+      if(x.t==="PDFCheckBox"){i=document.createElement("input");i.type="checkbox";i.checked=x.f.isChecked();i.onchange=function(){i.checked?x.f.check():x.f.uncheck();};}
+      else{var ml=x.f.isMultiline()||r.height>26;i=document.createElement(ml?"textarea":"input");if(!ml)i.type="text";i.value=x.f.getText()||"";i.oninput=function(){try{x.f.setText(i.value);}catch(e){}};}
+      i.className="bagfld";i.title=nice(x.f.getName());i.setAttribute("aria-label",nice(x.f.getName()));i.dataset.h=r.height;
+      i.style.left=(r.x/vp.width*100)+"%";i.style.top=((vp.height-r.y-r.height)/vp.height*100)+"%";i.style.width=(r.width/vp.width*100)+"%";i.style.height=(r.height/vp.height*100)+"%";wrap.appendChild(i);});}
+  sizeInputs();}
 try{
-  if(fillUrl&&window.PDFLib){ // fill in what the site knows about this buyer
+  if(fillUrl&&window.PDFLib){ // fill in what the site knows about this buyer, then let the agent edit every field
     var res=await Promise.all([fetch(src,{credentials:"same-origin"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();}),fetch(fillUrl,{credentials:"same-origin"}).then(function(r){return r.json();}).catch(function(){return null;})]);
-    var doc=await PDFLib.PDFDocument.load(res[0]),form=doc.getForm(),done=[],F=(res[1]&&res[1].ok)?res[1].fields:{};
+    doc=await PDFLib.PDFDocument.load(res[0]);form=doc.getForm();var done=[],F=(res[1]&&res[1].ok)?res[1].fields:{};
     Object.keys(F).forEach(function(k){try{var t=form.getTextField(k);if(!(t.getText()||"").trim()){t.setText(String(F[k]));done.push(k);}}catch(e){}});
-    bytes=await doc.save();window.BAG_FILLED=bytes;
-    if(done.length){var fl=document.getElementById("bagfill");fl.innerHTML="<b>Filled in from this buyer's record:</b> "+res[1].filled.join(", ")+". Check it, and add the compensation and termination date before sending.";fl.hidden=false;}
-    var dl=document.getElementById("bagdl");dl.addEventListener("click",function(e){e.preventDefault();var u=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=v.dataset.name||"Buyer Agreement.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);});
-
-  }
-  await render(bytes);
-}catch(e){fallback();}})();</script>
+    bytes=await doc.save();editable=true;
+    var fl=document.getElementById("bagfill");fl.innerHTML=(done.length?"<b>Filled in from this buyer's record:</b> "+res[1].filled.join(", ")+". ":"")+"<b>Click any field on the form to type or change it</b>, such as the compensation and termination date. Download and Send for Signing use what you see here.";fl.hidden=false;
+    var dl=document.getElementById("bagdl");dl.addEventListener("click",async function(e){e.preventDefault();var u=URL.createObjectURL(new Blob([await getBytes()],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=v.dataset.name||"Buyer Agreement.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);});
+    await render(bytes,true);window.addEventListener("resize",sizeInputs);
+  } else await render(null,false);
+}catch(e){console.error("BAGERR "+(e&&e.message||e));editable=false;fallback();}})();</script>
 <script>(function(){var sd=document.getElementById("bagsend"),box=document.getElementById("bagsendbox");if(!sd||!box)return;
 sd.onclick=function(){box.hidden=!box.hidden;if(!box.hidden)box.scrollIntoView({behavior:"smooth",block:"nearest"});};
 var x=document.getElementById("bagsendx");if(x)x.onclick=function(){box.hidden=true;};
 var go=document.getElementById("bagsendgo"),er=document.getElementById("bagsenderr");if(!go)return;
 go.onclick=async function(){go.disabled=true;go.textContent="Sending...";er.hidden=true;
-  try{var b64="";if(window.BAG_FILLED){var u8=new Uint8Array(window.BAG_FILLED);for(var i=0;i<u8.length;i+=32768)b64+=String.fromCharCode.apply(null,u8.subarray(i,i+32768));b64=btoa(b64);}
+  try{var b64="";if(window.BAG_GET){var u8=new Uint8Array(await window.BAG_GET());for(var i=0;i<u8.length;i+=32768)b64+=String.fromCharCode.apply(null,u8.subarray(i,i+32768));b64=btoa(b64);}
     var j=await fetch("bag_prefill.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,action:"send",tx:<?= json_encode($tx) ?>,kind:<?= json_encode($k) ?>,b64:b64})}).then(function(r){return r.json();});
     if(!j.ok)throw new Error(j.msg||"Could not send it.");location.href=<?= json_encode($self) ?>+"&ok=sent";}
   catch(e){er.textContent=e.message;er.hidden=false;go.disabled=false;go.textContent="Send now";}};})();</script>
