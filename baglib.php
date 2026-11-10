@@ -120,3 +120,43 @@ function bag_pf_get($me, $t) {
     return (string)file_get_contents($p . '.pdf');
 }
 function bag_pf_drop($t) { if (preg_match('/^[a-f0-9]{24}$/', (string)$t)) { @unlink(bag_pf_dir() . '/' . $t . '.pdf'); @unlink(bag_pf_dir() . '/' . $t . '.who'); } }
+
+// Who signs the Buyer Agreement, from the buyer's record: Buyer 1 (and Buyer 2 when there is one), then the agent.
+// Roles match the text tags on both forms ([s:buyer1], [s:buyer2], [s:agent]). Returns ['signers' => [...], 'missing' => msg|''].
+function bag_signers($me, $tx) {
+    require_once __DIR__ . '/leadlib.php';
+    $info = []; $r = sg_buyer_info($me, $tx); if (!empty($r['ok']) && is_array($r['info'] ?? null)) $info = $r['info'];
+    $lead = null; try { $lead = ld_find_by_folder($me, $tx); } catch (Throwable $e) {}
+    $n1 = trim((string)($info['b1_name'] ?? '')); $e1 = trim((string)($info['b1_email'] ?? ''));
+    if ($lead) { if ($n1 === '') $n1 = trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')); if ($e1 === '') $e1 = trim((string)($lead['email'] ?? '')); }
+    $n2 = trim((string)($info['b2_name'] ?? '')); $e2 = trim((string)($info['b2_email'] ?? ''));
+    $out = []; $missing = '';
+    if (!filter_var($e1, FILTER_VALIDATE_EMAIL)) $missing = 'Add ' . ($n1 !== '' ? $n1 . '\'s' : 'the buyer\'s') . ' email address to send this for signing.';
+    else $out[] = ['email' => strtolower($e1), 'role' => 'buyer1', 'name' => $n1, 'label' => 'Buyer 1'];
+    if ($n2 !== '') {
+        if (!filter_var($e2, FILTER_VALIDATE_EMAIL)) $missing = $missing ?: 'Add ' . $n2 . '\'s email address so both buyers can sign.';
+        elseif (strtolower($e2) !== strtolower($e1)) $out[] = ['email' => strtolower($e2), 'role' => 'buyer2', 'name' => $n2, 'label' => 'Buyer 2'];
+    }
+    $out[] = ['email' => strtolower($me), 'role' => 'agent', 'name' => trim((string)($_SESSION['name'] ?? '')) ?: $me, 'label' => 'You (agent)'];
+    return ['signers' => $out, 'missing' => $missing];
+}
+// Send the (filled) agreement to DigiSigner with the buyer's own contact details as the signers. Returns [request id, ''] or ['', error].
+function bag_send($me, $tx, $kind, $pdf) {
+    if (!isset(BAG_FORMS[$kind])) return ['', 'Choose which agreement to send.'];
+    $own = null; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = $t; }
+    if (!$own) return ['', 'That buyer record was not found in your business.'];
+    if (!is_string($pdf) || strlen($pdf) < 500 || substr($pdf, 0, 4) !== '%PDF') $pdf = bag_blank_pdf($kind);
+    if (!$pdf) return ['', 'The agreement could not be loaded. Please try again.'];
+    foreach (bag_state($me, $tx)['pending'] as $p) { if (bag_kind_of($p['form']) === $kind) return ['', 'This agreement is already out for signature. Wait for it, or upload a signed copy.']; }
+    $sg = bag_signers($me, $tx); if ($sg['missing'] !== '') return ['', $sg['missing']];
+    $title = BAG_FORMS[$kind]['title']; $agent = trim((string)($_SESSION['name'] ?? '')) ?: 'Your agent';
+    $signers = array_map(function ($s) { return ['email' => $s['email'], 'role' => $s['role'], 'name' => $s['name']]; }, $sg['signers']);
+    $r = sg_send_pdf($pdf, $title . '.pdf', 'Florida Luxury Realty: please sign ' . $title,
+        $agent . ' (Florida Luxury Realty) has sent you "' . $title . '" to review and sign. If you have questions, reply to ' . $me . '.', $signers);
+    if (empty($r['ok'])) return ['', $r['msg'] ?? 'DigiSigner could not send it. Please try again.'];
+    sg_save($r['id'], ['id' => $r['id'], 'agent' => $me, 'form' => $title, 'form_id' => BAG_FORMS[$kind]['id'], 'doc' => $r['doc'], 'created' => gmdate('c'), 'signers' => $signers,
+        'folder' => ['id' => $tx, 'label' => trim((string)$own['grp'] . ' / ' . (string)$own['name'], ' /')], 'completed' => false]);
+    @file_put_contents(sg_dir() . '/../signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'form' => $title, 'tx' => $tx, 'signers' => array_column($signers, 'email'), 'id' => $r['id']]) . "\n", FILE_APPEND | LOCK_EX);
+    flr_audit(flr_akey($me), 'agreement', $tx, 'Sent ' . $title . ' for signature to ' . implode(', ', array_column($signers, 'email')));
+    return [$r['id'], ''];
+}
