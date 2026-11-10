@@ -158,18 +158,19 @@ function ps_contact_bar($side, $tx, array $info) {
     $o .= '<p style="margin:0"><a href="contact_edit.php?tx=' . urlencode($tx) . '&side=' . urlencode($side) . '&embed=1" target="pscontent" style="color:#036f72;font-weight:700;text-decoration:none">&#9998; Edit contact info</a></p>';
     return $o . '</div>';
 }
-// The pill-button ladder for one record (click a step to move it to that pipeline stage — climbs bottom-to-top, the
-// first stage at the bottom and Closing Completed at the top), the buyer/seller's name and contact info above it with
-// an edit pencil, and — for buyer records — the selected stage's screen in a panel beside the ladder, so clicking a
+// The pill-button ladder for one record (click a step to move it to that pipeline stage — runs left to right, the
+// first stage on the left and Closing Completed on the right), the buyer/seller's name and contact info above it with
+// an edit pencil, and — for buyer records — the selected stage's screen in a panel below the stages, so clicking a
 // stage shows its content right there instead of leaving the page or opening a new window.
 function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $contact = true) {
     $h = function ($s) { return htmlspecialchars((string)$s); };
     $cur = ps_get($tx, $side, $driveStage);
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
     $o .= $contact ? ps_contact_bar($side, $tx, $info) : '<h2 style="margin:0 0 12px;font-size:1.15rem">Pipeline stage</h2>';
-    $o .= '<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">';
-    // Left: the stage ladder, acting as a menu.
-    $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div style="display:flex;flex-direction:column-reverse;gap:6px;width:260px">';
+    $o .= '<style>.psrow{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.psrow>*{flex:1 1 0;min-width:min-content;scroll-snap-align:start}.psrow>*{font-size:.8rem!important;gap:4px!important}.psrow a,.psrow button{line-height:1.25}.psrow a{padding:7px 6px 7px 4px!important}.psrow>div>button{padding:7px 0 7px 7px!important}@media(max-width:700px){.psrow>*{flex:0 0 150px}}</style>';
+    $o .= '<div style="display:flex;flex-direction:column;gap:14px">';
+    // Top: the stages left to right (first stage on the left), acting as a menu.
+    $o .= '<div><form method="post"><input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tx" value="' . $h($tx) . '"><input type="hidden" name="op" value="setpstage"><div class="psrow">';
     // Buyer records show 6 rungs: "offer" stands in for both Make An Offer and Executed Contract (ps_offer_contract_state
     // switches its label/destination on its own once a contract is filed). Sellers are unchanged.
     $rungKeys = $side === 'buyer' ? ps_buyer_rungs() : array_keys(PS_STAGES[$side]);
@@ -188,20 +189,22 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
         $circle = '<span style="background:rgba(255,255,255,.35);color:inherit;border-radius:99px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;flex:none" title="' . ($done ? 'Completed' : 'Set as current stage') . '">' . ($done ? '&#10003;' : $i) . '</span>';
         if ($dest !== null) {
             // Split control: the numbered circle sets this as the current stage; the label opens that stage's screen in
-            // the panel to the right (except Make An Offer, which still opens the full Wizard page).
+            // the panel below (except Make An Offer, which still opens the full Wizard page).
             $embeddable = $merged ? $merged['embeddable'] : ps_embeddable($k);
             $href = $embeddable ? ($dest . '&embed=1') : $dest;
             $target = $embeddable ? ' target="pscontent"' : '';
-            $o .= '<div style="' . $pillStyle . ';padding:2px">';
+            $o .= '<div' . ($on ? ' data-cur="1"' : '') . ' style="' . $pillStyle . ';padding:2px">';
             $o .= '<button type="submit" name="pstage" value="' . $h($storeKey) . '" title="Set as current stage" style="background:transparent;border:none;color:inherit;cursor:pointer;padding:7px 0 7px 10px">' . $circle . '</button>';
             $o .= '<a href="' . $h($href) . '"' . $target . ' style="flex:1;color:inherit;text-decoration:none;padding:7px 10px 7px 6px">' . $h($label) . '</a>';
             $o .= '</div>';
         } else {
-            $o .= '<button type="submit" name="pstage" value="' . $h($storeKey) . '" style="' . $pillStyle . ';padding:9px 14px;cursor:pointer">' . $circle . $h($label) . '</button>';
+            $o .= '<button type="submit" name="pstage" value="' . $h($storeKey) . '"' . ($on ? ' data-cur="1"' : '') . ' style="' . $pillStyle . ';padding:9px 10px;cursor:pointer">' . $circle . $h($label) . '</button>';
         }
     }
     $o .= '</div></form></div>';
-    // Right: the content panel. Every buyer stage (but Make An Offer) opens here; sellers' stages have no screens yet,
+    // On a narrow screen the row scrolls sideways: start it at the current stage.
+    $o .= '<script>(function(){var r=document.querySelectorAll(".psrow"),i;for(i=0;i<r.length;i++){var c=r[i].querySelector("[data-cur]");if(c&&r[i].scrollWidth>r[i].clientWidth)r[i].scrollLeft=Math.max(0,c.offsetLeft-r[i].offsetLeft-24);}})();</script>';
+    // Below: the content panel. Every buyer stage (but Make An Offer) opens here; sellers' stages have no screens yet,
     // but the panel still exists so the "Edit contact info" pencil above has somewhere to open into.
     $src = '';
     if ($side === 'buyer') {
@@ -210,7 +213,7 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
         $defEmbeddable = $curMerged ? $curMerged['embeddable'] : ps_embeddable($cur);
         $src = ($defDest !== null && $defEmbeddable) ? ($defDest . '&embed=1') : '';
     }
-    $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="flex:1;min-width:280px;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
+    $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="width:100%;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
     if ($src === '') { $o .= ' srcdoc="<body style=\'font-family:sans-serif;color:#6a777a;padding:20px;margin:0\'>Click a stage, or Edit contact info, to view it here.</body>"'; }
     $o .= '></iframe>';
     $o .= '</div></div>';
