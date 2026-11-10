@@ -423,7 +423,14 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
   h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan.')+'</div>';
   return h;
 }
-function openLead(L,preset,inl){modal=inl||MODAL;
+function openLead(L,preset,inl){
+  if(!inl){ // a lead (or + ADD) opens in the page body, below the buttons, instead of in a popup
+    var host=body.querySelector(".lwrap")?body.querySelector(".lwrap").lastElementChild:body;
+    host.innerHTML='<div class="modal inl" id="inlDetail" style="max-width:none;margin:0;border:1px solid var(--line)"></div>';
+    inl=document.getElementById("inlDetail");
+    setTimeout(function(){var t=document.getElementById("tabs");if(t)window.scrollTo({top:Math.max(0,t.getBoundingClientRect().top+window.pageYOffset-12),behavior:"smooth"});},30);
+  }
+  modal=inl;
   var isNew=!L;L=L||{first:"",last:"",phone:"",email:"",source:"",notes:"",roles:{},view:[],log:[]};
   var rs={};["buyer","seller","sphere"].forEach(function(k){rs[k]=(L.roles&&L.roles[k]&&L.roles[k].sub)||(preset&&preset[k])||"";});
   var h='<h2 style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 0"><span>'+(isNew?"Add a lead":esc(nm(L))+(L.phone?'<a href="tel:'+esc(digits(L.phone))+'" style="margin-left:1.2em;color:var(--teal);text-decoration:none;white-space:nowrap">'+esc(L.phone)+'</a>':''))+'</span>'
