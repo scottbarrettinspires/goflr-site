@@ -4,6 +4,7 @@
 // GET  ?id=N                          -> {ok, item}
 // POST multipart (staff): action=add, csrf, kind, title, series, session (YYYY-MM-DD), pdf (file) -> {ok}
 // POST (staff): action=delete, csrf, id -> {ok}
+// POST (staff): action=rename, csrf, id, title -> {ok}
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/learnlib.php";
 require_once __DIR__ . "/dlib.php";
@@ -20,4 +21,5 @@ if (!flr_is_broker()) { http_response_code(403); echo json_encode(['ok' => false
 $by = strtolower($_SESSION['email'] ?? ''); $a = (string)($j['action'] ?? '');
 if ($a === 'add') { $e = ln_add((string)($j['kind'] ?? ''), (string)($j['title'] ?? ''), (string)($j['series'] ?? ''), (string)($j['session'] ?? ''), $_FILES['pdf'] ?? [], $by); echo json_encode($e === '' ? ['ok' => true] : ['ok' => false, 'msg' => $e]); exit; }
 if ($a === 'delete') { $e = ln_delete((int)($j['id'] ?? 0), $by); echo json_encode($e === '' ? ['ok' => true] : ['ok' => false, 'msg' => $e]); exit; }
-http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use add or delete.']);
+if ($a === 'rename') { $e = ln_rename((int)($j['id'] ?? 0), (string)($j['title'] ?? ''), $by); echo json_encode($e === '' ? ['ok' => true] : ['ok' => false, 'msg' => $e]); exit; }
+http_response_code(400); echo json_encode(['ok' => false, 'msg' => 'Unknown action. Use add, delete or rename.']);

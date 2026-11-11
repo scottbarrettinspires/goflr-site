@@ -58,5 +58,12 @@ function ln_delete($id, $by) {
     flr_audit('', 'learn_delete', (string)(int)$id, $it['title'] . ' (by ' . $by . ')');
     return '';
 }
+function ln_rename($id, $title, $by) {
+    $it = ln_item($id); if (!$it) return 'That item was not found.';
+    $title = trim(mb_substr((string)$title, 0, 140)); if ($title === '') return 'Enter a title.';
+    ln_db()->prepare('UPDATE learn_items SET title = ? WHERE id = ?')->execute([$title, (int)$id]);
+    flr_audit('', 'learn_rename', (string)(int)$id, $it['title'] . ' -> ' . $title . ' (by ' . $by . ')');
+    return '';
+}
 function ln_file_url($id, $dl = false) { return 'learn_file.php?id=' . (int)$id . ($dl ? '&dl=1' : ''); }
 function ln_when($d) { return preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$d) ? date('M j, Y', strtotime($d)) : ''; }
