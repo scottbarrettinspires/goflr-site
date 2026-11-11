@@ -1,6 +1,7 @@
 <?php
 // Learn And Grow Your Business for assistants. Same sign-in and permissions as the page.
 // GET  [?kind=presentation|playbook]  -> {ok, items:[{id, kind, title, series, session, view_url, download_url}]}
+// GET  ?refresh=1                    -> re-reads the Drive Training folders right now (otherwise at most every 2 minutes)
 // GET  ?id=N                          -> {ok, item}
 // POST multipart (staff): action=add, csrf, kind, title, series, session (YYYY-MM-DD), pdf (file) -> {ok}
 // POST (staff): action=delete, csrf, id -> {ok}
@@ -10,10 +11,11 @@ require_once __DIR__ . "/learnlib.php";
 require_once __DIR__ . "/dlib.php";
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
+$syncMsg = ln_sync(!empty($_GET['refresh']));
 $shape = function ($r) { return ['id' => (int)$r['id'], 'kind' => $r['kind'], 'title' => $r['title'], 'series' => (string)$r['series'], 'session' => (string)$r['session'], 'view_url' => 'https://goflr.com/learn.php?tab=' . ($r['kind'] === 'playbook' ? 'playbooks' : 'presentations') . '&id=' . (int)$r['id'], 'download_url' => 'https://goflr.com/' . ln_file_url($r['id'], true)]; };
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     if (isset($_GET['id'])) { $it = ln_item((int)$_GET['id']); echo json_encode($it ? ['ok' => true, 'item' => $shape($it)] : ['ok' => false, 'msg' => 'That item was not found.']); exit; }
-    echo json_encode(['ok' => true, 'items' => array_map($shape, ln_list((string)($_GET['kind'] ?? '')))]); exit;
+    echo json_encode(['ok' => true, 'items' => array_map($shape, ln_list((string)($_GET['kind'] ?? ''))), 'sync_note' => $syncMsg]); exit;
 }
 $j = $_POST ?: (json_decode((string)file_get_contents('php://input'), true) ?: []);
 if (!hash_equals($_SESSION['csrf'], (string)($j['csrf'] ?? ''))) { http_response_code(403); echo json_encode(['ok' => false, 'msg' => 'This page expired. Please reload and try again.']); exit; }

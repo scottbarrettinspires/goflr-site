@@ -13,6 +13,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     elseif (($_POST['a'] ?? '') === 'rename') { $err = ln_rename((int)($_POST['id'] ?? 0), (string)($_POST['title'] ?? ''), $by); if ($err === '') $msg = 'Renamed.'; }
     elseif (($_POST['a'] ?? '') === 'delete') { $err = ln_delete((int)($_POST['id'] ?? 0), $by); if ($err === '') $msg = 'Removed.'; }
 }
+$syncErr = ln_sync();
 $h = function ($s) { return htmlspecialchars((string)$s); };
 $tab = ($_GET['tab'] ?? '') === 'playbooks' ? 'playbook' : 'presentation';
 $open = (int)($_GET['id'] ?? 0); if ($open && ($oi = ln_item($open))) $tab = $oi['kind'];
@@ -91,7 +92,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 <?php foreach ($list as $r): ?>
       <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>">
         <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ' · view slides' ?></small></button>
-<?php if ($isStaff): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
+<?php if ($isStaff && empty($r['gid'])): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
       </div>
 <?php endforeach; ?>
     </div>
