@@ -114,6 +114,7 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
     <a href="leads.php">Leads &amp; Contacts</a>
     <a href="my-transactions.php" aria-current="page">Active Business</a>
     <a href="performance.php">Performance</a>
+    <a href="learn.php">Learn</a>
     <?php endif; ?>
     <?php if (flr_is_broker()): ?><a href="recruiting.php">Recruiting</a><?php endif; ?>
     <a href="logout.php">Sign Out</a>
