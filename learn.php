@@ -18,6 +18,7 @@ $h = function ($s) { return htmlspecialchars((string)$s); };
 $tab = ($_GET['tab'] ?? '') === 'playbooks' ? 'playbook' : 'presentation';
 $open = (int)($_GET['id'] ?? 0); if ($open && ($oi = ln_item($open))) $tab = $oi['kind'];
 $items = ['presentation' => ln_list('presentation'), 'playbook' => ln_list('playbook')];
+$partners = ln_partners($items);
 $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">';
 ?>
 <!doctype html>
@@ -90,7 +91,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 <?php if (!$list): ?><p class="lhint">Nothing here yet. Check back after the next Round Table.</p><?php endif; ?>
     <div class="lgrid">
 <?php foreach ($list as $r): ?>
-      <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>">
+      <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>" data-partners="<?= $h(json_encode($partners[$r['id']] ?? [])) ?>">
         <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ' · view slides' ?></small></button>
 <?php if ($isStaff && empty($r['gid'])): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
       </div>
@@ -132,6 +133,11 @@ async function openItem(c){
   view.hidden=false;
   view.innerHTML='<div class="lbar"><h2>'+esc(c.dataset.title)+'</h2><a class="lbtn ghost" href="'+dl+'">Download PDF</a>'+(kind==="presentation"?'<button type="button" class="lbtn ghost" id="lfs">Full screen</button>':'')+'<button type="button" class="lbtn ghost" id="lclose">Close</button></div>'
    +(kind==="presentation"?'<div class="lfs" id="lfsbox"><div class="lstage" id="lstage"><p style="color:#fff">Opening the slides&hellip;</p></div><div class="lnav"><button type="button" class="lbtn" id="lprev">&larr; Back</button><span class="lcount" id="lcount"></span><button type="button" class="lbtn" id="lnext">Next &rarr;</button></div></div>':'<div class="lpb" id="lpb"><p>Opening the playbook&hellip;</p></div>');
+  var pts=[];try{pts=JSON.parse(c.dataset.partners||"[]");}catch(e){}
+  if(pts.length){var pr=document.createElement("div");pr.style.cssText="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px";
+    pr.innerHTML='<span class="lhint" style="margin:0">'+(kind==="presentation"?"Goes with this presentation:":"Goes with this playbook:")+'</span>'+pts.map(function(p){var lab=p.kind==="playbook"?"Playbook":"Slides";return '<span style="display:inline-flex;gap:6px;align-items:center"><button type="button" class="lbtn ghost lpt" data-id="'+p.id+'">View '+lab+(pts.length>1?": "+esc(p.title):"")+'</button><a class="lbtn ghost" href="learn_file.php?id='+p.id+'&dl=1">Download</a></span>';}).join("");
+    view.firstChild.after(pr);
+    pr.querySelectorAll(".lpt").forEach(function(b){b.onclick=function(){var t=document.querySelector('.lcard[data-id="'+b.dataset.id+'"]');if(t){document.querySelectorAll(".lsec").forEach(function(s){s.hidden=s.dataset.k!==t.dataset.kind;});tabs.querySelectorAll("button").forEach(function(x){x.classList.toggle("on",x.dataset.t===t.dataset.kind);});openItem(t);}};});}
   document.getElementById("lclose").onclick=closeView;
   view.scrollIntoView({behavior:"smooth",block:"start"});
   try{cur.doc=await pdfjsLib.getDocument({url:url}).promise;}catch(e){fail("This file could not be opened. Try Download PDF instead.");return;}
