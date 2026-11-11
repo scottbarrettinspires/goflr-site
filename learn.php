@@ -18,7 +18,7 @@ $syncErr = ln_sync(); ln_yt_sync();
 $h = function ($s) { return htmlspecialchars((string)$s); };
 $tab = ($_GET['tab'] ?? '') === 'playbooks' ? 'playbook' : (($_GET['tab'] ?? '') === 'videos' ? 'video' : 'presentation');
 $open = (int)($_GET['id'] ?? 0); if ($open && ($oi = ln_item($open))) $tab = $oi['kind'];
-$items = ['presentation' => ln_list('presentation'), 'playbook' => ln_list('playbook'), 'video' => ln_list('video')];
+$items = ['playbook' => ln_list('playbook'), 'video' => ln_list('video'), 'presentation' => ln_list('presentation')];
 $partners = ln_partners(['presentation' => $items['presentation'], 'playbook' => $items['playbook']]);
 $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">';
 ?>
@@ -86,9 +86,9 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 <?php if ($msg): ?><p class="note"><?= $h($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= $h($err) ?></p><?php endif; ?>
   <div class="lt" id="tabs">
-    <button type="button" data-t="presentation" class="<?= $tab === 'presentation' ? 'on' : '' ?>">Presentations <span class="n"><?= count($items['presentation']) ?></span></button>
     <button type="button" data-t="playbook" class="<?= $tab === 'playbook' ? 'on' : '' ?>">Playbooks <span class="n"><?= count($items['playbook']) ?></span></button>
     <button type="button" data-t="video" class="<?= $tab === 'video' ? 'on' : '' ?>">Videos <span class="n"><?= count($items['video']) ?></span></button>
+    <button type="button" data-t="presentation" class="<?= $tab === 'presentation' ? 'on' : '' ?>">Presentations <span class="n"><?= count($items['presentation']) ?></span></button>
     <div class="lsrow"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><label class="lsbox"><input type="search" id="lq" class="lsearch" placeholder="Search for a topic, e.g. listings, AI, holiday" aria-label="Search Learn And Grow Your Business" autocomplete="off"></label></div>
   </div>
   <div id="viewer" class="lview" hidden></div>
