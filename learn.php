@@ -1,5 +1,5 @@
 <?php
-// Learn The Business: slides and playbooks from past Round Tables, viewed right on the page.
+// Learn And Grow Your Business: slides and playbooks from past Round Tables, viewed right on the page.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
 require_once __DIR__ . "/learnlib.php";
@@ -32,7 +32,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>Learn The Business - FLR Agent Back Office</title>
+<title>Learn And Grow Your Business - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=17">
 <style>
 .lt{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
@@ -74,7 +74,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
     <a href="logout.php">Sign Out</a>
   </nav>
 </div></header>
-<section class="hero"><h1>Learn The Business</h1><p>Slides and playbooks from our Round Tables. Watch the slides here, scroll through a playbook, or download it to keep.</p></section>
+<section class="hero"><h1>Learn And Grow Your Business</h1><p>Slides and playbooks from our Round Tables. Watch the slides here, scroll through a playbook, or download it to keep.</p></section>
 <main class="wrap">
 <?php if ($msg): ?><p class="note"><?= $h($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= $h($err) ?></p><?php endif; ?>
@@ -90,14 +90,14 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 <?php foreach ($list as $r): ?>
       <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>">
         <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ' · view slides' ?></small></button>
-<?php if ($isStaff): ?><form method="post" onsubmit="return confirm('Remove this from Learn The Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
+<?php if ($isStaff): ?><form method="post" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
       </div>
 <?php endforeach; ?>
     </div>
   </section>
 <?php endforeach; ?>
 <?php if ($isStaff): ?>
-  <details class="ladm"><summary>Add to Learn The Business (office staff)</summary>
+  <details class="ladm"><summary>Add to Learn And Grow Your Business (office staff)</summary>
     <form method="post" enctype="multipart/form-data"><?= $csrf ?><input type="hidden" name="a" value="add">
       <label>Type<select name="kind"><option value="presentation">Presentation (shown slide by slide)</option><option value="playbook">Playbook (scroll and download)</option></select></label>
       <label>Title<input name="title" maxlength="140" required></label>

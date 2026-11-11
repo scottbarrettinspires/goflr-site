@@ -1,5 +1,5 @@
 <?php
-// Learn The Business: slide presentations and playbooks from past Round Tables. The PDFs live on the server (outside the web
+// Learn And Grow Your Business: slide presentations and playbooks from past Round Tables. The PDFs live on the server (outside the web
 // root, served only to signed-in users) so every agent can view them in the page whatever Google account they use.
 // Presentations are shown one slide at a time; playbooks scroll and can be downloaded. Staff add and remove items.
 require_once __DIR__ . '/flrdb.php';

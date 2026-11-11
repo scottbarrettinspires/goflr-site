@@ -1,5 +1,5 @@
 <?php
-// Serves a Learn The Business PDF to signed-in users. ?dl=1 downloads it instead of showing it.
+// Serves a Learn And Grow Your Business PDF to signed-in users. ?dl=1 downloads it instead of showing it.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/learnlib.php";
 $it = ln_item((int)($_GET['id'] ?? 0));

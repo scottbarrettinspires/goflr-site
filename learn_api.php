@@ -1,5 +1,5 @@
 <?php
-// Learn The Business for assistants. Same sign-in and permissions as the page.
+// Learn And Grow Your Business for assistants. Same sign-in and permissions as the page.
 // GET  [?kind=presentation|playbook]  -> {ok, items:[{id, kind, title, series, session, view_url, download_url}]}
 // GET  ?id=N                          -> {ok, item}
 // POST multipart (staff): action=add, csrf, kind, title, series, session (YYYY-MM-DD), pdf (file) -> {ok}
