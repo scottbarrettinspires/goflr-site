@@ -16,7 +16,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 }
 $syncErr = ln_sync(); ln_yt_sync();
 $h = function ($s) { return htmlspecialchars((string)$s); };
-$tab = ($_GET['tab'] ?? '') === 'playbooks' ? 'playbook' : (($_GET['tab'] ?? '') === 'videos' ? 'video' : 'presentation');
+$tab = ($_GET['tab'] ?? '') === 'videos' ? 'video' : (($_GET['tab'] ?? '') === 'presentations' ? 'presentation' : 'playbook');
 $open = (int)($_GET['id'] ?? 0); if ($open && ($oi = ln_item($open))) $tab = $oi['kind'];
 $items = ['playbook' => ln_list('playbook'), 'video' => ln_list('video'), 'presentation' => ln_list('presentation')];
 $partners = ln_partners(['presentation' => $items['presentation'], 'playbook' => $items['playbook']]);
