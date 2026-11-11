@@ -12,7 +12,7 @@ function ln_db() {
     static $done = false; $pdo = flr_db();
     if ($done) return $pdo;
     $pdo->exec('CREATE TABLE IF NOT EXISTS learn_items (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, title TEXT NOT NULL, series TEXT, session TEXT, file TEXT NOT NULL, size INTEGER DEFAULT 0, added TEXT, added_by TEXT, deleted INTEGER DEFAULT 0)');
-    foreach (['gid TEXT', 'gmod INTEGER DEFAULT 0'] as $col) { try { $pdo->exec('ALTER TABLE learn_items ADD COLUMN ' . $col); } catch (Exception $e) {} }
+    foreach (['gid TEXT', 'gmod INTEGER DEFAULT 0', 'txt TEXT'] as $col) { try { $pdo->exec('ALTER TABLE learn_items ADD COLUMN ' . $col); } catch (Exception $e) {} }
     $done = true;
     if (!(int)$pdo->query('SELECT COUNT(*) FROM learn_items')->fetchColumn() && is_dir(__DIR__ . '/learn_seed')) ln_seed($pdo);
     return $pdo;
@@ -35,7 +35,7 @@ function ln_seed($pdo) {
     }
 }
 function ln_list($kind = '') {
-    $q = ln_db()->prepare('SELECT id, kind, title, series, session, size, added, gid FROM learn_items WHERE deleted = 0' . ($kind !== '' ? ' AND kind = ?' : '') . ' ORDER BY session DESC, id DESC');
+    $q = ln_db()->prepare("SELECT id, kind, title, series, session, size, added, gid, (txt IS NULL OR txt = '') AS noidx FROM learn_items WHERE deleted = 0" . ($kind !== '' ? ' AND kind = ?' : '') . ' ORDER BY session DESC, id DESC');
     $q->execute($kind !== '' ? [$kind] : []); return $q->fetchAll(PDO::FETCH_ASSOC);
 }
 // A presentation and its playbook are paired when their titles match once the word "playbook" is taken out (and "print version" for print copies).
@@ -53,6 +53,22 @@ function ln_partners(array $lists) {
             $out[$r['id']] = array_map(function ($p) { return ['id' => (int)$p['id'], 'kind' => $p['kind'], 'title' => $p['title']]; }, $by[$other][$k] ?? []);
         }
     return $out;
+}
+// Search the titles and the words inside the slides/playbooks (and video descriptions). Every word typed must be found somewhere. Returns list rows.
+function ln_search($q, $kind = '') {
+    $terms = array_values(array_filter(preg_split('/\s+/', mb_strtolower(trim((string)$q)))));
+    if (!$terms) return ln_list($kind);
+    $terms = array_slice($terms, 0, 6); $where = ['deleted = 0']; $args = [];
+    foreach ($terms as $t) { $where[] = "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(txt, '')) LIKE ? ESCAPE '\\')"; $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $t) . '%'; $args[] = $like; $args[] = $like; }
+    if ($kind !== '') { $where[] = 'kind = ?'; $args[] = $kind; }
+    $st = ln_db()->prepare('SELECT id, kind, title, series, session, size, added, gid, (txt IS NULL OR txt = \'\') AS noidx FROM learn_items WHERE ' . implode(' AND ', $where) . ' ORDER BY session DESC, id DESC');
+    $st->execute($args); return $st->fetchAll(PDO::FETCH_ASSOC);
+}
+// Saves the words found in a PDF so it can be searched. Done once per PDF by the browser of whoever opens the Learn page first.
+function ln_set_text($id, $text) {
+    $it = ln_item($id); if (!$it || $it['kind'] === 'video') return 'That item was not found.';
+    $text = trim(preg_replace('/\s+/u', ' ', (string)$text)); $text = $text === '' ? '-' : mb_substr($text, 0, 150000);
+    ln_db()->prepare('UPDATE learn_items SET txt = ? WHERE id = ?')->execute([$text, (int)$id]); return '';
 }
 function ln_item($id) { $q = ln_db()->prepare('SELECT * FROM learn_items WHERE id = ? AND deleted = 0'); $q->execute([(int)$id]); return $q->fetch(PDO::FETCH_ASSOC) ?: null; }
 
@@ -94,7 +110,7 @@ function ln_sync($force = false, $list = null) {
             if ($r['title'] !== $title || $r['kind'] !== $kind) { $pdo->prepare('UPDATE learn_items SET title = ?, kind = ? WHERE id = ?')->execute([$title, $kind, $r['id']]); flr_audit('', 'learn_sync_rename', (string)$r['id'], $r['title'] . ' -> ' . $title); }
             // Changed in Drive since we copied it (or never copied): mark so the next open downloads the new version. First sync after launch just records the date.
             if ((int)$r['gmod'] === 0) $pdo->prepare('UPDATE learn_items SET gmod = ? WHERE id = ?')->execute([$mod, $r['id']]);
-            elseif ($mod > (int)$r['gmod']) $pdo->prepare("UPDATE learn_items SET gmod = ?, file = '', size = ? WHERE id = ?")->execute([$mod, $size, $r['id']]);
+            elseif ($mod > (int)$r['gmod']) $pdo->prepare("UPDATE learn_items SET gmod = ?, file = '', txt = '', size = ? WHERE id = ?")->execute([$mod, $size, $r['id']]);
         } else {
             $pdo->prepare('INSERT INTO learn_items (kind, title, series, session, file, size, added, added_by, gid, gmod) VALUES (?,?,?,?,?,?,?,?,?,?)')->execute([$kind, $title, '', date('Y-m-d', $mod ?: time()), '', $size, date('c'), 'drive', $gid, $mod]);
             flr_audit('', 'learn_sync_add', (string)$pdo->lastInsertId(), $kind . ': ' . $title);
@@ -154,8 +170,10 @@ function ln_yt_sync($force = false, $xml = null) {
         $e->registerXPathNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
         $vid = (string)(($e->xpath('yt:videoId') ?: [''])[0]); $title = trim((string)($e->children('http://www.w3.org/2005/Atom')->title)); $pub = substr((string)($e->children('http://www.w3.org/2005/Atom')->published), 0, 10);
         if (!preg_match('/^[A-Za-z0-9_-]{11}$/', $vid) || $title === '') continue;
-        $q = $pdo->prepare('SELECT id FROM learn_items WHERE gid = ?'); $q->execute(['yt:' . $vid]); if ($q->fetch()) continue;
-        $pdo->prepare('INSERT INTO learn_items (kind, title, series, session, file, size, added, added_by, gid, gmod) VALUES (?,?,?,?,?,?,?,?,?,?)')->execute(['video', mb_substr($title, 0, 140), '', $pub ?: date('Y-m-d'), '', 0, date('c'), 'youtube', 'yt:' . $vid, 0]);
+        $mg = $e->children('http://search.yahoo.com/mrss/'); $desc = trim(preg_replace('/\s+/u', ' ', (string)($mg->group->description ?? ''))); $desc = $desc === '' ? '' : mb_substr($desc, 0, 4000);
+        $q = $pdo->prepare('SELECT id FROM learn_items WHERE gid = ?'); $q->execute(['yt:' . $vid]); $ex = $q->fetch();
+        if ($ex) { if ($desc !== '') $pdo->prepare("UPDATE learn_items SET txt = ? WHERE id = ? AND (txt IS NULL OR txt = '')")->execute([$desc, $ex['id']]); continue; }
+        $pdo->prepare('INSERT INTO learn_items (kind, title, series, session, file, size, added, added_by, gid, gmod, txt) VALUES (?,?,?,?,?,?,?,?,?,?,?)')->execute(['video', mb_substr($title, 0, 140), '', $pub ?: date('Y-m-d'), '', 0, date('c'), 'youtube', 'yt:' . $vid, 0, $desc]);
         flr_audit('', 'learn_sync_add', (string)$pdo->lastInsertId(), 'video: ' . $title);
     }
     return '';

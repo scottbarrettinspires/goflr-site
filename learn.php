@@ -45,6 +45,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .lcard{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
 .lcard:hover{border-color:var(--teal);box-shadow:0 2px 10px rgba(3,111,114,.12)}.lcard.on{border-color:var(--teal);background:#f1f9f9}
+.lsearch{margin-left:auto;flex:1 1 220px;max-width:340px;padding:9px 14px;border:1px solid var(--line);border-radius:10px;font:inherit}.lsearch:focus{outline:2px solid var(--teal);outline-offset:1px}.lsh{display:none;margin:14px 0 8px;font-size:1rem;color:var(--teal)}.lsearching .lsh{display:block}@media (max-width:600px){.lsearch{max-width:none;flex-basis:100%;margin-left:0}}
 .lthumb{display:none}
 @media (min-width:900px){.lthumb{display:block;position:relative;aspect-ratio:16/9;margin:-14px -16px 4px;width:calc(100% + 32px);overflow:hidden;border-radius:14px 14px 0 0;background:#10191a}.lthumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}.lthumb img:not([src]),.lthumb img.no{visibility:hidden}.lthumb.vid:after{content:'';position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(0,0,0,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M9 6.5v11l9-5.5z'/%3E%3C/svg%3E") center/26px no-repeat}}
 .lcard b{font-size:1.02rem;line-height:1.25}.lcard small{color:#5a6a6c}.lcard .tg{font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em}
@@ -88,14 +89,17 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
     <button type="button" data-t="presentation" class="<?= $tab === 'presentation' ? 'on' : '' ?>">Presentations <span class="n"><?= count($items['presentation']) ?></span></button>
     <button type="button" data-t="playbook" class="<?= $tab === 'playbook' ? 'on' : '' ?>">Playbooks <span class="n"><?= count($items['playbook']) ?></span></button>
     <button type="button" data-t="video" class="<?= $tab === 'video' ? 'on' : '' ?>">Videos <span class="n"><?= count($items['video']) ?></span></button>
+    <input type="search" id="lq" class="lsearch" placeholder="Search for a topic, e.g. listings, AI, holiday" aria-label="Search Learn And Grow Your Business" autocomplete="off">
   </div>
   <div id="viewer" class="lview" hidden></div>
+  <p id="lnone" class="lhint" hidden>Nothing in Learn matches that. Try a shorter word or a different topic.</p>
 <?php foreach ($items as $kind => $list): ?>
   <section class="lsec" data-k="<?= $kind ?>"<?= $kind === $tab ? '' : ' hidden' ?>>
+    <h3 class="lsh"><?= $h(LN_KINDS[$kind]) ?></h3>
 <?php if (!$list): ?><p class="lhint">Nothing here yet. Check back after the next session.</p><?php endif; ?>
     <div class="lgrid">
 <?php foreach ($list as $r): ?>
-      <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>" data-vid="<?= $h(ln_video_id($r)) ?>" data-partners="<?= $h(json_encode($partners[$r['id']] ?? [])) ?>">
+      <div class="lwrap" data-id="<?= (int)$r['id'] ?>" data-idx="<?= !empty($r['noidx']) && $kind !== 'video' ? 1 : 0 ?>"><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>" data-vid="<?= $h(ln_video_id($r)) ?>" data-partners="<?= $h(json_encode($partners[$r['id']] ?? [])) ?>">
         <span class="lthumb<?= $kind === 'video' ? ' vid' : '' ?>" aria-hidden="true"><img alt=""<?= $kind === 'video' && ln_video_id($r) !== '' ? ' data-src="https://i.ytimg.com/vi/' . $h(ln_video_id($r)) . '/mqdefault.jpg"' : '' ?>></span>
         <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ($kind === 'video' ? ' · watch the recording' : ' · view slides') ?></small></button>
 <?php if ($isStaff && (empty($r['gid']) || $kind === 'video')): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
@@ -191,6 +195,28 @@ function scroller(){
     async function draw(c){var pg=await cur.doc.getPage(+c.dataset.p),v=pg.getViewport({scale:(W/pg.getViewport({scale:1}).width)*dpr});c.width=v.width;c.height=v.height;c.style.width=Math.floor(v.width/dpr)+"px";c.style.height=Math.floor(v.height/dpr)+"px";await pg.render({canvasContext:c.getContext("2d"),viewport:v}).promise;}
   })();
 }
+// ---- Search: titles and the words inside slides, playbooks and video descriptions ----
+(function(){
+  var q=document.getElementById("lq"),none=document.getElementById("lnone"),secs=document.querySelectorAll(".lsec"),main=document.querySelector("main"),t=0,seq=0;
+  function reset(){main.classList.remove("lsearching");none.hidden=true;document.querySelectorAll(".lwrap").forEach(function(w){w.hidden=false;});
+    var on=tabs.querySelector("button.on");secs.forEach(function(s){s.hidden=!on||s.dataset.k!==on.dataset.t;});}
+  async function run(){var v=q.value.trim();if(!v){reset();return;}var my=++seq,ids={};
+    try{var r=await (await fetch("learn_api.php?q="+encodeURIComponent(v))).json();if(my!==seq)return;(r.items||[]).forEach(function(i){ids[i.id]=1;});}catch(e){return;}
+    main.classList.add("lsearching");var total=0;
+    secs.forEach(function(s){var n=0;s.querySelectorAll(".lwrap").forEach(function(w){var ok=!!ids[w.dataset.id];w.hidden=!ok;if(ok)n++;});total+=n;s.hidden=n===0;});
+    none.hidden=total>0;}
+  q.addEventListener("input",function(){clearTimeout(t);t=setTimeout(run,250);});
+  tabs.addEventListener("click",function(e){if(e.target.closest("button[data-t]")&&q.value.trim()){q.value="";reset();}},true);
+})();
+// ---- Index the words inside each PDF once, so searching finds topics inside slides and playbooks ----
+(function(){
+  if(!window.pdfjsLib)return;var todo=Array.prototype.slice.call(document.querySelectorAll('.lwrap[data-idx="1"]')).map(function(w){return w.dataset.id;});if(!todo.length)return;
+  if(!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  async function one(id){var doc=await pdfjsLib.getDocument({url:"learn_file.php?id="+id}).promise,out=[],n=Math.min(doc.numPages,150);
+    for(var i=1;i<=n;i++){var pg=await doc.getPage(i),tc=await pg.getTextContent();out.push(tc.items.map(function(x){return x.str;}).join(" "));}
+    var fd=new FormData();fd.append("id",id);fd.append("csrf",<?= json_encode($_SESSION['csrf']) ?>);fd.append("text",out.join(" ").slice(0,150000));await fetch("learn_index.php",{method:"POST",body:fd});doc.destroy();}
+  (async function(){await new Promise(function(r){setTimeout(r,2500);});for(var i=0;i<todo.length;i++){try{await one(todo[i]);}catch(e){}}})();
+})();
 // ---- Desktop card pictures: YouTube's picture for videos; page 1 for PDFs, made once in the browser and saved on the server ----
 (function(){
   if(!window.matchMedia||!matchMedia("(min-width:900px)").matches)return;
