@@ -37,6 +37,22 @@ function ln_list($kind = '') {
     $q = ln_db()->prepare('SELECT id, kind, title, series, session, size, added, gid FROM learn_items WHERE deleted = 0' . ($kind !== '' ? ' AND kind = ?' : '') . ' ORDER BY session DESC, id DESC');
     $q->execute($kind !== '' ? [$kind] : []); return $q->fetchAll(PDO::FETCH_ASSOC);
 }
+// A presentation and its playbook are paired when their titles match once the word "playbook" is taken out (and "print version" for print copies).
+function ln_pair_key($t) {
+    $t = strtolower((string)$t); $t = preg_replace('/\bprint(able)?( version)?\b/', ' ', $t); $t = preg_replace('/\bplaybooks?\b/', ' ', $t);
+    return trim(preg_replace('/[^a-z0-9]+/', ' ', $t));
+}
+// For each item id: the items of the other kind that go with it. [id => [[id, kind, title], ...]]
+function ln_partners(array $lists) {
+    $by = ['presentation' => [], 'playbook' => []];
+    foreach ($lists as $kind => $rows) foreach ($rows as $r) { $k = ln_pair_key($r['title']); if ($k !== '') $by[$kind][$k][] = $r; }
+    $out = [];
+    foreach (['presentation' => 'playbook', 'playbook' => 'presentation'] as $kind => $other)
+        foreach ($by[$kind] as $k => $rows) foreach ($rows as $r) {
+            $out[$r['id']] = array_map(function ($p) { return ['id' => (int)$p['id'], 'kind' => $p['kind'], 'title' => $p['title']]; }, $by[$other][$k] ?? []);
+        }
+    return $out;
+}
 function ln_item($id) { $q = ln_db()->prepare('SELECT * FROM learn_items WHERE id = ? AND deleted = 0'); $q->execute([(int)$id]); return $q->fetch(PDO::FETCH_ASSOC) ?: null; }
 
 // ---- Google Drive sync: Training > Presentations / Playbooks are the source of truth for items that have a gid ----
