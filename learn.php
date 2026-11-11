@@ -45,6 +45,8 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .lcard{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%}
 .lcard:hover{border-color:var(--teal);box-shadow:0 2px 10px rgba(3,111,114,.12)}.lcard.on{border-color:var(--teal);background:#f1f9f9}
+.lthumb{display:none}
+@media (min-width:900px){.lthumb{display:block;position:relative;aspect-ratio:16/9;margin:-14px -16px 4px;width:calc(100% + 32px);overflow:hidden;border-radius:14px 14px 0 0;background:#10191a}.lthumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}.lthumb img:not([src]),.lthumb img.no{visibility:hidden}.lthumb.vid:after{content:'';position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(0,0,0,.55) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M9 6.5v11l9-5.5z'/%3E%3C/svg%3E") center/26px no-repeat}}
 .lcard b{font-size:1.02rem;line-height:1.25}.lcard small{color:#5a6a6c}.lcard .tg{font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em}
 .lview{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px;margin:0 0 18px}
 .lbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}.lbar h2{margin:0;font-size:1.1rem;flex:1 1 220px}
@@ -94,6 +96,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
     <div class="lgrid">
 <?php foreach ($list as $r): ?>
       <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>" data-vid="<?= $h(ln_video_id($r)) ?>" data-partners="<?= $h(json_encode($partners[$r['id']] ?? [])) ?>">
+        <span class="lthumb<?= $kind === 'video' ? ' vid' : '' ?>" aria-hidden="true"><img alt=""<?= $kind === 'video' && ln_video_id($r) !== '' ? ' data-src="https://i.ytimg.com/vi/' . $h(ln_video_id($r)) . '/mqdefault.jpg"' : '' ?>></span>
         <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ($kind === 'video' ? ' · watch the recording' : ' · view slides') ?></small></button>
 <?php if ($isStaff && (empty($r['gid']) || $kind === 'video')): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
       </div>
@@ -188,6 +191,26 @@ function scroller(){
     async function draw(c){var pg=await cur.doc.getPage(+c.dataset.p),v=pg.getViewport({scale:(W/pg.getViewport({scale:1}).width)*dpr});c.width=v.width;c.height=v.height;c.style.width=Math.floor(v.width/dpr)+"px";c.style.height=Math.floor(v.height/dpr)+"px";await pg.render({canvasContext:c.getContext("2d"),viewport:v}).promise;}
   })();
 }
+// ---- Desktop card pictures: YouTube's picture for videos; page 1 for PDFs, made once in the browser and saved on the server ----
+(function(){
+  if(!window.matchMedia||!matchMedia("(min-width:900px)").matches)return;
+  var queue=[],busy=false;
+  function next(){if(busy||!queue.length)return;busy=true;var t=queue.shift();make(t.img,t.id).catch(function(){}).then(function(){busy=false;next();});}
+  async function make(img,id){
+    if(!window.pdfjsLib)return;if(!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    var doc=await pdfjsLib.getDocument({url:"learn_file.php?id="+id}).promise,pg=await doc.getPage(1),v1=pg.getViewport({scale:1}),vp=pg.getViewport({scale:560/v1.width});
+    var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;await pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;
+    var fd=new FormData();fd.append("id",id);fd.append("csrf",<?= json_encode($_SESSION['csrf']) ?>);fd.append("img",cv.toDataURL("image/jpeg",0.78));
+    var r=await (await fetch("learn_thumb.php",{method:"POST",body:fd})).json();
+    if(r&&r.ok){img.classList.remove("no");img.src="learn_thumb.php?id="+id+"&t="+Date.now();}
+    doc.destroy();
+  }
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var c=en.target;io.unobserve(c);var img=c.querySelector(".lthumb img");if(!img)return;
+    if(img.dataset.src){img.src=img.dataset.src;return;}
+    if(c.dataset.kind==="video")return;
+    var tried=false;img.onerror=function(){img.classList.add("no");if(tried)return;tried=true;queue.push({img:img,id:c.dataset.id});next();};img.src="learn_thumb.php?id="+c.dataset.id;});},{rootMargin:"300px"});
+  document.querySelectorAll(".lcard").forEach(function(c){io.observe(c);});
+})();
 if(OPEN){var oc=document.querySelector('.lcard[data-id="'+OPEN+'"]');if(oc)openItem(oc);}
 })();
 </script>
