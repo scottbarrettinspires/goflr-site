@@ -4,7 +4,8 @@
 // Presentations are shown one slide at a time; playbooks scroll and can be downloaded. Staff add and remove items.
 require_once __DIR__ . '/flrdb.php';
 const LN_MAX_PDF = 40 * 1024 * 1024;
-const LN_KINDS = ['presentation' => 'Presentations', 'playbook' => 'Playbooks'];
+const LN_KINDS = ['presentation' => 'Presentations', 'playbook' => 'Playbooks', 'video' => 'Videos'];
+const LN_YT_FEED = 'https://www.youtube.com/feeds/videos.xml?channel_id=UCqtGhg69kehCESHx7G1804A'; // FLR Online Campus (@FLROnlineCampus)
 
 function ln_dir() { $d = flr_db_dir() . '/learn'; if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
 function ln_db() {
@@ -45,7 +46,7 @@ function ln_pair_key($t) {
 // For each item id: the items of the other kind that go with it. [id => [[id, kind, title], ...]]
 function ln_partners(array $lists) {
     $by = ['presentation' => [], 'playbook' => []];
-    foreach ($lists as $kind => $rows) foreach ($rows as $r) { $k = ln_pair_key($r['title']); if ($k !== '') $by[$kind][$k][] = $r; }
+    foreach ($lists as $kind => $rows) if (isset($by[$kind])) foreach ($rows as $r) { $k = ln_pair_key($r['title']); if ($k !== '') $by[$kind][$k][] = $r; }
     $out = [];
     foreach (['presentation' => 'playbook', 'playbook' => 'presentation'] as $kind => $other)
         foreach ($by[$kind] as $k => $rows) foreach ($rows as $r) {
@@ -81,10 +82,10 @@ function ln_sync($force = false, $list = null) {
     $seedGids = ['1XyQLyFKxhGXom4iNdJEXSB7Q4QS9bMzD', '1fpoyDz5peJzZOPiMxm2GKGYt7edUx3Ho', '1J1zf9nLim8CZaQB67polFpiR1jTY5-b0', '1GhGlE3bMmD0t8lodO959jXohhv5t_8w5', '1qflTWaop81DjW3vv3TMd0VY9RuDUwnHZ', '1FG130V5r_iKxlkB238RPgqecgUeAkpQD'];
     $seedRows = $pdo->query("SELECT id FROM learn_items WHERE added_by = 'seed' AND (gid IS NULL OR gid = '') ORDER BY id")->fetchAll(PDO::FETCH_COLUMN);
     if ($seedRows && count($seedRows) === count($seedGids)) foreach ($seedRows as $i => $rid) $pdo->prepare('UPDATE learn_items SET gid = ? WHERE id = ?')->execute([$seedGids[$i], $rid]);
-    $have = []; foreach ($pdo->query("SELECT * FROM learn_items WHERE gid IS NOT NULL AND gid <> ''")->fetchAll(PDO::FETCH_ASSOC) as $r) $have[$r['gid']] = $r;
+    $have = []; foreach ($pdo->query("SELECT * FROM learn_items WHERE gid IS NOT NULL AND gid <> '' AND gid NOT LIKE 'yt:%'")->fetchAll(PDO::FETCH_ASSOC) as $r) $have[$r['gid']] = $r;
     $seen = [];
     foreach ($list as $d) {
-        $gid = (string)($d['id'] ?? ''); $kind = (string)($d['kind'] ?? ''); if ($gid === '' || !isset(LN_KINDS[$kind])) continue;
+        $gid = (string)($d['id'] ?? ''); $kind = (string)($d['kind'] ?? ''); if ($gid === '' || ($kind !== 'presentation' && $kind !== 'playbook')) continue;
         $seen[$gid] = 1; $title = ln_drive_title($d['name'] ?? ''); $mod = (int)round(((float)($d['modified'] ?? 0)) / 1000); $size = (int)($d['size'] ?? 0);
         if ($title === '') continue;
         if (isset($have[$gid])) {
@@ -117,9 +118,52 @@ function ln_ensure_file(array $it, $content = null) {
     ln_db()->prepare('UPDATE learn_items SET file = ?, size = ? WHERE id = ?')->execute([$file, strlen($content), (int)$it['id']]);
     return ln_dir() . '/' . $file;
 }
+
+// ---- Videos: recorded Zoom webinars on the FLR Online Campus YouTube channel, embedded on the page ----
+function ln_yt_id($v) {
+    $v = trim((string)$v);
+    if (preg_match('/^[A-Za-z0-9_-]{11}$/', $v)) return $v;
+    if (preg_match('~(?:youtu\.be/|youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|live/|shorts/|v/))([A-Za-z0-9_-]{11})~', $v, $m)) return $m[1];
+    return '';
+}
+// Staff adds a video by pasting its YouTube link (needed for unlisted videos, which the channel feed does not show). Returns '' or a message.
+function ln_add_video($title, $url, $session, $by) {
+    $id = ln_yt_id($url); if ($id === '') return 'Paste the YouTube link for the video (for example https://www.youtube.com/watch?v=...).';
+    $title = trim(mb_substr((string)$title, 0, 140)); if ($title === '') return 'Enter a title.';
+    $session = trim((string)$session); if ($session !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $session)) return 'The session date must look like 2026-11-11.';
+    $pdo = ln_db(); $q = $pdo->prepare('SELECT id, deleted FROM learn_items WHERE gid = ?'); $q->execute(['yt:' . $id]); $ex = $q->fetch(PDO::FETCH_ASSOC);
+    if ($ex) { $pdo->prepare('UPDATE learn_items SET deleted = 0, title = ?, session = ? WHERE id = ?')->execute([$title, $session ?: date('Y-m-d'), $ex['id']]); return ''; }
+    $pdo->prepare('INSERT INTO learn_items (kind, title, series, session, file, size, added, added_by, gid, gmod) VALUES (?,?,?,?,?,?,?,?,?,?)')->execute(['video', $title, '', $session ?: date('Y-m-d'), '', 0, date('c'), $by, 'yt:' . $id, 0]);
+    flr_audit('', 'learn_add', (string)$pdo->lastInsertId(), 'video: ' . $title . ' (by ' . $by . ')');
+    return '';
+}
+// Pulls the channel's newest public videos (the YouTube feed lists the latest 15) and adds any we do not have yet. Runs at most every 10 minutes.
+// A video staff removed stays removed; a title staff changed is kept.
+function ln_yt_sync($force = false, $xml = null) {
+    $pdo = ln_db(); $stamp = ln_dir() . '/.last_yt';
+    if (!$force && $xml === null && is_file($stamp) && time() - filemtime($stamp) < 600) return '';
+    if ($xml === null) {
+        @touch($stamp);
+        $ch = curl_init(LN_YT_FEED); curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_TIMEOUT => 12, CURLOPT_CONNECTTIMEOUT => 6]);
+        $xml = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+        if ($xml === false || $code !== 200) return 'Could not read the YouTube channel (HTTP ' . $code . ').';
+    }
+    $x = @simplexml_load_string((string)$xml); if (!$x) return 'The YouTube channel answer could not be read.';
+    $x->registerXPathNamespace('a', 'http://www.w3.org/2005/Atom'); $x->registerXPathNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
+    foreach ($x->xpath('//a:entry') ?: [] as $e) {
+        $e->registerXPathNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
+        $vid = (string)(($e->xpath('yt:videoId') ?: [''])[0]); $title = trim((string)($e->children('http://www.w3.org/2005/Atom')->title)); $pub = substr((string)($e->children('http://www.w3.org/2005/Atom')->published), 0, 10);
+        if (!preg_match('/^[A-Za-z0-9_-]{11}$/', $vid) || $title === '') continue;
+        $q = $pdo->prepare('SELECT id FROM learn_items WHERE gid = ?'); $q->execute(['yt:' . $vid]); if ($q->fetch()) continue;
+        $pdo->prepare('INSERT INTO learn_items (kind, title, series, session, file, size, added, added_by, gid, gmod) VALUES (?,?,?,?,?,?,?,?,?,?)')->execute(['video', mb_substr($title, 0, 140), '', $pub ?: date('Y-m-d'), '', 0, date('c'), 'youtube', 'yt:' . $vid, 0]);
+        flr_audit('', 'learn_sync_add', (string)$pdo->lastInsertId(), 'video: ' . $title);
+    }
+    return '';
+}
+function ln_video_id(array $it) { return strncmp((string)($it['gid'] ?? ''), 'yt:', 3) === 0 ? substr($it['gid'], 3) : ''; }
 // Staff only (the caller checks). $upload is the entry from $_FILES. Returns '' or a message to show.
 function ln_add($kind, $title, $series, $session, array $upload, $by) {
-    if (!isset(LN_KINDS[$kind])) return 'Choose Presentation or Playbook.';
+    if ($kind !== 'presentation' && $kind !== 'playbook') return 'Choose Presentation or Playbook.';
     $title = trim(mb_substr((string)$title, 0, 140)); if ($title === '') return 'Enter a title.';
     $session = trim((string)$session); if ($session !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $session)) return 'The session date must look like 2026-11-11.';
     if (empty($upload['tmp_name']) || !is_uploaded_file($upload['tmp_name'])) return 'Choose the PDF to upload.';
@@ -134,14 +178,14 @@ function ln_add($kind, $title, $series, $session, array $upload, $by) {
 }
 function ln_delete($id, $by) {
     $it = ln_item($id); if (!$it) return 'That item was not found.';
-    if (!empty($it['gid'])) return 'This comes from the Training folder in Google Drive. Delete it there and it disappears here within a couple of minutes.';
+    if (!empty($it['gid']) && strncmp($it['gid'], 'yt:', 3) !== 0) return 'This comes from the Training folder in Google Drive. Delete it there and it disappears here within a couple of minutes.';
     ln_db()->prepare('UPDATE learn_items SET deleted = 1 WHERE id = ?')->execute([(int)$id]);
     flr_audit('', 'learn_delete', (string)(int)$id, $it['title'] . ' (by ' . $by . ')');
     return '';
 }
 function ln_rename($id, $title, $by) {
     $it = ln_item($id); if (!$it) return 'That item was not found.';
-    if (!empty($it['gid'])) return 'This comes from the Training folder in Google Drive. Rename it there and the new name shows here within a couple of minutes.';
+    if (!empty($it['gid']) && strncmp($it['gid'], 'yt:', 3) !== 0) return 'This comes from the Training folder in Google Drive. Rename it there and the new name shows here within a couple of minutes.';
     $title = trim(mb_substr((string)$title, 0, 140)); if ($title === '') return 'Enter a title.';
     ln_db()->prepare('UPDATE learn_items SET title = ? WHERE id = ?')->execute([$title, (int)$id]);
     flr_audit('', 'learn_rename', (string)(int)$id, $it['title'] . ' -> ' . $title . ' (by ' . $by . ')');

@@ -10,15 +10,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!$isStaff) { $err = 'Only office staff can add or remove items.'; }
     elseif (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) { $err = 'This page expired. Please reload and try again.'; }
     elseif (($_POST['a'] ?? '') === 'add') { $err = ln_add((string)($_POST['kind'] ?? ''), (string)($_POST['title'] ?? ''), (string)($_POST['series'] ?? ''), (string)($_POST['session'] ?? ''), $_FILES['pdf'] ?? [], $by); if ($err === '') $msg = 'Added.'; }
+    elseif (($_POST['a'] ?? '') === 'addvideo') { $err = ln_add_video((string)($_POST['title'] ?? ''), (string)($_POST['url'] ?? ''), (string)($_POST['session'] ?? ''), $by); if ($err === '') $msg = 'Video added.'; }
     elseif (($_POST['a'] ?? '') === 'rename') { $err = ln_rename((int)($_POST['id'] ?? 0), (string)($_POST['title'] ?? ''), $by); if ($err === '') $msg = 'Renamed.'; }
     elseif (($_POST['a'] ?? '') === 'delete') { $err = ln_delete((int)($_POST['id'] ?? 0), $by); if ($err === '') $msg = 'Removed.'; }
 }
-$syncErr = ln_sync();
+$syncErr = ln_sync(); ln_yt_sync();
 $h = function ($s) { return htmlspecialchars((string)$s); };
-$tab = ($_GET['tab'] ?? '') === 'playbooks' ? 'playbook' : 'presentation';
+$tab = ($_GET['tab'] ?? '') === 'playbooks' ? 'playbook' : (($_GET['tab'] ?? '') === 'videos' ? 'video' : 'presentation');
 $open = (int)($_GET['id'] ?? 0); if ($open && ($oi = ln_item($open))) $tab = $oi['kind'];
-$items = ['presentation' => ln_list('presentation'), 'playbook' => ln_list('playbook')];
-$partners = ln_partners($items);
+$items = ['presentation' => ln_list('presentation'), 'playbook' => ln_list('playbook'), 'video' => ln_list('video')];
+$partners = ln_partners(['presentation' => $items['presentation'], 'playbook' => $items['playbook']]);
 $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">';
 ?>
 <!doctype html>
@@ -84,16 +85,17 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
   <div class="lt" id="tabs">
     <button type="button" data-t="presentation" class="<?= $tab === 'presentation' ? 'on' : '' ?>">Presentations <span class="n"><?= count($items['presentation']) ?></span></button>
     <button type="button" data-t="playbook" class="<?= $tab === 'playbook' ? 'on' : '' ?>">Playbooks <span class="n"><?= count($items['playbook']) ?></span></button>
+    <button type="button" data-t="video" class="<?= $tab === 'video' ? 'on' : '' ?>">Videos <span class="n"><?= count($items['video']) ?></span></button>
   </div>
   <div id="viewer" class="lview" hidden></div>
 <?php foreach ($items as $kind => $list): ?>
   <section class="lsec" data-k="<?= $kind ?>"<?= $kind === $tab ? '' : ' hidden' ?>>
-<?php if (!$list): ?><p class="lhint">Nothing here yet. Check back after the next Round Table.</p><?php endif; ?>
+<?php if (!$list): ?><p class="lhint">Nothing here yet. Check back after the next session.</p><?php endif; ?>
     <div class="lgrid">
 <?php foreach ($list as $r): ?>
-      <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>" data-partners="<?= $h(json_encode($partners[$r['id']] ?? [])) ?>">
-        <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ' · view slides' ?></small></button>
-<?php if ($isStaff && empty($r['gid'])): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
+      <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>" data-vid="<?= $h(ln_video_id($r)) ?>" data-partners="<?= $h(json_encode($partners[$r['id']] ?? [])) ?>">
+        <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ($kind === 'video' ? ' · watch the recording' : ' · view slides') ?></small></button>
+<?php if ($isStaff && (empty($r['gid']) || $kind === 'video')): ?><form method="post" class="lren" onsubmit="var t=prompt('New title:',this.dataset.t);if(t===null||!t.trim())return false;this.title.value=t;return true" data-t="<?= $h($r['title']) ?>" style="display:inline"><?= $csrf ?><input type="hidden" name="a" value="rename"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><input type="hidden" name="title" value=""><button class="lx" type="submit" style="color:#036f72">Rename</button></form> &nbsp;<form method="post" style="display:inline" onsubmit="return confirm('Remove this from Learn And Grow Your Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
       </div>
 <?php endforeach; ?>
     </div>
@@ -108,6 +110,13 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
       <label>PDF file<input type="file" name="pdf" accept="application/pdf,.pdf" required></label>
       <label>&nbsp;<button class="lbtn" type="submit">Add</button></label>
     </form>
+    <form method="post" style="margin-top:12px"><?= $csrf ?><input type="hidden" name="a" value="addvideo">
+      <label>Video title<input name="title" maxlength="140" required></label>
+      <label>YouTube link<input name="url" placeholder="https://www.youtube.com/watch?v=" required></label>
+      <label>Session date<input type="date" name="session"></label>
+      <label>&nbsp;<button class="lbtn" type="submit">Add video</button></label>
+    </form>
+    <p class="lhint" style="margin:8px 0 0">New public videos on the FLR Online Campus channel appear by themselves. Use Add video for an unlisted one.</p>
     <p class="lhint" style="margin:8px 0 0">In Google Slides or Docs, use File &rsaquo; Download &rsaquo; PDF first. Slides should be a 16:9 deck so they fill the screen.</p>
   </details>
 <?php endif; ?>
@@ -125,6 +134,12 @@ document.querySelectorAll(".lcard").forEach(function(c){c.onclick=function(){ope
 function closeView(){view.hidden=true;view.innerHTML="";cur.doc=null;document.querySelectorAll(".lcard.on").forEach(function(x){x.classList.remove("on");});}
 function fail(m){var st=view.querySelector(".lstage,.lpb");if(st)st.innerHTML='<p class="lmsg" style="color:#fff;padding:20px">'+esc(m)+'</p>';}
 async function openItem(c){
+  if(c.dataset.kind==="video"){
+    document.querySelectorAll(".lcard.on").forEach(function(x){x.classList.remove("on");});c.classList.add("on");cur={doc:null,page:1,kind:"video",id:c.dataset.id};view.hidden=false;
+    view.innerHTML='<div class="lbar"><h2>'+esc(c.dataset.title)+'</h2><a class="lbtn ghost" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v='+encodeURIComponent(c.dataset.vid)+'">Open on YouTube</a><button type="button" class="lbtn ghost" id="lclose">Close</button></div>'
+     +'<div style="position:relative;padding-top:56.25%;background:#10191a;border-radius:10px;overflow:hidden"><iframe src="https://www.youtube-nocookie.com/embed/'+encodeURIComponent(c.dataset.vid)+'?rel=0" title="'+esc(c.dataset.title)+'" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+    document.getElementById("lclose").onclick=closeView;view.scrollIntoView({behavior:"smooth",block:"start"});return;
+  }
   if(!window.pdfjsLib){view.hidden=false;view.innerHTML='<p class="lmsg">The viewer could not load. Please check your connection and try again, or download the file.</p>';return;}
   if(!pdfjsLib.GlobalWorkerOptions.workerSrc)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
   document.querySelectorAll(".lcard.on").forEach(function(x){x.classList.remove("on");});c.classList.add("on");
