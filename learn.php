@@ -89,7 +89,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
     <div class="lgrid">
 <?php foreach ($list as $r): ?>
       <div><button type="button" class="lcard" data-id="<?= (int)$r['id'] ?>" data-kind="<?= $kind ?>" data-title="<?= $h($r['title']) ?>">
-        <span class="tg"><?= $h($r['series'] ?: ($kind === 'playbook' ? 'Playbook' : 'Presentation')) ?></span><b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ' · view slides' ?></small></button>
+        <b><?= $h($r['title']) ?></b><small><?= $h(ln_when($r['session'])) ?><?= $kind === 'playbook' ? ' · scroll and download' : ' · view slides' ?></small></button>
 <?php if ($isStaff): ?><form method="post" onsubmit="return confirm('Remove this from Learn The Business?')"><?= $csrf ?><input type="hidden" name="a" value="delete"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>"><button class="lx" type="submit">Remove</button></form><?php endif; ?>
       </div>
 <?php endforeach; ?>
@@ -101,7 +101,6 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
     <form method="post" enctype="multipart/form-data"><?= $csrf ?><input type="hidden" name="a" value="add">
       <label>Type<select name="kind"><option value="presentation">Presentation (shown slide by slide)</option><option value="playbook">Playbook (scroll and download)</option></select></label>
       <label>Title<input name="title" maxlength="140" required></label>
-      <label>Session<input name="series" maxlength="60" placeholder="Round Table, Zoom, Special"></label>
       <label>Session date<input type="date" name="session"></label>
       <label>PDF file<input type="file" name="pdf" accept="application/pdf,.pdf" required></label>
       <label>&nbsp;<button class="lbtn" type="submit">Add</button></label>
