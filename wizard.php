@@ -118,6 +118,12 @@ $pre = (string)($_GET['tx'] ?? '');
       <div class="odb" id="of_comp" style="margin-top:10px" hidden></div>
     </div>
     <div id="qs"></div>
+    <fieldset class="wq" id="xf"><legend>Add Other Contingency Forms to the Package</legend>
+      <label class="wr"><input type="checkbox" class="xfc" value="Realtor_Res_Sale_of_Buyers_Property.pdf"> Sale of Buyer&rsquo;s Property (V)</label>
+      <label class="wr"><input type="checkbox" class="xfc" value="Realtor_Res_Housing_for_Older_Persons.pdf"> Housing for Older Persons (Q)</label>
+      <label class="wr"><input type="checkbox" class="xfc" value="Realtor_Res_Licensee_Personal_Interest_in_Property.pdf"> Licensee Personal Interest (AA)</label>
+      <label class="wr" id="xf_F" style="display:none"><input type="checkbox" class="xfc" value="Realtor_Res_Appraisal_Contingency.pdf"> Appraisal (F) &mdash; cash buyer only</label>
+    </fieldset>
     <p class="sgerr" id="err" hidden></p>
     <p><button type="button" class="btn" id="build">Build contract packet</button></p>
     <div id="res" hidden></div>
@@ -155,7 +161,7 @@ function fillMap(){
   return m;
 }
 function loadInfo(){
-  INFO=null;bsum.innerHTML='';
+  INFO=null;bsum.innerHTML='';var xF0=document.getElementById('xf_F');if(xF0){xF0.style.display='none';xF0.querySelector('input').checked=false;} // Appraisal (F) is offered to cash buyers only
   if(!txSel.value)return;
   var id=txSel.value;
   bsum.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i style="width:16px;height:16px;border:3px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite;display:inline-block"></i>Loading this buyer\'s saved info...</p>';
@@ -167,6 +173,7 @@ function loadInfo(){
     var pm={cash:'Cash',conventional:'Conventional financing',fhava:'FHA / VA financing'}[INFO.payment]||'';
     var nm=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and ');
     bsum.innerHTML='<p class="note">Using saved buyer info: <strong>'+esc(nm||'(no name)')+'</strong>'+(pm?' &middot; '+esc(pm):'')+'. '+edit+'</p>';
+    var xF=document.getElementById('xf_F');if(xF&&INFO.payment==='cash')xF.style.display='';
     var re={conventional:/^conventional/i,fhava:/^fha/i}[INFO.payment];
     if(re){Q.forEach(function(x){x.rows.forEach(function(r,i){if(re.test(r.answer)){var el=qs.querySelector('input[name="q'+x.q+'"][value="'+i+'"]');if(el){el.checked=true;var fs=el.closest('fieldset');if(fs)fs.hidden=true;}}});});}
     else if(INFO.payment==='cash'){ // method known: ask only about the appraisal contingency
@@ -267,6 +274,7 @@ btn.addEventListener('click',async function(){
     if(row.todo)warn.push('A form for "'+row.answer+'" has not been added to the rules yet.');
   }
   var want=[];picked.forEach(function(r){r.forms.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});});
+  [].forEach.call(document.querySelectorAll('#xf .xfc:checked'),function(c){if(c.closest('label').style.display!=='none'&&want.indexOf(c.value)<0)want.push(c.value);}); // extra contingency forms the agent ticked
   (R.order||[]).forEach(function(o){if(o.always&&want.indexOf(o.file)<0)want.push(o.file);}); // forms marked Always in the rules sheet go in every packet
   var pos=function(f){for(var i=0;i<R.order.length;i++){if(R.order[i].file===f)return R.order[i].n;}return 9999;};
   want.sort(function(a,b){return pos(a)-pos(b);});
