@@ -176,11 +176,8 @@ function loadInfo(){
     var xF=document.getElementById('xf_F');if(xF&&INFO.payment==='cash')xF.style.display='';
     var re={conventional:/^conventional/i,fhava:/^fha/i}[INFO.payment];
     if(re){Q.forEach(function(x){x.rows.forEach(function(r,i){if(re.test(r.answer)){var el=qs.querySelector('input[name="q'+x.q+'"][value="'+i+'"]');if(el){el.checked=true;var fs=el.closest('fieldset');if(fs)fs.hidden=true;}}});});}
-    else if(INFO.payment==='cash'){ // method known: ask only about the appraisal contingency
-      Q.forEach(function(x){if(!x.rows.some(function(r){return /^cash/i.test(r.answer);}))return;var fs=qs.querySelector('input[name="q'+x.q+'"]');fs=fs&&fs.closest('fieldset');if(!fs)return;
-        [].forEach.call(fs.querySelectorAll('.wr'),function(l,k){var rr=x.rows.filter(function(r){return !r.skip;})[k];if(rr&&!/^cash/i.test(rr.answer))l.style.display='none';});
-        var lg=fs.querySelector('legend');if(lg)lg.textContent='Cash purchase: include the Appraisal Contingency?';});
-      bsum.innerHTML+='<p class="note">Cash purchase: choose with or without the appraisal contingency below.</p>';}
+    else if(INFO.payment==='cash'){ // cash: the question is not asked. The "without" choice is used and the Appraisal (F) checkbox below adds the appraisal form.
+      Q.forEach(function(x){x.rows.forEach(function(r,k){if(r.skip||!/^cash/i.test(r.answer)||!/without/i.test(r.answer))return;var el=qs.querySelector('input[name="q'+x.q+'"][value="'+k+'"]');if(el){el.checked=true;var fs=el.closest('fieldset');if(fs)fs.hidden=true;}});});}
   }).catch(function(){});
 }
 txSel.addEventListener('change',loadInfo);
