@@ -106,8 +106,8 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
       </div>
       <input type="hidden" id="paddr">
-      <h3>Agents</h3>
-      <div class="odg">
+      <h3 id="oa_head">Other agent</h3>
+      <div class="odg" id="oa_grid">
         <label class="s12" style="font-weight:700;color:#036f72">Other agent (listing side, if known)</label>
         <label class="s4">First name<input type="text" id="of_oa_first" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Last name<input type="text" id="of_oa_last" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
@@ -205,11 +205,12 @@ async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperC
   }catch(e){mlsSay('Could not look up that MLS number. Please try again.',true);}
   mlsGo.disabled=false;mlsGo.textContent='Look up';}
 var MLSF=['street_number','street_name','unit','city','state','zip','year_built','annual_taxes','property_type'];
-function mlsShowFields(on){MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});document.getElementById('mls_card').hidden=on;document.getElementById('mls_card').style.display=on?'none':'flex';}
+function mlsShowFields(on,keepAgent){var oa=['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].some(function(k){return (ofEl(k).value||'').trim();});['oa_head','oa_grid'].forEach(function(i){document.getElementById(i).style.display=(on||!oa)?'':'none';});MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});document.getElementById('mls_card').hidden=on;document.getElementById('mls_card').style.display=on?'none':'flex';}
 function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;
   var addr=[[g('street_number'),g('street_name')].filter(Boolean).join(' ')+(g('unit')?' #'+g('unit'):''),g('city'),[g('state'),g('zip')].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   var tx=g('annual_taxes'),sub=[g('year_built')?'Year built '+g('year_built'):'',tx?'Annual taxes $'+tx:'',g('property_type')].filter(Boolean).join(' · ');
-  document.getElementById('mls_card_txt').innerHTML='<b>'+esc(addr)+'</b>'+(sub?'<div class="m">'+esc(sub)+'</div>':'');mlsShowFields(false);}
+  var ag=[[g('oa_first'),g('oa_last')].filter(Boolean).join(' '),g('oa_brokerage'),g('oa_phone'),g('oa_email')].filter(Boolean).join(' · ');
+  document.getElementById('mls_card_txt').innerHTML='<b>'+esc(addr)+'</b>'+(sub?'<div class="m">'+esc(sub)+'</div>':'')+(ag?'<div class="m" style="margin-top:6px"><b>Listing agent:</b> '+esc(ag)+'</div>':'');mlsShowFields(false);}
 document.getElementById('mls_edit').addEventListener('click',function(){mlsShowFields(true);});
 mlsGo.addEventListener('click',function(){mlsLookup(true);});
 ofEl('mls_id').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();mlsLookup(true);}});
