@@ -147,6 +147,9 @@ Q=Q.filter(function(x){return !x.rows.every(function(r){return r.skip;});});
 function followFor(q,answer){for(var i=0;i<R.follow.length;i++){if(R.follow[i].q===q&&R.follow[i].answer.toLowerCase()===answer.toLowerCase())return R.follow[i];}return null;}
 var h='';
 Q.forEach(function(x){
+  // Seller concessions: instead of Yes / No, two amount fields (default 0); anything above 0 adds the clause, 0 in both leaves it out.
+  x.conc=/concession/i.test(x.question)&&x.rows.some(function(r){return !r.skip&&followFor(x.q,r.answer);});
+  if(x.conc){h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cq'+x.q+'">Percent of Offer Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0"></div></fieldset>';return;}
   h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend>';
   x.rows.forEach(function(r,i){
     if(r.skip)return;
@@ -260,7 +263,22 @@ btn.addEventListener('click',async function(){
   if(pa0.length>120||/[\\\/:*?"<>|]/.test(pa0))return fail('Please check the property address (no slashes or special characters).');
   var picked=[],warn=[],clauses=[];
   for(var k=0;k<Q.length;k++){
-    var x=Q[k],c=qs.querySelector('input[name="q'+x.q+'"]:checked');
+    var x=Q[k];
+    if(x.conc){
+      var cb=document.getElementById('cq'+x.q), p0=num(cb.querySelector('.wp').value), a0=num(cb.querySelector('.wa').value);
+      if((p0&&!/^\d+(\.\d+)?$/.test(p0))||(a0&&!/^\d+(\.\d+)?$/.test(a0)))return fail('Please enter the seller concessions as a number.');
+      var pv=Number(p0||0), av=Number(a0||0);
+      if(pv>0&&av>0)return fail('Enter either a percent or a flat amount for seller concessions, not both.');
+      var yi=-1,ni=-1;x.rows.forEach(function(r,i){if(r.skip)return;if(followFor(x.q,r.answer))yi=i;else if(ni<0)ni=i;});
+      if(pv>0||av>0){
+        var rowY=x.rows[yi];picked.push(rowY);var fuY=followFor(x.q,rowY.answer),tY=pv>0?fuY.percent:fuY.flat;
+        if(!tY)return fail('The clause wording for this answer is missing in the Wizard Rules sheet.');
+        clauses.push(tY.replace(/\[PERCENT\]/g,p0).replace(/\[AMOUNT\]/g,a0));
+        if(rowY.todo)warn.push('A form for "'+rowY.answer+'" has not been added to the rules yet.');
+      }else if(ni>=0){picked.push(x.rows[ni]);}
+      continue;
+    }
+    var c=qs.querySelector('input[name="q'+x.q+'"]:checked');
     if(!c)return fail('Please answer: '+x.question);
     var row=x.rows[Number(c.value)]; picked.push(row);
     var fu=followFor(x.q,row.answer);
