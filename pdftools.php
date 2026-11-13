@@ -74,7 +74,7 @@ sp_head('PDF Tools');
   <section class="tp" data-t="img" hidden>
     <h2>JPG / PNG to PDF</h2><p class="d">Turn pictures or photos into one PDF, one picture per page, in the order you set.</p>
     <div class="pick"><label class="fb">Choose pictures<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png" multiple></label></div>
-    <div class="opt"><span>Page size:</span><label><input type="radio" name="ps" value="letter" checked> US Letter</label><label><input type="radio" name="ps" value="fit"> Same size as each picture</label></div>
+    <div class="opt"><span>Page size:</span><label><input type="radio" name="ps" value="letter" checked> Letter (8.5x11)</label><label><input type="radio" name="ps" value="fit"> Same size as each picture</label></div>
     <ul class="fl"></ul><button class="pbtn" disabled>Create PDF</button><p class="pmsg"></p><p class="perr"></p><div class="pres" hidden></div>
   </section>
 </div>
