@@ -62,7 +62,7 @@ function mls_fetch_page($resourcePath, $query = []) {
     $j = json_decode($body, true);
     if ($code === 401 || $code === 403) return ['ok' => false, 'note' => 'MLS Grid did not accept the access token (HTTP ' . $code . '). Check the token on the MLS Data page.'];
     if ($code === 429) return ['ok' => false, 'note' => 'MLS Grid asked us to slow down (HTTP 429). Try again in a minute.'];
-    if ($code !== 200 || !is_array($j)) return ['ok' => false, 'note' => 'MLS Grid returned HTTP ' . $code];
+    if ($code !== 200 || !is_array($j)) { $why = is_array($j) ? trim((string)($j['error']['message'] ?? $j['message'] ?? $j['error_description'] ?? (is_string($j['error'] ?? null) ? $j['error'] : ''))) : ''; return ['ok' => false, 'note' => 'MLS Grid returned HTTP ' . $code . ($why !== '' ? ': ' . mb_substr($why, 0, 200) : '') . ($code === 400 ? ' (check the base URL and Originating system name on the MLS Data page)' : '')]; }
     return ['ok' => true, 'rows' => (array)($j['value'] ?? []), 'next' => $j['@odata.nextLink'] ?? ''];
 }
 

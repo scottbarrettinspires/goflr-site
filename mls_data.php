@@ -10,8 +10,13 @@ if (!flr_is_broker()) { header('Location: home.php'); exit; }
 $msg = ''; $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) {
     if (($_POST['op'] ?? '') === 'savesettings') {
+        $os = trim((string)($_POST['originating_system'] ?? ''));
+        if (preg_match('/^[0-9a-f]{24,}$/i', $os)) { $err = 'That looks like an access token, not a source name. Type mfrmls in Originating system name and paste the token in the Access token box. Nothing was saved.'; }
+        elseif ($os !== '' && !preg_match('/^[A-Za-z][A-Za-z0-9 _-]{1,40}$/', $os)) { $err = 'Originating system name should be a short name such as mfrmls. Nothing was saved.'; }
+        else {
         mls_save_settings(['base_url' => (string)($_POST['base_url'] ?? ''), 'originating_system' => (string)($_POST['originating_system'] ?? ''), 'token' => (string)($_POST['token'] ?? ''), 'agents' => !empty($_POST['agents']), 'connected' => !empty($_POST['connected'])]);
         $msg = 'Saved.';
+        }
     } elseif (($_POST['op'] ?? '') === 'runsample') {
         mls_cache_listings(mls_sample_raw()); $msg = 'Sample listings parsed and cached below — this is fixture data, not a live MLS pull.';
     } elseif (($_POST['op'] ?? '') === 'pulllive') {
