@@ -206,7 +206,9 @@ function ofCompText(c){if(!c||!c.agreement)return '';var p=[];function f(k){retu
 function ofLoad(){var id=txSel.value;if(!id)return;
   fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
     if(!j||!j.ok||txSel.value!==id)return;
-    OFK.forEach(function(k){ofEl(k).value=j.offer[k]||'';});document.getElementById('pprice').value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'';
+    OFK.forEach(function(k){if(!mlsLast||!ofEl(k).value)ofEl(k).value=j.offer[k]||'';}); // a lookup that started first keeps what it filled
+    var ppEl=document.getElementById('pprice');if(!mlsLast||!ppEl.value)ppEl.value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'';
+    if((ofEl('mls_id').value||'').trim()&&typeof mlsCondense==='function'){mlsCondense();}
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
     var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
     var _me=document.getElementById('of_me'); if(_me) _me.textContent=[j.agent.name,j.agent.license?'License '+j.agent.license:'',j.agent.email].filter(Boolean).join(' · ');
@@ -219,7 +221,7 @@ function mlsSay(h,bad){mlsBox.hidden=!h;mlsBox.innerHTML=h||'';mlsBox.style.colo
 async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperCase();ofEl('mls_id').value=v;if(!v){mlsSay('');return;}if(!force&&v===mlsLast)return;mlsLast=v;mlsGo.disabled=true;mlsGo.textContent='Looking up...';
   try{var j=await fetch('mls_lookup_api.php?mls='+encodeURIComponent(v),{credentials:'same-origin'}).then(function(r){return r.json();});
     if(!j.ok){mlsSay(esc(j.msg||'Could not look up that MLS number.'),true);mlsShowFields(true);[].forEach.call(qs.querySelectorAll('fieldset.mlsq'),function(f){f.hidden=false;f.classList.remove('mlsq');});}
-    else{Object.keys(j.fields).forEach(function(k){if(ofEl(k)&&j.fields[k]!=='')ofEl(k).value=j.fields[k];if(ofEl(k))ofEl(k).dispatchEvent(new Event('input'));});ofSync();
+    else{ofEl('mls_id').value=v;Object.keys(j.fields).forEach(function(k){if(ofEl(k)&&j.fields[k]!=='')ofEl(k).value=j.fields[k];if(ofEl(k))ofEl(k).dispatchEvent(new Event('input'));});ofSync();
       var lp=j.list_price?'$'+Number(j.list_price).toLocaleString('en-US'):'';
       mlsSay('<b>Filled from MLS '+esc(v)+'</b>'+(j.status?' ('+esc(j.status)+')':'')+'. Please check the details.'+(lp?'<div class="m">List price '+lp+' <a href="#" id="mls_lp">Use as offer price</a></div>':''));
       var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};MLSX=j.fields||{};mlsCondense();mlsAnswers(j.fields);}
