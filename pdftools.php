@@ -4,6 +4,7 @@
 require __DIR__ . "/guard.php";
 require __DIR__ . "/subpage.php";
 sp_head('PDF Tools');
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 ?>
 <style>
 .pt{max-width:980px}.pt h1{font-size:1.25rem;margin:0 0 4px}.pt .sub{color:#5a6a6c;margin:0 0 14px;font-size:.93rem}
@@ -34,6 +35,7 @@ sp_head('PDF Tools');
 .pc .th{height:140px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#eef3f3;border-radius:8px}.pc .th img{max-width:100%;max-height:100%;transition:transform .15s;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .pc .pn{font-size:.8rem;color:#5a6a6c;margin:6px 0 4px}.pc .pb{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
 .pres{margin:14px 0 0;padding:12px;border-radius:12px;background:var(--teal-soft)}.pres ul{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:6px}.pres a{font-weight:700;color:var(--teal)}
+.sv{margin:12px 0 0;padding-top:10px;border-top:1px solid rgba(3,111,114,.25)}.sv .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}.sv input[type=search]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;flex:1 1 180px;min-width:0}.sv select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;flex:2 1 260px;min-width:0;max-width:100%}.sv .svm{margin:6px 0 0;font-size:.92rem}.sv .svm a{font-weight:700;color:var(--teal)}.sv .svm .bad{color:#b3261e;font-weight:600}
 .pmsg{color:#5a6a6c;margin:8px 0 0;font-size:.92rem}.perr{color:#b3261e;font-weight:600;margin:8px 0 0}
 </style>
 <div class="pt">
@@ -102,7 +104,28 @@ function lib(){if(!PL||!window.pdfjsLib){throw new Error("The PDF tools could no
 function nice(e){var m=String(e&&e.message||e);return /encrypt|password/i.test(m)?"This PDF is password-protected. Remove the password first, then try again.":m;}
 // results: show a Download link for each file made (made in this browser; nothing is sent anywhere)
 function results(r,items,note){var box=$(".pres",r);box.hidden=false;
-  box.innerHTML='<b>Done.</b> '+esc(note||"")+'<ul>'+items.map(function(it,i){var u=URL.createObjectURL(new Blob([it.bytes],{type:"application/pdf"}));return '<li><a href="'+u+'" download="'+esc(it.name)+'">Download '+esc(it.name)+'</a> <small>('+fmt(it.bytes.length)+(it.pages?", "+it.pages+" page"+(it.pages===1?"":"s"):"")+')</small></li>';}).join("")+'</ul>';box.scrollIntoView({behavior:"smooth",block:"nearest"});}
+  box.innerHTML='<b>Done.</b> '+esc(note||"")+'<ul>'+items.map(function(it,i){var u=URL.createObjectURL(new Blob([it.bytes],{type:"application/pdf"}));return '<li><a href="'+u+'" download="'+esc(it.name)+'">Download '+esc(it.name)+'</a> <small>('+fmt(it.bytes.length)+(it.pages?", "+it.pages+" page"+(it.pages===1?"":"s"):"")+')</small></li>';}).join("")+'</ul>'
+   +'<div class="sv"><b>Or save '+(items.length>1?"these "+items.length+" files":"it")+' to an Active Business record</b><div class="row"><input type="search" class="svq" placeholder="Search your records by name" aria-label="Search Active Business records"><select class="svs" aria-label="Active Business record"><option value="">Loading your records...</option></select><button type="button" class="gbtn svb" disabled>Save to record</button></div><p class="svm"></p></div>';
+  picker(box,items);box.scrollIntoView({behavior:"smooth",block:"nearest"});}
+// ---- save to an Active Business record (uses the same folder rules as the rest of the site) ----
+var RECS=null;
+function loadRecs(){if(RECS)return RECS;RECS=fetch("pdftools_api.php?op=records",{credentials:"same-origin"}).then(function(x){return x.json();}).then(function(j){if(!j.ok)throw new Error(j.msg||"Could not load your records.");return j.records;});RECS.catch(function(){RECS=null;});return RECS;}
+function picker(box,items){
+  var q=$(".svq",box),sel=$(".svs",box),b=$(".svb",box),m=$(".svm",box),all=[];
+  function fill(){var t=q.value.trim().toLowerCase(),keep=sel.value,groups={},order=[];
+    all.forEach(function(r){if(t&&(r.name+" "+r.section).toLowerCase().indexOf(t)<0)return;(groups[r.section]=groups[r.section]||(order.push(r.section),[])).push(r);});
+    var n=0;sel.innerHTML='<option value="">'+(all.length?"Choose a record...":"No Active Business records found")+'</option>'+order.map(function(g){return '<optgroup label="'+esc(g)+'">'+groups[g].map(function(r){n++;return '<option value="'+esc(r.id)+'"'+(r.id===keep?" selected":"")+'>'+esc(r.name)+'</option>';}).join("")+'</optgroup>';}).join("");
+    if(t&&n===1)sel.selectedIndex=1;if(t&&!n)sel.innerHTML='<option value="">Nothing matches "'+esc(q.value.trim())+'"</option>';b.disabled=!sel.value;}
+  loadRecs().then(function(r){all=r;fill();}).catch(function(e){sel.innerHTML='<option value="">Records unavailable</option>';m.innerHTML='<span class="bad">'+esc(e.message)+'</span>';});
+  q.oninput=fill;sel.onchange=function(){b.disabled=!sel.value;};
+  b.onclick=async function(){if(!sel.value)return;b.disabled=true;var name=sel.options[sel.selectedIndex].text,out=[];
+    for(var i=0;i<items.length;i++){m.textContent="Saving "+(i+1)+" of "+items.length+"...";
+      try{var fd=new FormData();fd.append("csrf",<?= json_encode($_SESSION['csrf']) ?>);fd.append("folder",sel.value);fd.append("name",items[i].name);fd.append("file",new Blob([items[i].bytes],{type:"application/pdf"}),items[i].name);
+        var j=await (await fetch("pdftools_api.php",{method:"POST",body:fd,credentials:"same-origin"})).json();
+        out.push(j.ok?'Saved "'+esc(j.name)+'" to <b>'+esc(j.folder)+'</b>'+(j.folder_url?' &middot; <a href="'+esc(j.folder_url)+'" target="_blank" rel="noopener">Open the folder</a>':''):'<span class="bad">'+esc(j.msg||"Could not save.")+'</span>');}
+      catch(e){out.push('<span class="bad">Could not save "'+esc(items[i].name)+'". Please try again.</span>');}}
+    m.innerHTML=out.join("<br>");b.disabled=false;};
+}
 async function loadDoc(buf){try{return await PL.PDFDocument.load(buf);}catch(e){throw new Error(nice(e));}}
 function setBusy(btn,on,label){btn.disabled=on;if(label!==undefined)btn.textContent=label;}
 
