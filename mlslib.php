@@ -98,7 +98,10 @@ function mls_offer_fields(array $l) {
     $all = strtolower($pt . ' ' . $sub);
     if (preg_match('/land|lot|vacant/', $all)) $type = 'Vacant Land';
     elseif (preg_match('/condo/', $all) && !preg_match('/townhouse|townhome/', $all)) $type = 'Condominium';
-    elseif (preg_match('/single|manufactured|mobile|duplex|triplex|townhouse|townhome|multi|quadruplex|villa|residential|income/', $all)) $type = 'Residential';
+    elseif (preg_match('/multi|income|apartment/', $all) && !preg_match('/duplex|triplex|quadruplex|fourplex/', $all)) { // by Florida law more than 4 units is commercial; only 1-4 units are treated as residential
+        $u = (int)(($l['raw'] ?? [])['NumberOfUnitsTotal'] ?? 0); if ($u >= 1 && $u <= 4) $type = 'Residential';
+    }
+    elseif (preg_match('/single|manufactured|mobile|duplex|triplex|quadruplex|fourplex|townhouse|townhome|villa|residential/', $all)) $type = 'Residential';
     $raw = (array)($l['raw'] ?? []); $hoa = ''; $cdd = '';
     $yn = function ($v) { if ($v === true || preg_match('/^(y|yes|true|1)$/i', trim((string)$v))) return 'yes'; if ($v === false || preg_match('/^(n|no|false|0)$/i', trim((string)$v))) return 'no'; return ''; };
     if (array_key_exists('AssociationYN', $raw)) $hoa = $yn($raw['AssociationYN']);
