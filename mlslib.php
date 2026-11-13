@@ -14,7 +14,10 @@ function mls_db() {
 function mls_settings() {
     $q = flr_db()->prepare('SELECT v FROM kv WHERE k = ?'); $q->execute(['mls_settings']);
     $r = $q->fetchColumn(); $s = $r ? (json_decode($r, true) ?: []) : [];
-    return $s + ['base_url' => 'https://api.mlsgrid.com/v2', 'token' => '', 'originating_system' => 'mfrmls', 'connected' => false, 'agents' => false];
+    $s += ['base_url' => '', 'token' => '', 'originating_system' => '', 'connected' => false, 'agents' => false];
+    if (trim((string)$s['base_url']) === '') $s['base_url'] = 'https://api.mlsgrid.com/v2'; // MLS Grid v2 and Stellar's source name are the defaults
+    if (trim((string)$s['originating_system']) === '') $s['originating_system'] = 'mfrmls';
+    return $s;
 }
 function mls_save_settings(array $s) {
     $cur = mls_settings();

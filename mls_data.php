@@ -54,6 +54,7 @@ $cached = mls_db()->query('SELECT data, updated FROM mls_listings ORDER BY updat
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
   <form method="post" class="panel sigbox">
+    <style>.mlsf label{display:block;margin:0 0 12px;font-weight:600}.mlsf label input[type=text],.mlsf label input[type=password]{display:block;width:100%;max-width:520px;margin-top:4px;padding:9px 12px;border:1px solid #cfd9d9;border-radius:10px;font:inherit}.mlsf label.wr{font-weight:400}</style>
     <h2 style="margin-top:0">Connection settings</h2>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="op" value="savesettings">
     <label>MLS Grid base URL<input type="text" name="base_url" value="<?= htmlspecialchars($s['base_url']) ?>" placeholder="https://api.mlsgrid.com/v2"></label>
