@@ -89,6 +89,9 @@ $pre = (string)($_GET['tx'] ?? '');
     <div class="od" id="od">
       <h3>Property</h3>
       <div class="odg">
+        <label class="s4"><strong>MLS number</strong><input type="text" id="of_mls_id" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. T3512345" style="text-transform:uppercase"></label>
+        <div class="s2" style="align-self:end"><button type="button" class="btn" id="mls_go" style="width:100%;padding:9px 6px;margin-bottom:0">Look up</button></div>
+        <div class="s6 odb" id="mls_note" style="align-self:end" hidden></div>
         <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s3">Unit #<input type="text" id="of_unit" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
@@ -96,7 +99,6 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Zip code<input type="text" id="of_zip" inputmode="numeric" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4"><strong>Purchase price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
-        <label class="s4">MLS ID<input type="text" id="of_mls_id" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
@@ -192,6 +194,21 @@ function ofLoad(){var id=txSel.value;if(!id)return;
     var ct=ofCompText(j.comp),ce=document.getElementById('of_comp');ce.innerHTML=ct;ce.hidden=!ct;ofSync();
   }).catch(function(){});}
 OFK.forEach(function(k){ofEl(k).addEventListener('input',ofSync);});
+// MLS number first: typing it (then Look up / Enter / leaving the field) fills the rest of the property and the listing agent from the MLS.
+var mlsBox=document.getElementById('mls_note'),mlsGo=document.getElementById('mls_go'),mlsLast='';
+function mlsSay(h,bad){mlsBox.hidden=!h;mlsBox.innerHTML=h||'';mlsBox.style.color=bad?'#b3261e':'';}
+async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperCase();ofEl('mls_id').value=v;if(!v){mlsSay('');return;}if(!force&&v===mlsLast)return;mlsLast=v;mlsGo.disabled=true;mlsGo.textContent='Looking up...';
+  try{var j=await fetch('mls_lookup_api.php?mls='+encodeURIComponent(v),{credentials:'same-origin'}).then(function(r){return r.json();});
+    if(!j.ok){mlsSay(esc(j.msg||'Could not look up that MLS number.'),true);}
+    else{Object.keys(j.fields).forEach(function(k){if(ofEl(k)&&j.fields[k]!=='')ofEl(k).value=j.fields[k];if(ofEl(k))ofEl(k).dispatchEvent(new Event('input'));});ofSync();
+      var lp=j.list_price?'$'+Number(j.list_price).toLocaleString('en-US'):'';
+      mlsSay('<b>Filled from MLS '+esc(v)+'</b>'+(j.status?' ('+esc(j.status)+')':'')+'. Please check the details.'+(lp?'<div class="m">List price '+lp+' <a href="#" id="mls_lp">Use as purchase price</a></div>':''));
+      var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};}
+  }catch(e){mlsSay('Could not look up that MLS number. Please try again.',true);}
+  mlsGo.disabled=false;mlsGo.textContent='Look up';}
+mlsGo.addEventListener('click',function(){mlsLookup(true);});
+ofEl('mls_id').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();mlsLookup(true);}});
+ofEl('mls_id').addEventListener('change',function(){mlsLookup(false);});
 txSel.addEventListener('change',ofLoad);ofLoad();
 async function ofSave(){ofSync();var o={};OFK.forEach(function(k){o[k]=ofEl(k).value;});o.price=document.getElementById('pprice').value;
   var r=await fetch('offer_api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,action:'save',tx:txSel.value,offer:o})}).then(function(x){return x.json();}).catch(function(){return {ok:false,msg:'Could not save the offer details. Please try again.'};});
