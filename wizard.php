@@ -102,7 +102,7 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
-        <label class="s4"><strong>Purchase price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
+        <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
         <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
       </div>
       <input type="hidden" id="paddr">
@@ -204,7 +204,7 @@ async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperC
     if(!j.ok){mlsSay(esc(j.msg||'Could not look up that MLS number.'),true);mlsShowFields(true);[].forEach.call(qs.querySelectorAll('fieldset.mlsq'),function(f){f.hidden=false;f.classList.remove('mlsq');});}
     else{Object.keys(j.fields).forEach(function(k){if(ofEl(k)&&j.fields[k]!=='')ofEl(k).value=j.fields[k];if(ofEl(k))ofEl(k).dispatchEvent(new Event('input'));});ofSync();
       var lp=j.list_price?'$'+Number(j.list_price).toLocaleString('en-US'):'';
-      mlsSay('<b>Filled from MLS '+esc(v)+'</b>'+(j.status?' ('+esc(j.status)+')':'')+'. Please check the details.'+(lp?'<div class="m">List price '+lp+' <a href="#" id="mls_lp">Use as purchase price</a></div>':''));
+      mlsSay('<b>Filled from MLS '+esc(v)+'</b>'+(j.status?' ('+esc(j.status)+')':'')+'. Please check the details.'+(lp?'<div class="m">List price '+lp+' <a href="#" id="mls_lp">Use as offer price</a></div>':''));
       var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};MLSX=j.fields||{};mlsCondense();mlsAnswers(j.fields);}
   }catch(e){mlsSay('Could not look up that MLS number. Please try again.',true);}
   mlsGo.disabled=false;mlsGo.textContent='Look up';}
@@ -245,7 +245,7 @@ btn.addEventListener('click',async function(){
   if(!txSel.value)return fail('Please choose the buyer first.');
   ofSync();
   if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim()){mlsShowFields(true);return fail('Please enter the property address (street number, street name, city and zip).');}
-  if(!String(document.getElementById('pprice').value||'').trim())return fail('Please enter the purchase price.');
+  if(!String(document.getElementById('pprice').value||'').trim())return fail('Please enter the offer price.');
   var oe=await ofSave();if(oe)return fail(oe);
   var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
   if(!pa0)return fail('Please enter the property address first.');
