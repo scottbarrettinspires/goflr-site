@@ -149,6 +149,12 @@ var h='';
 Q.forEach(function(x){
   // Seller concessions: instead of Yes / No, two amount fields (default 0); anything above 0 adds the clause, 0 in both leaves it out.
   x.conc=/concession/i.test(x.question)&&x.rows.some(function(r){return !r.skip&&followFor(x.q,r.answer);});
+  // Buyer broker compensation: amount fields (default 0) plus who pays, instead of three Yes / No answers.
+  x.comp=/buyer broker compensation/i.test(x.question)&&x.rows.filter(function(r){return !r.skip&&/^yes/i.test(r.answer);}).length>=1;
+  if(x.comp){var ys=x.rows.filter(function(r){return !r.skip&&/^yes/i.test(r.answer);});
+    h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cp'+x.q+'">Percent of Offer Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0">';
+    ys.forEach(function(r,i){h+='<label class="wr"><input type="radio" name="cpw'+x.q+'" value="'+x.rows.indexOf(r)+'"'+(i===0?' checked':'')+'> '+esc(r.answer.replace(/^yes\s*[-\u2013\u2014:]?\s*/i,''))+'</label>';});
+    h+='</div></fieldset>';return;}
   if(x.conc){h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cq'+x.q+'">Percent of Offer Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0"></div></fieldset>';return;}
   h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend>';
   x.rows.forEach(function(r,i){
@@ -264,6 +270,19 @@ btn.addEventListener('click',async function(){
   var picked=[],warn=[],clauses=[];
   for(var k=0;k<Q.length;k++){
     var x=Q[k];
+    if(x.comp){
+      var cc=document.getElementById('cp'+x.q), p1=num(cc.querySelector('.wp').value), a1=num(cc.querySelector('.wa').value);
+      if((p1&&!/^\d+(\.\d+)?$/.test(p1))||(a1&&!/^\d+(\.\d+)?$/.test(a1)))return fail('Please enter the buyer broker compensation as a number.');
+      var pv1=Number(p1||0), av1=Number(a1||0);
+      if(pv1>0&&av1>0)return fail('Enter either a percent or a flat amount for buyer broker compensation, not both.');
+      if(pv1>0||av1>0){
+        var wc=cc.querySelector('input[name="cpw'+x.q+'"]:checked'); if(!wc)return fail('Choose who is to compensate: the seller or the listing brokerage.');
+        var rowC=x.rows[Number(wc.value)];picked.push(rowC);var fuC=followFor(x.q,rowC.answer);
+        if(fuC){var tC=pv1>0?fuC.percent:fuC.flat; if(!tC)return fail('The clause wording for this answer is missing in the Wizard Rules sheet.'); clauses.push(tC.replace(/\[PERCENT\]/g,p1).replace(/\[AMOUNT\]/g,a1));}
+        if(rowC.todo)warn.push('A form for "'+rowC.answer+'" has not been added to the rules yet.');
+      }else{var ni1=-1;x.rows.forEach(function(r,i){if(!r.skip&&ni1<0&&!/^yes/i.test(r.answer))ni1=i;});if(ni1>=0)picked.push(x.rows[ni1]);}
+      continue;
+    }
     if(x.conc){
       var cb=document.getElementById('cq'+x.q), p0=num(cb.querySelector('.wp').value), a0=num(cb.querySelector('.wa').value);
       if((p0&&!/^\d+(\.\d+)?$/.test(p0))||(a0&&!/^\d+(\.\d+)?$/.test(a0)))return fail('Please enter the seller concessions as a number.');
