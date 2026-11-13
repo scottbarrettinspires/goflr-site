@@ -77,6 +77,7 @@ function mls_find($mls) {
         $pre = 'MFR'; // Stellar MLS (mfrmls)
         $full = strpos(strtoupper($mls), $pre) === 0 ? strtoupper($mls) : $pre . strtoupper($mls);
         $r = mls_fetch_page('Property', ['$filter' => "OriginatingSystemName eq '" . preg_replace('/[^A-Za-z0-9 _-]/', '', $s['originating_system']) . "' and ListingId eq '" . $full . "'", '$top' => 1]);
+        if (!empty($r['ok']) && empty($r['rows']) && $full !== strtoupper($mls)) { $r = mls_fetch_page('Property', ['$filter' => "OriginatingSystemName eq '" . preg_replace('/[^A-Za-z0-9 _-]/', '', $s['originating_system']) . "' and ListingId eq '" . strtoupper($mls) . "'", '$top' => 1]); }
         if (!empty($r['ok'])) { if (!empty($r['rows'])) { mls_cache_listings($r['rows']); return [true, mls_parse_listing($r['rows'][0])]; } return [false, 'No listing with MLS number ' . $mls . ' was found. Check the number and try again.']; }
         $live = (string)($r['note'] ?? '');
     }
