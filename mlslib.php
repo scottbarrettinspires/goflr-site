@@ -95,12 +95,10 @@ function mls_offer_fields(array $l) {
         if ($fn) { $oaf = array_shift($fn); $oal = implode(' ', $fn); }
     }
     $pt = (string)($l['property_type'] ?? ''); $sub = strtolower((string)($l['property_sub_type'] ?? '')); $type = '';
-    if (preg_match('/manufactured|mobile/', $sub)) $type = 'Mobile / Manufactured';
-    elseif (preg_match('/condo|townhouse|townhome|villa/', $sub)) $type = 'Condo / Townhome';
-    elseif (preg_match('/land|lot|vacant/i', $pt . ' ' . $sub)) $type = 'Vacant Land';
-    elseif (preg_match('/income|multi|duplex|triplex|quadruplex/i', $pt . ' ' . $sub)) $type = 'Multi-Family';
-    elseif (preg_match('/commercial/i', $pt)) $type = 'Commercial';
-    elseif (preg_match('/residential/i', $pt)) $type = 'Residential';
+    $all = strtolower($pt . ' ' . $sub);
+    if (preg_match('/land|lot|vacant/', $all)) $type = 'Vacant Land';
+    elseif (preg_match('/condo/', $all) && !preg_match('/townhouse|townhome/', $all)) $type = 'Condominium';
+    elseif (preg_match('/single|manufactured|mobile|duplex|triplex|townhouse|townhome|multi|quadruplex|villa|residential|income/', $all)) $type = 'Residential';
     $raw = (array)($l['raw'] ?? []); $hoa = ''; $cdd = '';
     $yn = function ($v) { if ($v === true || preg_match('/^(y|yes|true|1)$/i', trim((string)$v))) return 'yes'; if ($v === false || preg_match('/^(n|no|false|0)$/i', trim((string)$v))) return 'no'; return ''; };
     if (array_key_exists('AssociationYN', $raw)) $hoa = $yn($raw['AssociationYN']);

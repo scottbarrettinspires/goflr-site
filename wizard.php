@@ -212,7 +212,7 @@ async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperC
 function mlsPick(qre,are){Q.forEach(function(x){if(!qre.test(x.question))return;x.rows.forEach(function(r,i){if(r.skip||!are.test(r.answer))return;var el=qs.querySelector('input[name="q'+x.q+'"][value="'+i+'"]');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));var fs=el.closest('fieldset');if(fs){fs.classList.add('mlsq');fs.hidden=true;}}});});}
 var MLSX={};
 function mlsAnswers(x){if(x)MLSX=x;if(!(ofEl('mls_id').value||'').trim())return;var pt=ofEl('property_type').value,yb=parseInt(ofEl('year_built').value,10);
-  var pm={'Residential':/residential|single|house|home/i,'Condo / Townhome':/condo|townhome|town home/i,'Vacant Land':/vacant|land/i,'Multi-Family':/multi/i,'Commercial':/commercial/i}[pt];
+  var pm={'Residential':/residential|single|house|home/i,'Condominium':/condo/i,'Vacant Land':/vacant|land/i}[pt];
   if(pm)mlsPick(/property type/i,pm);
   if(yb>0)mlsPick(/1978|lead/i,yb<1978?/^yes/i:/^no/i);
   // HOA / CDD from the MLS record; stays blank when the MLS does not say.

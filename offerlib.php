@@ -8,7 +8,8 @@ require_once __DIR__ . '/sigtools.php';
 
 const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type'];
 const OF_AGENT = ['oa_first', 'oa_last', 'oa_brokerage', 'oa_email', 'oa_phone'];
-const OF_PROP_TYPES = ['Residential', 'Condo / Townhome', 'Vacant Land', 'Mobile / Manufactured', 'Multi-Family', 'Commercial'];
+const OF_PROP_TYPES = ['Residential', 'Condominium', 'Vacant Land']; // Residential covers single family, mobile/manufactured, duplex, triplex and townhome
+const OF_PROP_TYPES_OLD = ['Condo / Townhome', 'Mobile / Manufactured', 'Multi-Family', 'Commercial']; // still accepted on offers saved earlier
 
 function of_own_buyer($me, $tx) {
     foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') return $t; }
@@ -62,7 +63,7 @@ function of_save($me, $tx, array $in) {
     if ($d['year_built'] !== '' && (!preg_match('/^\d{4}$/', $d['year_built']) || (int)$d['year_built'] < 1700 || (int)$d['year_built'] > (int)date('Y') + 2)) return 'Year built must be a four-digit year.';
     if ($d['closing_date'] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['closing_date'])) return 'Closing date must be a date (YYYY-MM-DD).';
     if ($d['oa_email'] !== '' && !filter_var($d['oa_email'], FILTER_VALIDATE_EMAIL)) return 'The other agent\'s email address does not look right.';
-    if ($d['property_type'] !== '' && !in_array($d['property_type'], OF_PROP_TYPES, true)) return 'Choose a property type from the list.';
+    if ($d['property_type'] !== '' && !in_array($d['property_type'], array_merge(OF_PROP_TYPES, OF_PROP_TYPES_OLD), true)) return 'Choose a property type from the list.';
     if (preg_match('/[\\\\\/:*?"<>|]/', of_address($d))) return 'Please check the property address (no slashes or special characters).';
     if (mb_strlen(of_address($d)) > 120) return 'That address is too long.';
     if ($raw && isset($raw['comp'])) $d['comp'] = $raw['comp'];
