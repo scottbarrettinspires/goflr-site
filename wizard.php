@@ -104,6 +104,9 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
         <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
         <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
+        <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"></label>
+        <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"></label>
+        <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"></label>
       </div>
       <input type="hidden" id="paddr">
       <h3 id="oa_head">Other agent</h3>
@@ -161,7 +164,7 @@ function fillMap(){
   return m;
 }
 function loadInfo(){
-  INFO=null;bsum.innerHTML='';var xF0=document.getElementById('xf_F');if(xF0){xF0.style.display='none';xF0.querySelector('input').checked=false;} // Appraisal (F) is offered to cash buyers only
+  INFO=null;bsum.innerHTML='';var fw0=document.getElementById('of_fin_wrap');if(fw0)fw0.style.display='none';var xF0=document.getElementById('xf_F');if(xF0){xF0.style.display='none';xF0.querySelector('input').checked=false;} // Appraisal (F) is offered to cash buyers only
   if(!txSel.value)return;
   var id=txSel.value;
   bsum.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i style="width:16px;height:16px;border:3px solid #cfe3e2;border-top-color:#006b68;border-radius:50%;animation:flrspin .8s linear infinite;display:inline-block"></i>Loading this buyer\'s saved info...</p>';
@@ -173,6 +176,7 @@ function loadInfo(){
     var pm={cash:'Cash',conventional:'Conventional financing',fhava:'FHA / VA financing'}[INFO.payment]||'';
     var nm=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and ');
     bsum.innerHTML='<p class="note">Using saved buyer info: <strong>'+esc(nm||'(no name)')+'</strong>'+(pm?' &middot; '+esc(pm):'')+'. '+edit+'</p>';
+    var fw=document.getElementById('of_fin_wrap');if(fw)fw.style.display=(INFO.payment==='conventional'||INFO.payment==='fhava')?'':'none'; // Amount Being Financed: financing buyers only
     var xF=document.getElementById('xf_F');if(xF&&INFO.payment==='cash')xF.style.display='';
     var re={conventional:/^conventional/i,fhava:/^fha/i}[INFO.payment];
     if(re){Q.forEach(function(x){x.rows.forEach(function(r,i){if(re.test(r.answer)){var el=qs.querySelector('input[name="q'+x.q+'"][value="'+i+'"]');if(el){el.checked=true;var fs=el.closest('fieldset');if(fs)fs.hidden=true;}}});});}
@@ -183,7 +187,7 @@ function loadInfo(){
 txSel.addEventListener('change',loadInfo);
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
-var OFK=['street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
 function ofEl(k){return document.getElementById('of_'+k);}
 function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
