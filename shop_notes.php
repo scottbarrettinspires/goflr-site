@@ -45,6 +45,48 @@ sp_head('Shop Homes', $tx);
   <p class="note" style="margin:0">No buyer agreement is on file for this buyer yet. Get the Exclusive Buyer Brokerage Agreement or a Showing Agreement signed from <a href="buyer_agreement.php?tx=<?= urlencode($tx) ?>" target="_top">Buyer Agreement</a> before showing homes.</p>
 </div>
 <?php endif; ?>
+<?php require_once __DIR__ . "/shoplib.php"; $sc = shop_criteria($me, $tx); ?>
+<div class="panel sigbox" id="findbox">
+  <h2 style="margin-top:0">Find homes for this buyer</h2>
+<?php if (!$sc['linked'] || shop_summary($sc) === ''): ?>
+  <p class="note">No Buyer Property details are saved for this buyer yet. Open the buyer in Leads &amp; Contacts, fill in Buyer Property (price, beds, baths, areas), then come back. You can also type what to search for below.</p>
+<?php else: ?>
+  <p class="note" style="margin-top:0">From Buyer Property: <strong><?= htmlspecialchars(shop_summary($sc)) ?></strong></p>
+<?php endif; ?>
+  <div class="wq" style="display:flex;flex-wrap:wrap;gap:10px">
+    <label>Min price<input type="text" id="fs_pmin" inputmode="numeric" value="<?= htmlspecialchars($sc['price_min']) ?>" size="9"></label>
+    <label>Max price<input type="text" id="fs_pmax" inputmode="numeric" value="<?= htmlspecialchars($sc['price_max']) ?>" size="9"></label>
+    <label>Beds (min)<input type="text" id="fs_beds" inputmode="numeric" value="<?= htmlspecialchars($sc['beds']) ?>" size="3"></label>
+    <label>Baths (min)<input type="text" id="fs_baths" inputmode="decimal" value="<?= htmlspecialchars($sc['baths']) ?>" size="3"></label>
+    <label style="flex:1;min-width:220px">Cities or zip codes (comma separated)<input type="text" id="fs_areas" value="<?= htmlspecialchars($sc['areas']) ?>"></label>
+  </div>
+  <p><button type="button" class="btn" id="fs_go">Search MLS</button> <span class="note" id="fs_msg"></span></p>
+  <div id="fs_res"></div>
+</div>
+<script>
+(function(){
+var TX=<?= json_encode($tx) ?>,CSRF=<?= json_encode($_SESSION['csrf']) ?>,go=document.getElementById('fs_go'),msg=document.getElementById('fs_msg'),res=document.getElementById('fs_res');
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function yn(v){return v==='yes'?'HOA/CDD: ':'';}
+function money(n){return n?'$'+Number(n).toLocaleString('en-US'):'';}
+go.addEventListener('click',function(){
+  var q='tx='+encodeURIComponent(TX)+'&price_min='+encodeURIComponent(document.getElementById('fs_pmin').value)+'&price_max='+encodeURIComponent(document.getElementById('fs_pmax').value)+'&beds='+encodeURIComponent(document.getElementById('fs_beds').value)+'&baths='+encodeURIComponent(document.getElementById('fs_baths').value)+'&areas='+encodeURIComponent(document.getElementById('fs_areas').value);
+  go.disabled=true;msg.textContent='Searching...';res.innerHTML='';
+  fetch('shop_search_api.php?'+q,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+    go.disabled=false;
+    if(!j.ok){msg.textContent=j.msg||'Could not search.';return;}
+    msg.textContent=j.total?(j.total+' active home'+(j.total===1?'':'s')+' match'+(j.total>j.rows.length?' (showing the '+j.rows.length+' lowest priced)':'')+'.'):'No active homes match. Try widening the price or area.';
+    res.innerHTML=j.rows.map(function(h){
+      var addr=[h.address,h.city,[h.state,h.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+      var facts=[money(h.price),h.beds?h.beds+' bd':'',h.baths?h.baths+' ba':'',h.sqft?Number(h.sqft).toLocaleString('en-US')+' sq ft':'',h.year_built?'built '+h.year_built:'',h.type,'HOA: '+(h.hoa==='yes'?'Yes':h.hoa==='no'?'No':'?'),'CDD: '+(h.cdd==='yes'?'Yes':h.cdd==='no'?'No':'?')].filter(Boolean).join(' · ');
+      var who=[h.agent,h.office,h.phone,h.email].filter(Boolean).join(' · ');
+      return '<form method="post" class="wq" style="margin:0 0 10px"><input type="hidden" name="csrf" value="'+esc(CSRF)+'"><input type="hidden" name="tx" value="'+esc(TX)+'"><input type="hidden" name="kind" value="scheduled"><input type="hidden" name="address" value="'+esc(h.address+(h.city?', '+h.city:''))+'"><input type="hidden" name="note" value="MLS '+esc(h.mls)+' '+esc(money(h.price))+(who?'. Listing agent: '+esc(who):'')+'">'
+        +'<strong>'+esc(addr)+'</strong> <span class="note">MLS '+esc(h.mls)+'</span><div>'+esc(facts)+'</div><div class="note">'+esc(who)+'</div><button type="submit" class="btn sm">Log a scheduled showing</button></form>';
+    }).join('');
+  }).catch(function(){go.disabled=false;msg.textContent='Could not search. Please try again.';});
+});
+})();
+</script>
 <div class="panel sigbox">
 <?php if (!empty($_GET['saved'])): ?><p class="note">Saved.<?= $bagType === 'showing' ? ' If this address isn\'t already named on the Showing Agreement on file, send a new one for it above.' : '' ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
