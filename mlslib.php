@@ -89,6 +89,11 @@ function mls_find($mls) {
 }
 // The Make An Offer screen's fields, filled from one parsed listing. Keys match the offer form (street_number, street_name, ... oa_phone).
 function mls_offer_fields(array $l) {
+    $oaf = trim((string)($l['list_agent_first'] ?? '')); $oal = trim((string)($l['list_agent_last'] ?? ''));
+    if ($oaf === '' && $oal === '') { // MLS Grid often sends only the full name: first word = first name, the rest = last name
+        $fn = preg_split('/\s+/', trim((string)($l['agent'] ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+        if ($fn) { $oaf = array_shift($fn); $oal = implode(' ', $fn); }
+    }
     $pt = (string)($l['property_type'] ?? ''); $sub = strtolower((string)($l['property_sub_type'] ?? '')); $type = '';
     if (preg_match('/manufactured|mobile/', $sub)) $type = 'Mobile / Manufactured';
     elseif (preg_match('/condo|townhouse|townhome|villa/', $sub)) $type = 'Condo / Townhome';
@@ -101,7 +106,7 @@ function mls_offer_fields(array $l) {
         'city' => (string)($l['city'] ?? ''), 'state' => strtoupper((string)($l['state'] ?? '')), 'zip' => substr((string)($l['zip'] ?? ''), 0, 5),
         'year_built' => !empty($l['year_built']) ? (string)(int)$l['year_built'] : '', 'annual_taxes' => !empty($l['taxes']) ? (string)round((float)$l['taxes'], 2) : '',
         'property_type' => $type,
-        'oa_first' => (string)($l['list_agent_first'] ?? ''), 'oa_last' => (string)($l['list_agent_last'] ?? ''), 'oa_brokerage' => (string)($l['office'] ?? ''),
+        'oa_first' => $oaf, 'oa_last' => $oal, 'oa_brokerage' => (string)($l['office'] ?? ''),
         'oa_email' => (string)($l['list_agent_email'] ?? ''), 'oa_phone' => (string)($l['list_agent_phone'] ?? ''),
     ];
 }
