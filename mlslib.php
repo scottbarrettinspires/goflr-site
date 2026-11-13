@@ -56,7 +56,7 @@ function mls_fetch_page($resourcePath, $query = []) {
     $s = mls_settings(); if ($s['base_url'] === '' || $s['token'] === '') return ['ok' => false, 'note' => 'MLS Grid is not connected yet.'];
     $url = rtrim($s['base_url'], '/') . '/' . ltrim($resourcePath, '/') . ($query ? '?' . http_build_query($query) : '');
     $ch = curl_init($url);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $s['token'], 'Accept: application/json']]);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20, CURLOPT_ENCODING => 'gzip', CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $s['token'], 'Accept: application/json']]);
     $body = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $errv = curl_error($ch); curl_close($ch);
     if ($body === false) return ['ok' => false, 'note' => 'Request failed: ' . $errv];
     $j = json_decode($body, true);
