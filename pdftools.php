@@ -74,7 +74,7 @@ sp_head('PDF Tools');
   <section class="tp" data-t="img" hidden>
     <h2>JPG / PNG to PDF</h2><p class="d">Turn pictures or photos into one PDF, one picture per page, in the order you set.</p>
     <div class="pick"><label class="fb">Choose pictures<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png" multiple></label></div>
-    <div class="opt"><label>Page size <select class="ps"><option value="fit">Same size as each picture</option><option value="letter">US Letter</option></select></label></div>
+    <div class="opt"><span>Page size:</span><label><input type="radio" name="ps" value="letter" checked> US Letter</label><label><input type="radio" name="ps" value="fit"> Same size as each picture</label></div>
     <ul class="fl"></ul><button class="pbtn" disabled>Create PDF</button><p class="pmsg"></p><p class="perr"></p><div class="pres" hidden></div>
   </section>
 </div>
@@ -123,7 +123,7 @@ function jpegOri(buf){var v=new DataView(buf);if(v.getUint16(0)!==0xFFD8)return 
 async function viaCanvas(file,type){var bm=await createImageBitmap(file),c=document.createElement("canvas");c.width=bm.width;c.height=bm.height;var x=c.getContext("2d");if(type==="image/jpeg"){x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);}x.drawImage(bm,0,0);
   return new Promise(function(ok){c.toBlob(function(b){b.arrayBuffer().then(function(a){ok(a);});},type,0.92);});}
 iml.btn.onclick=async function(){err(im,"");msg(im,"");setBusy(iml.btn,true,"Creating...");
-  try{lib();var out=await PL.PDFDocument.create(),fs=iml.files(),letter=$(".ps",im).value==="letter";
+  try{lib();var out=await PL.PDFDocument.create(),fs=iml.files(),letter=im.querySelector('input[name=ps]:checked').value==="letter";
     for(var i=0;i<fs.length;i++){msg(im,"Picture "+(i+1)+" of "+fs.length+"...");var f=fs[i].file,t=f.type,buf=await f.arrayBuffer(),pic;
       if(t==="image/jpeg"){pic=jpegOri(buf)>1?await out.embedJpg(await viaCanvas(f,"image/jpeg")):await out.embedJpg(buf);}
       else if(t==="image/png"){pic=await out.embedPng(buf);}
