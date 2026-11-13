@@ -83,6 +83,14 @@ sp_head('Settings');
   </div>
 <?php endif; ?>
   <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9.5 14.5L12 12l2.5 2.5"/></svg></span>
+    <div class="tx">
+      <h2>PDF Tools</h2>
+      <p>Merge, split, rotate, reorganize and compress PDFs, and turn JPG or PNG pictures into a PDF. Your files stay on your device.</p>
+      <div class="acts"><a class="btn" href="pdftools.php">Open PDF Tools</a></div>
+    </div>
+  </div>
+  <div class="setc">
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg></span>
     <div class="tx">
       <h2>FLR Office on your phone</h2>
