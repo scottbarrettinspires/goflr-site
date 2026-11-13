@@ -14,14 +14,15 @@ function mls_db() {
 function mls_settings() {
     $q = flr_db()->prepare('SELECT v FROM kv WHERE k = ?'); $q->execute(['mls_settings']);
     $r = $q->fetchColumn(); $s = $r ? (json_decode($r, true) ?: []) : [];
-    return $s + ['base_url' => '', 'token' => '', 'originating_system' => '', 'connected' => false];
+    return $s + ['base_url' => 'https://api.mlsgrid.com/v2', 'token' => '', 'originating_system' => 'mfrmls', 'connected' => false, 'agents' => false];
 }
 function mls_save_settings(array $s) {
     $cur = mls_settings();
     $new = ['base_url' => trim((string)($s['base_url'] ?? $cur['base_url'])), 'originating_system' => trim((string)($s['originating_system'] ?? $cur['originating_system'])),
-        'token' => array_key_exists('token', $s) && $s['token'] !== '' ? (string)$s['token'] : $cur['token'], 'connected' => !empty($s['connected'])];
+        'token' => array_key_exists('token', $s) && $s['token'] !== '' ? (string)$s['token'] : $cur['token'], 'connected' => !empty($s['connected']),
+        'agents' => array_key_exists('agents', $s) ? !empty($s['agents']) : !empty($cur['agents'])];
     flr_db()->prepare('INSERT INTO kv (k, v) VALUES ("mls_settings", ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v')->execute([json_encode($new)]);
-    flr_audit('mls', 'mls_settings', '', 'MLS Grid connection settings updated');
+    flr_audit('mls', 'mls_settings', '', 'MLS Grid connection settings updated (connected=' . (int)$new['connected'] . ', agents=' . (int)$new['agents'] . ')');
 }
 
 // Map one RESO Web API "Property" resource record into the flat shape the rest of goflr.com would use.
@@ -33,7 +34,7 @@ function mls_parse_listing(array $r) {
         'city' => (string)($r['City'] ?? ''), 'state' => (string)($r['StateOrProvince'] ?? ''), 'zip' => (string)($r['PostalCode'] ?? ''),
         'price' => (float)($r['ListPrice'] ?? 0), 'beds' => (int)($r['BedroomsTotal'] ?? 0), 'baths' => (float)($r['BathroomsTotalInteger'] ?? 0),
         'sqft' => (int)($r['LivingArea'] ?? 0), 'office' => (string)($r['ListOfficeName'] ?? ''), 'agent' => (string)($r['ListAgentFullName'] ?? ''),
-        'listing_id' => (string)($r['ListingId'] ?? ''), 'street_number' => trim((string)($r['StreetNumber'] ?? '')),
+        'listing_id' => (string)($r['ListingId'] ?? ''), 'can_use' => implode(',', (array)($r['MlgCanUse'] ?? [])), 'street_number' => trim((string)($r['StreetNumber'] ?? '')),
         'street_name' => trim(preg_replace('/\s+/', ' ', ($r['StreetDirPrefix'] ?? '') . ' ' . ($r['StreetName'] ?? '') . ' ' . ($r['StreetSuffix'] ?? '') . ' ' . ($r['StreetDirSuffix'] ?? ''))),
         'unit' => trim((string)($r['UnitNumber'] ?? '')), 'year_built' => (int)($r['YearBuilt'] ?? 0), 'taxes' => (float)($r['TaxAnnualAmount'] ?? 0),
         'property_type' => (string)($r['PropertyType'] ?? ''), 'property_sub_type' => (string)($r['PropertySubType'] ?? ''),
@@ -56,6 +57,8 @@ function mls_fetch_page($resourcePath, $query = []) {
     $body = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $errv = curl_error($ch); curl_close($ch);
     if ($body === false) return ['ok' => false, 'note' => 'Request failed: ' . $errv];
     $j = json_decode($body, true);
+    if ($code === 401 || $code === 403) return ['ok' => false, 'note' => 'MLS Grid did not accept the access token (HTTP ' . $code . '). Check the token on the MLS Data page.'];
+    if ($code === 429) return ['ok' => false, 'note' => 'MLS Grid asked us to slow down (HTTP 429). Try again in a minute.'];
     if ($code !== 200 || !is_array($j)) return ['ok' => false, 'note' => 'MLS Grid returned HTTP ' . $code];
     return ['ok' => true, 'rows' => (array)($j['value'] ?? []), 'next' => $j['@odata.nextLink'] ?? ''];
 }
@@ -65,14 +68,19 @@ function mls_fetch_page($resourcePath, $query = []) {
 function mls_find($mls) {
     $mls = trim((string)$mls);
     if (!preg_match('/^[A-Za-z0-9_-]{4,20}$/', $mls)) return [false, 'Enter the MLS number using letters and digits only (for example T3512345).'];
-    $s = mls_settings();
+    $s = mls_settings(); $live = '';
     if (!empty($s['connected']) && $s['base_url'] !== '' && $s['token'] !== '') {
-        $r = mls_fetch_page('Property', ['$filter' => "ListingId eq '" . $mls . "'", '$top' => 1]);
+        // MLS Grid stores the MLS number with the source prefix (Stellar: MFR + T3512345); agents type it without.
+        $pre = 'MFR'; // Stellar MLS (mfrmls)
+        $full = strpos(strtoupper($mls), $pre) === 0 ? strtoupper($mls) : $pre . strtoupper($mls);
+        $r = mls_fetch_page('Property', ['$filter' => "OriginatingSystemName eq '" . preg_replace('/[^A-Za-z0-9 _-]/', '', $s['originating_system']) . "' and ListingId eq '" . $full . "'", '$top' => 1]);
         if (!empty($r['ok'])) { if (!empty($r['rows'])) { mls_cache_listings($r['rows']); return [true, mls_parse_listing($r['rows'][0])]; } return [false, 'No listing with MLS number ' . $mls . ' was found. Check the number and try again.']; }
+        $live = (string)($r['note'] ?? '');
     }
-    $q = mls_db()->prepare("SELECT data FROM mls_listings WHERE UPPER(json_extract(data, '$.listing_id')) = UPPER(?) OR UPPER(id) = UPPER(?) LIMIT 1"); $q->execute([$mls, $mls]);
+    $q = mls_db()->prepare("SELECT data FROM mls_listings WHERE UPPER(json_extract(data, '$.listing_id')) IN (UPPER(?), UPPER(?)) OR UPPER(id) = UPPER(?) LIMIT 1"); $q->execute([$mls, 'MFR' . $mls, $mls]);
     $d = $q->fetchColumn();
     if ($d) { $j = json_decode($d, true); if (is_array($j)) return [true, $j]; }
+    if ($live !== '') return [false, $live];
     return [false, empty($s['connected']) ? 'The MLS connection is not turned on yet, so this cannot fill in the property for you. Enter the details below by hand. Once MLS is connected, typing the MLS number fills them in.' : 'No listing with MLS number ' . $mls . ' was found. Check the number and try again.'];
 }
 // The Make An Offer screen's fields, filled from one parsed listing. Keys match the offer form (street_number, street_name, ... oa_phone).

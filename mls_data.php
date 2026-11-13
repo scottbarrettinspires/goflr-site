@@ -10,12 +10,12 @@ if (!flr_is_broker()) { header('Location: home.php'); exit; }
 $msg = ''; $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) {
     if (($_POST['op'] ?? '') === 'savesettings') {
-        mls_save_settings(['base_url' => (string)($_POST['base_url'] ?? ''), 'originating_system' => (string)($_POST['originating_system'] ?? ''), 'token' => (string)($_POST['token'] ?? ''), 'connected' => !empty($_POST['connected'])]);
+        mls_save_settings(['base_url' => (string)($_POST['base_url'] ?? ''), 'originating_system' => (string)($_POST['originating_system'] ?? ''), 'token' => (string)($_POST['token'] ?? ''), 'agents' => !empty($_POST['agents']), 'connected' => !empty($_POST['connected'])]);
         $msg = 'Saved.';
     } elseif (($_POST['op'] ?? '') === 'runsample') {
         mls_cache_listings(mls_sample_raw()); $msg = 'Sample listings parsed and cached below — this is fixture data, not a live MLS pull.';
     } elseif (($_POST['op'] ?? '') === 'pulllive') {
-        $r = mls_fetch_page('Property', ['$top' => 10, '$filter' => "OriginatingSystemName eq 'Stellar MLS'"]);
+        $r = mls_fetch_page('Property', ['$top' => 10, '$filter' => "OriginatingSystemName eq '" . preg_replace('/[^A-Za-z0-9 _-]/', '', mls_settings()['originating_system']) . "' and MlgCanView eq true"]);
         if (!empty($r['ok'])) { mls_cache_listings($r['rows']); $msg = count($r['rows']) . ' listing(s) pulled and cached.'; } else { $err = $r['note'] ?? 'Could not reach MLS Grid.'; }
     }
 }
@@ -48,18 +48,19 @@ $cached = mls_db()->query('SELECT data, updated FROM mls_listings ORDER BY updat
 <main class="wrap">
   <div class="panel sigbox">
     <h2 style="margin-top:0">Status</h2>
-    <p><strong>Connected:</strong> <?= $s['connected'] ? 'Yes — live pulls are enabled' : 'No — waiting on Stellar MLS approval (see the email sent to datadelivery@stellarmls.com)' ?></p>
-    <p class="note">Per that email, goflr.com will not pull live MLS data until Stellar confirms the correct license (Broker Data Release / Firm Internal Use / PDAP export) and the base URL and token below are issued. Flip "Connected" on only once that's in hand.</p>
+    <p><strong>Connected:</strong> <?= $s['connected'] ? 'Yes — live lookups are enabled' : 'No — not connected' ?> &nbsp; <strong>Agents can use lookups:</strong> <?= !empty($s['agents']) ? 'Yes' : 'No — office staff only' ?></p>
+    <p class="note">Development mode: the MLS number lookup on Make An Offer works for office staff only while the website is being built. Switch the connection to the license issued for goflr.com (new token) before turning on agent access or launching. Note: records carry a "can use" tag (IDX, BO and so on) shown in the table below, so you can see which use each listing is marked for.</p>
   </div>
 <?php if ($msg): ?><p class="note"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
 <?php if ($err): ?><p class="sigerr"><?= htmlspecialchars($err) ?></p><?php endif; ?>
   <form method="post" class="panel sigbox">
     <h2 style="margin-top:0">Connection settings</h2>
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>"><input type="hidden" name="op" value="savesettings">
-    <label>MLS Grid base URL (from the Data Consumer account's API settings)<input type="text" name="base_url" value="<?= htmlspecialchars($s['base_url']) ?>" placeholder="https://api.mlsgrid.com/v2"></label>
-    <label>Originating system name<input type="text" name="originating_system" value="<?= htmlspecialchars($s['originating_system']) ?>" placeholder="Stellar MLS"></label>
+    <label>MLS Grid base URL<input type="text" name="base_url" value="<?= htmlspecialchars($s['base_url']) ?>" placeholder="https://api.mlsgrid.com/v2"></label>
+    <label>Originating system name<input type="text" name="originating_system" value="<?= htmlspecialchars($s['originating_system']) ?>" placeholder="mfrmls"></label>
     <label>Access token (leave blank to keep the saved one)<input type="password" name="token" placeholder="<?= $s['token'] ? '••••••••' : '' ?>"></label>
-    <label class="wr"><input type="checkbox" name="connected" <?= $s['connected'] ? 'checked' : '' ?>> Connected — allow live pulls</label>
+    <label class="wr"><input type="checkbox" name="connected" <?= $s['connected'] ? 'checked' : '' ?>> Connected — allow live lookups and pulls</label>
+    <label class="wr"><input type="checkbox" name="agents" <?= !empty($s['agents']) ? 'checked' : '' ?>> Open the MLS number lookup to agents (leave off until the goflr.com license is issued)</label>
     <p><button type="submit" class="btn">Save settings</button></p>
   </form>
   <div class="panel sigbox">
@@ -72,9 +73,9 @@ $cached = mls_db()->query('SELECT data, updated FROM mls_listings ORDER BY updat
   <div class="panel sigbox">
     <h2 style="margin-top:0">Cached listings</h2>
     <table style="width:100%;border-collapse:collapse;font-size:.92rem">
-    <tr style="text-align:left;border-bottom:2px solid var(--line)"><th style="padding:6px 8px 6px 0">ID</th><th style="padding:6px 8px">Status</th><th style="padding:6px 8px">Address</th><th style="padding:6px 8px">Price</th><th style="padding:6px 0">Updated</th></tr>
+    <tr style="text-align:left;border-bottom:2px solid var(--line)"><th style="padding:6px 8px 6px 0">ID</th><th style="padding:6px 8px">Status</th><th style="padding:6px 8px">Address</th><th style="padding:6px 8px">Price</th><th style="padding:6px 8px">Marked for</th><th style="padding:6px 0">Updated</th></tr>
 <?php foreach ($cached as $c): $d = json_decode($c['data'], true) ?: []; ?>
-    <tr style="border-bottom:1px solid var(--line)"><td style="padding:6px 8px 6px 0"><?= htmlspecialchars($d['id'] ?? '') ?></td><td style="padding:6px 8px"><?= htmlspecialchars($d['status'] ?? '') ?></td><td style="padding:6px 8px"><?= htmlspecialchars(trim(($d['address'] ?? '') . ', ' . ($d['city'] ?? ''))) ?></td><td style="padding:6px 8px">$<?= number_format((float)($d['price'] ?? 0)) ?></td><td style="padding:6px 0"><?= htmlspecialchars(date('M j, g:ia', strtotime($c['updated']))) ?></td></tr>
+    <tr style="border-bottom:1px solid var(--line)"><td style="padding:6px 8px 6px 0"><?= htmlspecialchars($d['id'] ?? '') ?></td><td style="padding:6px 8px"><?= htmlspecialchars($d['status'] ?? '') ?></td><td style="padding:6px 8px"><?= htmlspecialchars(trim(($d['address'] ?? '') . ', ' . ($d['city'] ?? ''))) ?></td><td style="padding:6px 8px">$<?= number_format((float)($d['price'] ?? 0)) ?></td><td style="padding:6px 8px"><?= htmlspecialchars((string)($d['can_use'] ?? '')) ?></td><td style="padding:6px 0"><?= htmlspecialchars(date('M j, g:ia', strtotime($c['updated']))) ?></td></tr>
 <?php endforeach; ?>
     </table>
   </div>
