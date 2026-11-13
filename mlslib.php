@@ -101,11 +101,16 @@ function mls_offer_fields(array $l) {
     elseif (preg_match('/income|multi|duplex|triplex|quadruplex/i', $pt . ' ' . $sub)) $type = 'Multi-Family';
     elseif (preg_match('/commercial/i', $pt)) $type = 'Commercial';
     elseif (preg_match('/residential/i', $pt)) $type = 'Residential';
+    $raw = (array)($l['raw'] ?? []); $hoa = ''; $cdd = '';
+    $yn = function ($v) { if ($v === true || preg_match('/^(y|yes|true|1)$/i', trim((string)$v))) return 'yes'; if ($v === false || preg_match('/^(n|no|false|0)$/i', trim((string)$v))) return 'no'; return ''; };
+    if (array_key_exists('AssociationYN', $raw)) $hoa = $yn($raw['AssociationYN']);
+    if ($hoa === '' && ((float)($raw['AssociationFee'] ?? 0) > 0 || trim((string)($raw['AssociationName'] ?? '')) !== '')) $hoa = 'yes';
+    foreach ($raw as $k => $v) { if (preg_match('/cdd/i', (string)$k) && !is_array($v) && $yn($v) !== '') { $cdd = $yn($v); if ($cdd === 'yes') break; } }
     return [
         'street_number' => (string)($l['street_number'] ?? ''), 'street_name' => (string)($l['street_name'] ?? ''), 'unit' => (string)($l['unit'] ?? ''),
         'city' => (string)($l['city'] ?? ''), 'state' => strtoupper((string)($l['state'] ?? '')), 'zip' => substr((string)($l['zip'] ?? ''), 0, 5),
         'year_built' => !empty($l['year_built']) ? (string)(int)$l['year_built'] : '', 'annual_taxes' => !empty($l['taxes']) ? (string)round((float)$l['taxes'], 2) : '',
-        'property_type' => $type,
+        'property_type' => $type, 'hoa' => $hoa, 'cdd' => $cdd,
         'oa_first' => $oaf, 'oa_last' => $oal, 'oa_brokerage' => (string)($l['office'] ?? ''),
         'oa_email' => (string)($l['list_agent_email'] ?? ''), 'oa_phone' => (string)($l['list_agent_phone'] ?? ''),
     ];

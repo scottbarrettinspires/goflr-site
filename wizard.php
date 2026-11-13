@@ -201,16 +201,23 @@ async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperC
     else{Object.keys(j.fields).forEach(function(k){if(ofEl(k)&&j.fields[k]!=='')ofEl(k).value=j.fields[k];if(ofEl(k))ofEl(k).dispatchEvent(new Event('input'));});ofSync();
       var lp=j.list_price?'$'+Number(j.list_price).toLocaleString('en-US'):'';
       mlsSay('<b>Filled from MLS '+esc(v)+'</b>'+(j.status?' ('+esc(j.status)+')':'')+'. Please check the details.'+(lp?'<div class="m">List price '+lp+' <a href="#" id="mls_lp">Use as purchase price</a></div>':''));
-      var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};mlsCondense();mlsAnswers();}
+      var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};mlsCondense();mlsAnswers(j.fields);}
   }catch(e){mlsSay('Could not look up that MLS number. Please try again.',true);}
   mlsGo.disabled=false;mlsGo.textContent='Look up';}
 // Questions the MLS record can answer are pre-selected (the agent can still change them); with no MLS record they stay for the agent to answer.
 function mlsPick(qre,are){Q.forEach(function(x){if(!qre.test(x.question))return;x.rows.forEach(function(r,i){if(r.skip||!are.test(r.answer))return;var el=qs.querySelector('input[name="q'+x.q+'"][value="'+i+'"]');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}});});}
-function mlsAnswers(){if(!(ofEl('mls_id').value||'').trim())return;var pt=ofEl('property_type').value,yb=parseInt(ofEl('year_built').value,10);
+var MLSX={};
+function mlsAnswers(x){if(x)MLSX=x;if(!(ofEl('mls_id').value||'').trim())return;var pt=ofEl('property_type').value,yb=parseInt(ofEl('year_built').value,10);
   var pm={'Residential':/residential|single|house|home/i,'Condo / Townhome':/condo|townhome|town home/i,'Vacant Land':/vacant|land/i,'Multi-Family':/multi/i,'Commercial':/commercial/i}[pt];
   if(pm)mlsPick(/property type/i,pm);
-  if(yb>0)mlsPick(/1978|lead/i,yb<1978?/^yes/i:/^no/i);}
-ofEl('property_type').addEventListener('change',mlsAnswers);
+  if(yb>0)mlsPick(/1978|lead/i,yb<1978?/^yes/i:/^no/i);
+  // HOA / CDD from the MLS record; stays blank when the MLS does not say.
+  var h=MLSX.hoa,c=MLSX.cdd,yes=/^yes/i,no=/^no/i;
+  mlsPick(/(\bhoa\b|homeowner|association)(?!.*(\bcdd\b|community development))/i,h==='yes'?yes:h==='no'?no:/^$/);
+  mlsPick(/(\bcdd\b|community development)(?!.*(\bhoa\b|homeowner|association))/i,c==='yes'?yes:c==='no'?no:/^$/);
+  if(h&&c){var both=h==='yes'&&c==='yes',onlyH=h==='yes'&&c==='no',onlyC=h==='no'&&c==='yes';
+    mlsPick(/(\bhoa\b|homeowner|association).*(\bcdd\b|community development)|(\bcdd\b|community development).*(\bhoa\b|homeowner|association)/i,both?/both|hoa.*cdd|cdd.*hoa/i:onlyH?/^(?!.*cdd).*hoa/i:onlyC?/^(?!.*hoa).*cdd/i:/neither|^none|^no\b/i);}}
+ofEl('property_type').addEventListener('change',function(){mlsAnswers();});
 var MLSF=['street_number','street_name','unit','city','state','zip','year_built','annual_taxes','property_type'];
 function mlsShowFields(on,keepAgent){var oa=['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].some(function(k){return (ofEl(k).value||'').trim();});['oa_head','oa_grid'].forEach(function(i){document.getElementById(i).style.display=(on||!oa)?'':'none';});MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});document.getElementById('mls_card').hidden=on;document.getElementById('mls_card').style.display=on?'none':'flex';}
 function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;
