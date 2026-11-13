@@ -22,6 +22,14 @@ sp_head('PDF Tools');
 .fl li .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fl li small{color:#5a6a6c}.fl li img{width:38px;height:38px;object-fit:cover;border-radius:6px}
 .opt{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 12px}.opt label{display:flex;gap:6px;align-items:center}.opt input[type=text],.opt select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin:0 0 14px}
+.pgrid.big{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.pgrid.big .th{height:min(46vw,380px)}.pgrid.big .pc{padding:10px}.pgrid.big .pn{font-size:.9rem}
+@media (max-width:520px){.pgrid.big{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pgrid.big .th{height:48vw}}
+.pc .th{cursor:zoom-in}.pc[draggable=true] .th{cursor:grab}.pc.over{outline:3px solid var(--teal);outline-offset:1px}
+#pv{position:fixed;inset:0;z-index:1000;background:rgba(10,20,22,.88);display:flex;align-items:center;justify-content:center}#pv[hidden]{display:none}
+#pv .pvc{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:calc(100vw - 140px)}#pv canvas{background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.5);display:block}#pv .pvl{color:#fff;font-size:.9rem}
+#pv button{font:inherit;border:0;cursor:pointer;color:#fff;background:rgba(255,255,255,.16);border-radius:50%}#pv button:hover{background:rgba(255,255,255,.3)}
+#pv .pvn{width:52px;height:52px;font-size:2rem;line-height:1;margin:0 10px;flex:0 0 auto}#pv .pvx{position:absolute;top:14px;right:16px;width:44px;height:44px;font-size:1.8rem;line-height:1}
+@media (max-width:520px){#pv .pvn{width:40px;height:40px;margin:0 4px}#pv .pvc{max-width:calc(100vw - 100px)}}
 .pc{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fbfdfd;text-align:center}.pc.drag{opacity:.4}
 .pc .th{height:140px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#eef3f3;border-radius:8px}.pc .th img{max-width:100%;max-height:100%;transition:transform .15s;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .pc .pn{font-size:.8rem;color:#5a6a6c;margin:6px 0 4px}.pc .pb{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
@@ -59,7 +67,7 @@ sp_head('PDF Tools');
   <section class="tp" data-t="reorder" hidden>
     <h2>Reorganize pages</h2><p class="d">Drag pages (or use the arrows) to change the order, and remove pages you don't want.</p>
     <div class="pick"><label class="fb">Choose a PDF<input type="file" accept="application/pdf,.pdf"></label><span class="fn"></span></div>
-    <div class="pgrid"></div><button class="pbtn" disabled>Save reorganized PDF</button><p class="pmsg"></p><p class="perr"></p><div class="pres" hidden></div>
+    <div class="pgrid big"></div><button class="pbtn" disabled>Save reorganized PDF</button><p class="pmsg"></p><p class="perr"></p><div class="pres" hidden></div>
   </section>
 
   <section class="tp" data-t="compress" hidden>
@@ -155,18 +163,32 @@ $(".pbtn",sp).onclick=async function(){var b=this;err(sp,"");setBusy(b,true,"Wor
   catch(e){err(sp,nice(e));}
   setBusy(b,!spS,"Split");};
 
+// ---- Click a page to see it larger ----
+var PV=null;
+function viewer(){if(PV)return PV;var d=document.createElement("div");d.id="pv";d.hidden=true;d.innerHTML='<button class="pvx" type="button" aria-label="Close">&times;</button><button class="pvn" data-d="-1" type="button" aria-label="Previous page">&lsaquo;</button><div class="pvc"><canvas></canvas><div class="pvl"></div></div><button class="pvn" data-d="1" type="button" aria-label="Next page">&rsaquo;</button>';document.body.appendChild(d);
+  var st={js:null,list:[],k:0,seq:0},cv=d.querySelector("canvas"),lb=d.querySelector(".pvl");
+  async function show(){var my=++st.seq,it=st.list[st.k];lb.textContent="Page "+(it.s+1)+" \u00b7 position "+(st.k+1)+" of "+st.list.length;
+    try{var pg=await st.js.getPage(it.s+1),rot=((pg.rotate||0)+it.rot)%360,v1=pg.getViewport({scale:1,rotation:rot}),fit=Math.min((window.innerWidth-150)/v1.width,(window.innerHeight-90)/v1.height),dpr=Math.min(2,window.devicePixelRatio||1),vp=pg.getViewport({scale:fit*dpr,rotation:rot});
+      if(my!==st.seq)return;var tmp=document.createElement("canvas");tmp.width=Math.ceil(vp.width);tmp.height=Math.ceil(vp.height);await pg.render({canvasContext:tmp.getContext("2d"),viewport:vp}).promise;if(my!==st.seq)return;
+      cv.width=tmp.width;cv.height=tmp.height;cv.style.width=Math.floor(vp.width/dpr)+"px";cv.style.height=Math.floor(vp.height/dpr)+"px";cv.getContext("2d").drawImage(tmp,0,0);}catch(e){}}
+  function go(n){st.k=Math.max(0,Math.min(st.list.length-1,st.k+n));show();}
+  function close(){d.hidden=true;st.seq++;}
+  d.addEventListener("click",function(e){if(e.target.closest(".pvx")||e.target===d){close();return;}var b=e.target.closest(".pvn");if(b)go(+b.dataset.d);});
+  document.addEventListener("keydown",function(e){if(d.hidden)return;if(e.key==="Escape")close();else if(e.key==="ArrowRight")go(1);else if(e.key==="ArrowLeft")go(-1);});
+  PV={open:function(js,list,k){st.js=js;st.list=list;st.k=k;d.hidden=false;show();}};return PV;}
+
 // ---- Rotate / Reorganize (page grid) ----
 function gridTool(r,mode){
   var S=null,pages=[],thumbs={},grid=$(".pgrid",r),btn=$(".pbtn",r),drag=-1;
-  async function thumb(i){if(thumbs[i])return thumbs[i];var pg=await S.js.getPage(i+1),v1=pg.getViewport({scale:1}),vp=pg.getViewport({scale:130/Math.max(v1.width,v1.height)*1.6}),c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;thumbs[i]=c.toDataURL("image/jpeg",0.7);return thumbs[i];}
+  async function thumb(i){if(thumbs[i])return thumbs[i];var pg=await S.js.getPage(i+1),v1=pg.getViewport({scale:1}),vp=pg.getViewport({scale:(mode==="reorder"?560:210)/Math.max(v1.width,v1.height)}),c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;thumbs[i]=c.toDataURL("image/jpeg",0.7);return thumbs[i];}
   var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var im=en.target;io.unobserve(im);thumb(+im.dataset.s).then(function(u){im.src=u;}).catch(function(){});});},{rootMargin:"200px"});
   function draw(){grid.innerHTML=pages.map(function(p,k){return '<div class="pc" data-k="'+k+'"'+(mode==="reorder"?' draggable="true"':'')+'><div class="th"><img data-s="'+p.s+'" alt="" style="transform:rotate('+p.rot+'deg)"'+(thumbs[p.s]?' src="'+thumbs[p.s]+'"':'')+'></div><div class="pn">Page '+(p.s+1)+(mode==="reorder"?' &middot; now '+(k+1):'')+'</div><div class="pb">'+(mode==="rotate"?'<button class="gbtn" data-a="l" title="Rotate left">&#8634;</button><button class="gbtn" data-a="r" title="Rotate right">&#8635;</button>':'<button class="gbtn" data-a="b"'+(k?'':' disabled')+' title="Move earlier">&larr;</button><button class="gbtn" data-a="f"'+(k<pages.length-1?'':' disabled')+' title="Move later">&rarr;</button><button class="gbtn" data-a="x" title="Remove this page">Remove</button>')+'</div></div>';}).join("");
     grid.querySelectorAll("img:not([src])").forEach(function(im){io.observe(im);});btn.disabled=!pages.length;}
-  grid.onclick=function(e){var b=e.target.closest("button[data-a]");if(!b)return;var k=+b.closest(".pc").dataset.k,a=b.dataset.a;
+  grid.onclick=function(e){var b=e.target.closest("button[data-a]");if(!b){var th=e.target.closest(".th");if(th&&S)viewer().open(S.js,pages,+th.closest(".pc").dataset.k);return;}var k=+b.closest(".pc").dataset.k,a=b.dataset.a;
     if(a==="l")pages[k].rot=(pages[k].rot+270)%360;else if(a==="r")pages[k].rot=(pages[k].rot+90)%360;
     else if(a==="x")pages.splice(k,1);else{var j=a==="b"?k-1:k+1,t=pages[k];pages[k]=pages[j];pages[j]=t;}draw();};
   if(mode==="reorder"){grid.ondragstart=function(e){var c=e.target.closest(".pc");if(!c)return;drag=+c.dataset.k;c.classList.add("drag");e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain","p");}catch(x){}};
-    grid.ondragover=function(e){if(drag>-1)e.preventDefault();};grid.ondragend=function(){drag=-1;draw();};
+    grid.ondragover=function(e){if(drag<0)return;e.preventDefault();var c=e.target.closest(".pc");grid.querySelectorAll(".pc.over").forEach(function(x){if(x!==c)x.classList.remove("over");});if(c&&+c.dataset.k!==drag)c.classList.add("over");};grid.ondragend=function(){drag=-1;draw();};
     grid.ondrop=function(e){e.preventDefault();var c=e.target.closest(".pc");if(!c||drag<0)return;var to=+c.dataset.k,m=pages.splice(drag,1)[0];pages.splice(to,0,m);drag=-1;draw();};}
   var all=$(".all",r);if(all)all.onclick=function(e){var b=e.target.closest("button[data-r]");if(!b)return;pages.forEach(function(p){p.rot=((p.rot+ +b.dataset.r)%360+360)%360;});draw();};
   onePdf(r,async function(f,buf){var d=await loadDoc(buf),js=await pdfjsLib.getDocument({data:new Uint8Array(buf.slice(0))}).promise;
