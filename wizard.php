@@ -92,6 +92,7 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s4"><strong>MLS number</strong><input type="text" id="of_mls_id" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. T3512345" style="text-transform:uppercase"></label>
         <div class="s2" style="align-self:end"><button type="button" class="btn" id="mls_go" style="width:100%;padding:9px 6px;margin-bottom:0">Look up</button></div>
         <div class="s6 odb" id="mls_note" style="align-self:end" hidden></div>
+        <div class="s12 odb" id="mls_card" hidden style="display:none;justify-content:space-between;align-items:center;gap:12px"><div id="mls_card_txt"></div><button type="button" class="btn" id="mls_edit" style="width:auto;padding:8px 18px;margin:0">Edit</button></div>
         <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s3">Unit #<input type="text" id="of_unit" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
@@ -196,13 +197,20 @@ var mlsBox=document.getElementById('mls_note'),mlsGo=document.getElementById('ml
 function mlsSay(h,bad){mlsBox.hidden=!h;mlsBox.innerHTML=h||'';mlsBox.style.color=bad?'#b3261e':'';}
 async function mlsLookup(force){var v=(ofEl('mls_id').value||'').trim().toUpperCase();ofEl('mls_id').value=v;if(!v){mlsSay('');return;}if(!force&&v===mlsLast)return;mlsLast=v;mlsGo.disabled=true;mlsGo.textContent='Looking up...';
   try{var j=await fetch('mls_lookup_api.php?mls='+encodeURIComponent(v),{credentials:'same-origin'}).then(function(r){return r.json();});
-    if(!j.ok){mlsSay(esc(j.msg||'Could not look up that MLS number.'),true);}
+    if(!j.ok){mlsSay(esc(j.msg||'Could not look up that MLS number.'),true);mlsShowFields(true);}
     else{Object.keys(j.fields).forEach(function(k){if(ofEl(k)&&j.fields[k]!=='')ofEl(k).value=j.fields[k];if(ofEl(k))ofEl(k).dispatchEvent(new Event('input'));});ofSync();
       var lp=j.list_price?'$'+Number(j.list_price).toLocaleString('en-US'):'';
       mlsSay('<b>Filled from MLS '+esc(v)+'</b>'+(j.status?' ('+esc(j.status)+')':'')+'. Please check the details.'+(lp?'<div class="m">List price '+lp+' <a href="#" id="mls_lp">Use as purchase price</a></div>':''));
-      var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};}
+      var a=document.getElementById('mls_lp');if(a)a.onclick=function(e){e.preventDefault();var pp=document.getElementById('pprice');pp.value=Number(j.list_price).toLocaleString('en-US',{maximumFractionDigits:2});pp.dispatchEvent(new Event('input'));};mlsCondense();}
   }catch(e){mlsSay('Could not look up that MLS number. Please try again.',true);}
   mlsGo.disabled=false;mlsGo.textContent='Look up';}
+var MLSF=['street_number','street_name','unit','city','state','zip','year_built','annual_taxes','property_type'];
+function mlsShowFields(on){MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});document.getElementById('mls_card').hidden=on;document.getElementById('mls_card').style.display=on?'none':'flex';}
+function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;
+  var addr=[[g('street_number'),g('street_name')].filter(Boolean).join(' ')+(g('unit')?' #'+g('unit'):''),g('city'),[g('state'),g('zip')].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  var tx=g('annual_taxes'),sub=[g('year_built')?'Year built '+g('year_built'):'',tx?'Annual taxes $'+tx:'',g('property_type')].filter(Boolean).join(' · ');
+  document.getElementById('mls_card_txt').innerHTML='<b>'+esc(addr)+'</b>'+(sub?'<div class="m">'+esc(sub)+'</div>':'');mlsShowFields(false);}
+document.getElementById('mls_edit').addEventListener('click',function(){mlsShowFields(true);});
 mlsGo.addEventListener('click',function(){mlsLookup(true);});
 ofEl('mls_id').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();mlsLookup(true);}});
 ofEl('mls_id').addEventListener('change',function(){mlsLookup(false);});
@@ -216,7 +224,7 @@ btn.addEventListener('click',async function(){
   err.hidden=true;res.hidden=true;
   if(!txSel.value)return fail('Please choose the buyer first.');
   ofSync();
-  if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim())return fail('Please enter the property address (street number, street name, city and zip).');
+  if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim()){mlsShowFields(true);return fail('Please enter the property address (street number, street name, city and zip).');}
   if(!String(document.getElementById('pprice').value||'').trim())return fail('Please enter the purchase price.');
   var oe=await ofSave();if(oe)return fail(oe);
   var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
