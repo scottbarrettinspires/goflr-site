@@ -105,8 +105,6 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
       </div>
       <input type="hidden" id="paddr">
-      <h3>Buyer</h3>
-      <div class="odb" id="of_buyer">Loading the buyer from this record...</div>
       <h3>Agents</h3>
       <div class="odg">
         <label class="s12" style="font-weight:700;color:#036f72">Other agent (listing side, if known)</label>
@@ -188,7 +186,7 @@ function ofLoad(){var id=txSel.value;if(!id)return;
     if(!j||!j.ok||txSel.value!==id)return;
     OFK.forEach(function(k){ofEl(k).value=j.offer[k]||'';});document.getElementById('pprice').value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'';
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
-    document.getElementById('of_buyer').innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
+    var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
     var _me=document.getElementById('of_me'); if(_me) _me.textContent=[j.agent.name,j.agent.license?'License '+j.agent.license:'',j.agent.email].filter(Boolean).join(' · ');
     var ct=ofCompText(j.comp),ce=document.getElementById('of_comp');ce.innerHTML=ct;ce.hidden=!ct;ofSync();
   }).catch(function(){});}
