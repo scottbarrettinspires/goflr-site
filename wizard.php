@@ -98,11 +98,11 @@ $pre = (string)($_GET['tx'] ?? '');
         <label class="s6">City<input type="text" id="of_city" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Zip code<input type="text" id="of_zip" inputmode="numeric" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s4"><strong>Purchase price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
         <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
+        <label class="s4"><strong>Purchase price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
+        <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
       </div>
       <input type="hidden" id="paddr">
       <h3>Buyer</h3>
