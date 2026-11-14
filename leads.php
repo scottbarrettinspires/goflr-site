@@ -440,7 +440,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
       +'<div class="mvh" data-role="buyer" hidden>'+mv("buyer","",false)+'</div><div class="mvh" data-role="seller" hidden>'+mv("seller","",false)+'</div>'
       +'<div class="mvtip" style="font-size:.82rem;color:#5a6a6c">Is this person buying, selling or both? Then tap how soon.</div>';}
   var bs=cur.some(function(k){return k==="buyer"||k==="seller";});
-  var h=(isNew?'<h3>Category</h3>':(bs?'<h3>Pipeline: click the colored label at the top right to change how close this lead is to doing business.</h3>':''))+cur.map(function(k){
+  var h=(isNew?'<h3>Category</h3>':'')+cur.map(function(k){
     return (k==="sphere"&&!isNew?'<h3'+(bs?' style="margin-top:10px"':'')+'>How Likely To Refer Me Real Estate Leads:</h3>':'')+mv(k,rs[k],false);}).join("");
   var extra=[],has=function(k){return cur.indexOf(k)>-1;};
   if(!has("seller")&&(has("buyer")||has("sphere")))extra.push(["seller","add",has("buyer")?"Add As Seller Also":"Add As Seller"]);
@@ -449,7 +449,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
   h+=["buyer","seller","sphere"].filter(function(k){return !has(k);}).map(function(k){return '<div class="mvh" data-role="'+k+'" hidden>'+mv(k,"",false)+'</div>';}).join("");
   if(extra.length){h+='<div style="margin:6px 0 2px;font-size:.84rem;display:flex;gap:16px;flex-wrap:wrap">'+extra.map(function(x){return '<a href="#" class="mvx" data-role="'+x[0]+'" data-mode="'+x[1]+'" style="color:var(--teal);font-weight:600">'+esc(x[2])+'</a>';}).join("")+'</div>';}
   h+='<div class="mvpre" hidden style="margin:8px 0;padding:10px;border:1px dashed var(--line);border-radius:10px"><label style="font-size:.82rem;font-weight:600">Property address for the listing appointment</label><input id="pre_addr" value="'+esc((L.home&&L.home.addr)||"")+'" placeholder="e.g. 123 Palm Ave, Trinity FL" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box;margin:4px 0 8px"><button type="button" class="btn sm" id="pre_go">Set up listing appointment</button> <span class="goal">The record goes in Active Business › SELLERS › Pre Listing with the seller\'s details, Property Details, notes and source. Prepare your listing documents there for the appointment.</span></div>';
-  h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+(isNew?'':'Tap a stage to move the lead right away. Moving restarts that plan.')+'</div>';
+  h+='<div class="mvtip" style="font-size:.82rem;color:#5a6a6c;margin-top:6px">'+''+'</div>';
   return h;
 }
 function openLead(L,preset,inl){
@@ -511,6 +511,7 @@ function openLead(L,preset,inl){
   if(!isNew){var mvbx=document.getElementById("mvbox"),ft=modal.querySelector(".touch");modal.insertBefore(mvbx,ft||fg);} // stage buttons first, then the next touch
   if(!isNew){ // the stage buttons stay in the page but hidden; the pipeline label at the top right opens the choices and presses them
     [].forEach.call(modal.querySelectorAll("#mvbox .mvrow[data-role] .mvb[data-v]"),function(b){b.style.display="none";});
+    var mvb0=document.getElementById("mvbox");if(mvb0)mvb0.style.display="none"; // nothing left to show in this box (the Listing Appointment address box re-opens it)
   }
   if(!isNew){ // Lead / Notes / History tabs inside the lead window
     // Lead source tags sit at the top right, beside the name and phone; the chooser opens just below the header.
@@ -642,7 +643,7 @@ function openLead(L,preset,inl){
     b.remove();};});
   modal.querySelectorAll(".mvrow").forEach(function(r){r.addEventListener("click",async function(e){var b=e.target.closest(".mvb");if(!b||b.classList.contains("on")||b.classList.contains("mvside"))return;
     if(b.dataset.act==="execute"){location.href="buyer.php?new=1&auto=1&lead="+encodeURIComponent(L.id);return;}
-    if(b.dataset.act==="prelist"){var pp=modal.querySelector(".mvpre");if(pp){pp.hidden=false;var ia=document.getElementById("pre_addr");ia.focus();}return;}
+    if(b.dataset.act==="prelist"){var pp=modal.querySelector(".mvpre");if(pp){pp.hidden=false;var mbx0=document.getElementById("mvbox");if(mbx0)mbx0.style.display="";var ia=document.getElementById("pre_addr");ia.focus();}return;}
     var prev=r.dataset.val;r.dataset.val=b.dataset.v;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x===b);});
     if(sideMode==="both"){var oth=r.dataset.role==="buyer"?"seller":"buyer",orow=modal.querySelector('.mvh[data-role="'+oth+'"] .mvrow');
       if(orow&&!orow.dataset.val){var tp=modal.querySelector(".mvtip");if(tp)tp.textContent="Now tap how soon for "+(oth==="seller"?"selling":"buying")+".";return;}}
