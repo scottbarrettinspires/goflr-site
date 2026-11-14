@@ -48,6 +48,11 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .lside>.h1{background:linear-gradient(135deg,#b3261e,#e5534b);color:#fff}.lside>.h2{background:linear-gradient(135deg,#e5614f,#f2a064);color:#fff}
 .lside>.h3{background:linear-gradient(135deg,#f3d6a6,#d3e2ee);color:#3d3a2e}.lside>.h4{background:linear-gradient(135deg,#cfe0ee,#9fc1e0);color:#143a5c}
 .lside>.h5{background:linear-gradient(135deg,#2f6db3,#1b4a85);color:#fff}.lside>.h6{background:linear-gradient(135deg,#0a8a86,#036f72);color:#fff}
+.qm{display:inline-flex;align-items:center;justify-content:center;width:1.25em;height:1.25em;border-radius:50%;background:#143a5c;color:#fff;font-weight:800;font-size:.85em;line-height:1;vertical-align:-1px}
+.mvb.h1{background:linear-gradient(135deg,#b3261e,#e5534b);color:#fff}.mvb.h2{background:linear-gradient(135deg,#e5614f,#f2a064);color:#fff}
+.mvb.h3{background:linear-gradient(135deg,#f3d6a6,#d3e2ee);color:#3d3a2e}.mvb.h4{background:linear-gradient(135deg,#cfe0ee,#9fc1e0);color:#143a5c}
+.mvb.h5{background:linear-gradient(135deg,#2f6db3,#1b4a85);color:#fff}.mvb.h6{background:linear-gradient(135deg,#0a8a86,#036f72);color:#fff}
+.mvb{border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 2px rgba(20,40,50,.15)}
 .lside{align-items:center}.lside>.sb[data-s="dnc"]{margin-left:auto}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
 .sb{font:inherit;font-weight:700;text-align:left;padding:6px 12px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
@@ -163,7 +168,7 @@ function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return
 function nm(L){return ((L.first||"")+" "+(L.last||"")).trim()||L.phone||L.email||"(no name)";}
 function fmtD(d){if(!d)return "";var x=new Date(d+"T12:00:00");return x.toLocaleDateString(undefined,{month:"short",day:"numeric"});}
 function digits(p){return String(p||"").replace(/[^0-9+]/g,"");}
-var ICON={new:"\u2728",ready:"\uD83D\uDD25",unid:"\u2754",dnc:"\u274C",a:"\uD83D\uDD25",client:"\uD83E\uDD1D"};
+var ICON={new:"\u2728",ready:"\uD83D\uDD25",unid:'<span class="qm">?</span>',dnc:"\u274C",a:"\uD83D\uDD25",client:"\uD83E\uDD1D"};
 var THERMO={soon:0.75,b:0.75,later:0.25,c:0.25,d:0.08};
 // A small thermometer filled to show how close the lead is to hot.
 function thermo(f){var top=2,bot=16,h=Math.round((bot-top)*f),y=bot-h;
