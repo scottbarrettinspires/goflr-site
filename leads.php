@@ -58,6 +58,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .mvb.h3{background:linear-gradient(135deg,#f3d6a6,#d3e2ee);color:#3d3a2e}.mvb.h4{background:linear-gradient(135deg,#cfe0ee,#9fc1e0);color:#143a5c}
 .mvb.h5{background:linear-gradient(135deg,#2f6db3,#1b4a85);color:#fff}.mvb.h6{background:linear-gradient(135deg,#0a8a86,#036f72);color:#fff}
 .mvb{border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 2px rgba(20,40,50,.15)}
+.mvsel{font:inherit;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#2b3a3c;min-width:200px;margin-right:8px}
 .lside{align-items:center}.lside>.sb[data-s="dnc"]{margin-left:auto}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
 .sb{font:inherit;font-weight:700;text-align:left;padding:6px 12px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
@@ -438,7 +439,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
       +'<div class="mvh" data-role="buyer" hidden>'+mv("buyer","",false)+'</div><div class="mvh" data-role="seller" hidden>'+mv("seller","",false)+'</div>'
       +'<div class="mvtip" style="font-size:.82rem;color:#5a6a6c">Is this person buying, selling or both? Then tap how soon.</div>';}
   var bs=cur.some(function(k){return k==="buyer"||k==="seller";});
-  var h=(isNew?'<h3>Category</h3>':(bs?'<h3>Let\'s Move This Lead Closer To Appointment Time:</h3>':''))+cur.map(function(k){
+  var h=(isNew?'<h3>Category</h3>':(bs?'<h3>Pipeline: how close is this lead to doing business?</h3>':''))+cur.map(function(k){
     return (k==="sphere"&&!isNew?'<h3'+(bs?' style="margin-top:10px"':'')+'>How Likely To Refer Me Real Estate Leads:</h3>':'')+mv(k,rs[k],false);}).join("");
   var extra=[],has=function(k){return cur.indexOf(k)>-1;};
   if(!has("seller")&&(has("buyer")||has("sphere")))extra.push(["seller","add",has("buyer")?"Add As Seller Also":"Add As Seller"]);
@@ -474,7 +475,7 @@ function openLead(L,preset,inl){
    +'<div class="btns"><button class="btn" id="m_save">'+(isNew?"Add lead":"Save changes")+'</button><button class="btn ghost" id="m_close">Close</button>'+(isNew?"":'<button class="btn ghost" id="m_del" style="margin-left:auto;color:#b71c1c;border-color:#e3b4b4">Delete</button>')+'</div><p class="note" id="m_msg" hidden></p>';
   if(!isNew){
     L.view.forEach(function(v){
-      var head=ico(v.sub)+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));
+      var head=L.view.length>1?ico(v.sub)+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub)):"Next step"; // the category itself now shows at the top right
       h+='<div class="touch"><div class="hd"><span><span class="dot '+heatClass(v.sub)+'" style="display:inline-block;vertical-align:middle;margin-right:6px"></span>'+head+'</span>'+dueBadge(v)+'</div>';
       if(v.sub==="client"){
         var isB=v.role==="buyer",onPg=!isB||(v.stage||1)===1,open=v.folder?(onPg?(isB?'buyer.php':'seller.php')+'?tx='+encodeURIComponent(v.folder):'https://drive.google.com/drive/folders/'+encodeURIComponent(v.folder)):"";
@@ -506,12 +507,22 @@ function openLead(L,preset,inl){
   modal.innerHTML=h;if(!inl)mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
   if(!isNew){var mvbx=document.getElementById("mvbox"),ft=modal.querySelector(".touch");modal.insertBefore(mvbx,ft||fg);} // stage buttons first, then the next touch
+  if(!isNew){ // pipeline dropdown: the stage buttons are hidden and a dropdown presses the matching one
+    [].forEach.call(modal.querySelectorAll("#mvbox .mvrow[data-role]"),function(row){var bs=row.querySelectorAll(".mvb[data-v]");if(!bs.length)return;
+      var sel=document.createElement("select");sel.className="mvsel";sel.setAttribute("aria-label","Change the pipeline category");
+      var cv=row.dataset.val||"";sel.innerHTML=(cv?'':'<option value="">Choose...</option>')+[].map.call(bs,function(b){return '<option value="'+esc(b.dataset.v)+'"'+(b.dataset.v===cv?" selected":"")+'>'+esc(b.textContent.replace(/^[^A-Za-z]+/,"").trim())+'</option>';}).join("");
+      [].forEach.call(bs,function(b){b.style.display="none";});bs[0].parentNode.insertBefore(sel,bs[0]);
+      sel.onchange=function(){var t=row.querySelector('.mvb[data-v="'+sel.value+'"]');if(t)t.click();};});
+  }
   if(!isNew){ // Lead / Notes / History tabs inside the lead window
     // Lead source tags sit at the top right, beside the name and phone; the chooser opens just below the header.
     var sb=document.getElementById("srcblock"),hd=modal.querySelector("h2");
     if(sb&&hd){var lbl=sb.querySelector("label");if(lbl)lbl.remove();var row=sb.querySelector(".chips"),pw=sb.querySelector(".pickwrap");
       var slot=document.createElement("span");slot.title="How you got this lead";slot.style.cssText="margin-left:auto;font-size:1rem;font-weight:400;display:flex;align-items:center";
       if(row){row.style.margin="0";row.style.justifyContent="flex-end";slot.appendChild(row);}else{slot.appendChild(sb.firstElementChild||document.createTextNode(""));}
+      slot.style.gap="8px";slot.style.flexWrap="wrap";slot.style.justifyContent="flex-end";
+      (L.view||[]).slice().reverse().forEach(function(v){var p=document.createElement("span");p.className="mvb h"+heatClass(v.sub);p.style.cssText="opacity:1;cursor:default;font-size:.85rem;padding:5px 12px;border-radius:99px;white-space:nowrap";p.title="Where this lead is in your pipeline";
+        p.innerHTML=ico(v.sub)+esc(v.role==="new"?"NEW":CATS[v.role].label+" · "+subLabel(v.role,v.sub));slot.insertBefore(p,slot.firstChild);}); // current pipeline category, beside the source
       hd.appendChild(slot);if(pw){hd.parentNode.insertBefore(pw,hd.nextSibling);}sb.remove();}
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
     var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">'+(sphOnly?'Contact':'Lead')+'</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
