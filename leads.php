@@ -242,9 +242,9 @@ function renderCat(){
   if(role!=="new"){var na=LEADS.filter(function(L){return L.roles&&L.roles[role];}).length;
     side+='<button class="sb hall'+(view.sub==="all"?" on":"")+'" data-s="all"><span>All '+esc(CATS[role].label)+'</span> <span class="n">'+na+'</span></button>';}
   keys.forEach(function(k,i){var n=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub===k;}).length;
-    side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"><span>'+ico(k)+esc(subs[k])+'</span> <span class="n">'+n+'</span></button>';});
+    side+='<button class="sb h'+(i+1)+(view.sub===k?" on":"")+'" data-s="'+k+'"'+(k==="dnc"?' title="Do Not Contact" aria-label="Do Not Contact"':'')+'><span>'+ico(k)+(k==="dnc"?"":esc(subs[k]))+'</span> <span class="n">'+n+'</span></button>';});
   if(role==="buyer"||role==="seller"){var nc=LEADS.filter(function(L){return L.roles&&L.roles[role]&&L.roles[role].sub==="client";}).length;
-    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client">'+ico("client")+'In Active Business <span class="n">'+nc+'</span></button>';}
+    side+='<button class="sb h6'+(view.sub==="client"?" on":"")+'" data-s="client">'+ico("client")+'Active <span class="n">'+nc+'</span></button>';}
   var list=LEADS.filter(function(L){return role==="new"?inRole(L,"new"):(view.sub==="all"?!!(L.roles&&L.roles[role]):(L.roles&&L.roles[role]&&L.roles[role].sub===view.sub));});
   if(view.q){var q=view.q.toLowerCase();list=list.filter(function(L){return (nm(L)+" "+(L.phone||"")+" "+(L.email||"")+" "+(L.source||"")).toLowerCase().indexOf(q)>-1;});}
   list.sort(function(a,b){var va=vfor(a,role),vb=vfor(b,role);return ((vb&&vb.over!=null?vb.over:-999)-(va&&va.over!=null?va.over:-999));});
