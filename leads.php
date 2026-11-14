@@ -526,6 +526,7 @@ function openLead(L,preset,inl){
             o.onclick=function(e){e.stopPropagation();menu.hidden=true;if(b.dataset.v!==(rowEl.dataset.val||""))b.click();};menu.appendChild(o);});
           wrap.appendChild(menu);p.onclick=function(e){e.stopPropagation();menu.hidden=!menu.hidden;};document.addEventListener("click",function(){menu.hidden=true;});}
         slot.insertBefore(wrap,slot.firstChild);}); // current pipeline category beside the source; click it to change
+      [].forEach.call(modal.querySelectorAll("#mvbox .mvb[data-act]"),function(b){var c=document.createElement("button");c.type="button";c.className="mvb h6";c.style.cssText="opacity:1;font-size:.85rem;padding:5px 12px;border-radius:99px;white-space:nowrap";c.innerHTML=b.innerHTML;c.title=b.title||"";c.onclick=function(){b.click();};slot.insertBefore(c,slot.firstChild);b.style.display="none";}); // Buyer Consultation / Listing Appointment sit beside the pipeline label
       hd.appendChild(slot);if(pw){hd.parentNode.insertBefore(pw,hd.nextSibling);}sb.remove();}
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
     var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">'+(sphOnly?'Contact':'Lead')+'</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
