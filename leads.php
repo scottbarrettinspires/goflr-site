@@ -101,7 +101,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .fgrid label{font-size:.82rem;font-weight:600;color:#4b5b5d;display:block}
 .fgrid input,.fgrid select,.fgrid textarea,.touch textarea,.touch input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font:inherit;box-sizing:border-box}
 .fgrid .full{grid-column:1/-1}.cmprow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.cmprow>div{min-width:0}.cmprow label{white-space:nowrap}.mmg{border:1px solid var(--line);border-radius:12px;padding:6px 8px 8px;background:#f7fafa}.mmg>label{margin:0 0 3px 2px}.mmr{display:flex;align-items:center;gap:5px}.mmr i{font-style:normal;font-size:.78rem;color:#6a777a}.mmr select{width:74px}.mmg.wide .mmr input{width:76px}.cmprow select,.cmprow input{padding:9px 8px!important;background-color:#fff}
-.touch{border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
+.touch{border:1px solid #9fd3cf;border-radius:14px;padding:14px 16px;margin:12px 0;background:linear-gradient(135deg,#c6e9e7 0%,#ddf2f0 50%,#fde6cf 100%);box-shadow:0 6px 20px rgba(3,111,114,.12)}.touch .hd{font-size:1.08rem}.touch .t_done{background:#e07b39;color:#fff;border-color:#e07b39}.touch .t_done:hover{background:#c96a2c}.touch .t_copy{background:#fff}.touch .t_subj,.touch .t_text{background:#fff}
 .touch .hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:700;margin:0 0 6px}
 .touch .goal{font-size:.82rem;color:#5a6a6c;margin:6px 0}
 .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
