@@ -601,13 +601,28 @@ function openLead(L,preset,inl){
       var lf=pLead.querySelector(":scope > .fgrid"),lbt=pLead.querySelector(":scope > .btns"),lmsg=document.getElementById("m_msg"); // the contact fields (name, phone, email, source...) live here
       if(lf){var ch=document.createElement("h3");ch.style.margin="0 0 6px";ch.textContent="Contact";pc.insertBefore(lf,pc.firstChild);pc.insertBefore(ch,pc.firstChild);var ch2=document.createElement("h3");ch2.style.margin="14px 0 6px";ch2.textContent="Details for contracts";pc.insertBefore(ch2,lf.nextSibling);}
       if(lbt){pc.appendChild(lbt);if(lmsg)pc.appendChild(lmsg);}
+      // Condensed summary card (like the MLS card in Make An Offer); the fields open with Edit
+      var cdEd=document.createElement("div");cdEd.id="cd_edit";cdEd.style.display="none";while(pc.firstChild)cdEd.appendChild(pc.firstChild);
+      var cdCard=document.createElement("div");cdCard.id="cd_card";cdCard.style.cssText="display:flex;justify-content:space-between;align-items:center;gap:12px;background:#f0f8f8;border:1px solid #cfe5e5;border-radius:10px;padding:12px 16px;font-size:.92rem";
+      cdCard.innerHTML='<div id="cd_card_txt"></div><button type="button" class="btn" id="cd_editbtn" style="width:auto;padding:8px 18px;margin:0">Edit</button>';
+      pc.appendChild(cdCard);pc.appendChild(cdEd);
+      function cdArr(v){return Array.isArray(v)?v.join(", "):(v||"");}
+      function cdCardRefresh(){var q=function(id){var e=document.getElementById(id);return e?e.value.trim():"";},nm=(q("f_first")+" "+q("f_last")).trim()||"Client",c1=[q("f_phone"),q("f_email"),q("f_source")?"Source: "+q("f_source"):""].filter(Boolean).join(" · ");
+        var cur=[],ch=function(g){var c=pc.querySelector('.chips[data-grp="'+g+'"]');return c?[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;}).join(", "):"";};
+        var pay=[];if(isBuy){var f=ch("fin"),p=ch("pre"),ld=q("cd_lender"),am=q("cd_preamt");if(f)pay.push("Paying with: "+f);if(p)pay.push("Loan: "+p);if(ld)pay.push("Lender: "+ld);if(am)pay.push("Pre-approved: $"+am.replace(/^\$/,""));}
+        var ml=q("cd_mailing"),co=[q("cd_co_name"),q("cd_co_phone"),q("cd_co_email")].filter(Boolean).join(" · ");
+        document.getElementById("cd_card_txt").innerHTML='<div style="font-size:1.05rem"><b>'+esc(nm)+'</b></div>'+(c1?'<div class="m" style="color:#5a6a6c;margin-top:2px">'+esc(c1)+'</div>':'')
+          +(ml?'<div style="margin-top:6px"><b>Mailing:</b> '+esc(ml)+'</div>':'<div style="margin-top:6px;color:#8a6d1f">No mailing address yet. Click Edit to add the details for contracts.</div>')
+          +(co?'<div style="margin-top:4px"><b>Second '+(isBuy?'buyer':'seller')+':</b> '+esc(co)+'</div>':'')+(pay.length?'<div style="margin-top:4px">'+esc(pay.join(" · "))+'</div>':'');}
+      function cdEditor(on){cdEd.style.display=on?"":"none";cdCard.style.display=on?"none":"flex";if(!on)cdCardRefresh();}
+      cdCardRefresh();document.getElementById("cd_editbtn").onclick=function(){cdEditor(true);};
       modal.appendChild(pc);var cbt=document.createElement("button");cbt.type="button";cbt.dataset.p="client";cbt.textContent="Client Details";bar.insertBefore(cbt,bar.children[1]);
       var ac=pc.querySelector("#cd_addco");if(ac)ac.onclick=function(){pc.querySelector("#cd_cobox").hidden=false;ac.remove();var n=pc.querySelector("#cd_co_name");if(n)n.focus();};
       pc.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
       document.getElementById("cd_save").onclick=async function(){var b=this,m=document.getElementById("cd_msg");b.disabled=true;var o={};
         ["mailing","co_name","co_phone","co_email","lender","preamt"].forEach(function(k){var el=pc.querySelector("#cd_"+k);if(el)o[k]=el.value.trim();});
         pc.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;});});
-        try{var rj=await api({action:"wants",field:"client",id:L.id,wants:o,tx:RECTX,side:RECSIDE});L.client=o;m.textContent=rj.note||"Saved";if(RECTX&&!rj.note)setTimeout(function(){try{parent.postMessage({flrcontact:1,saved:true},location.origin);}catch(e){}},500);render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+        try{var rj=await api({action:"wants",field:"client",id:L.id,wants:o,tx:RECTX,side:RECSIDE});L.client=o;m.textContent=rj.note||"Saved";if(RECTX&&!rj.note)setTimeout(function(){try{parent.postMessage({flrcontact:1,saved:true},location.origin);}catch(e){}},500);cdEditor(false);renderTabs();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
     if(preset&&preset.pane)showPane(preset.pane);
   }
