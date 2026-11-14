@@ -44,7 +44,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs button.on .n{background:rgba(255,255,255,.25)}
 .ltabs .ov{color:#5a6a6c;font-weight:600}
 .lwrap{display:flex;flex-direction:column;gap:14px}
-.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.lside{align-items:center}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
+.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:7px 8px 9px;scroll-snap-type:x proximity}.lside{align-items:center}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
 .sb{font:inherit;font-weight:700;text-align:left;padding:6px 12px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
 .sb.on{outline:3px solid #1f2a2c;outline-offset:2px}
