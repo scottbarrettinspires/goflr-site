@@ -540,19 +540,26 @@ function openLead(L,preset,inl){
     modal.appendChild(pLead);
     var ta=document.getElementById("f_notes"),nwrap=ta.closest(".full");
     pNotes.style.marginTop="14px";pNotes.innerHTML='<h3 style="margin:0 0 6px">Notes</h3><p class="goal" style="margin:0 0 6px">Dated notes about this person. Tap <strong>Add Note</strong> to start a new line with today\'s date.</p>';
-    pNotes.appendChild(nwrap);ta.rows=12;var lb=nwrap.querySelector("label");if(lb)lb.remove();
+    var nlist=document.createElement("div");nlist.className="hist pane";nlist.id="noteList";nlist.style.cssText="margin:0 0 6px";pNotes.appendChild(nlist);
+    pNotes.appendChild(nwrap);nwrap.hidden=true;ta.rows=5;var lb=nwrap.querySelector("label");if(lb)lb.remove();
+    function renderNotes(){var ls=(ta.value||"").split(/\n/).map(function(x){return x.trim();}).filter(Boolean).reverse();
+      nlist.innerHTML=ls.length?ls.map(function(x){var m=/^([A-Z][a-z]{2,8}\.? \d{1,2}(?:,? \d{4})?)\s*[:\-\u2013]\s*(.*)$/.exec(x);return m?esc(m[1])+" · "+esc(m[2]):esc(x);}).join("<br>"):'<span style="color:#6a777a">No notes yet.</span>';}
+    renderNotes();
     ta.style.cssText="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:.92rem;line-height:1.5";
-    var nb=document.createElement("div");nb.className="btns";nb.innerHTML='<button type="button" class="btn" id="noteAdd">Add Note</button><button type="button" class="btn ghost" id="noteSave">Save notes</button><button type="button" class="btn ghost mclose">Close</button><span class="goal" id="noteMsg"></span>';pNotes.appendChild(nb);
+    var nb=document.createElement("div");nb.className="btns";nb.innerHTML='<button type="button" class="btn sm" id="noteAdd">Add Note</button><button type="button" class="btn sm ghost" id="noteEdit">Edit notes</button><button type="button" class="btn sm" id="noteSave" hidden>Save notes</button><button type="button" class="btn sm ghost" id="noteCancel" hidden>Cancel</button><span class="goal" id="noteMsg"></span>';pNotes.appendChild(nb);
     var hb=document.getElementById("histbox");pLead.appendChild(pNotes);if(hb){hb.classList.add("pane");hb.style.marginTop="14px";pLead.appendChild(hb);} // Notes, then History, at the bottom of the Nurture tab
     modal.querySelectorAll(".mclose").forEach(function(b){b.onclick=close;});
     pLead.dataset.pane="lead";
     function showPane(p){modal.querySelectorAll("[data-pane]").forEach(function(x){x.hidden=x.dataset.pane!==p;});bar.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.p===p);});}
     bar.addEventListener("click",function(e){var b=e.target.closest("button[data-p]");if(!b)return;if(b.dataset.p==="addnote"){showPane("lead");var na=document.getElementById("noteAdd");if(na)na.click();if(ta.scrollIntoView)ta.scrollIntoView({behavior:"smooth",block:"center"});return;}showPane(b.dataset.p);});
-    document.getElementById("noteAdd").onclick=function(){var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
+    var noteOrig=ta.value;function noteEditor(on){nwrap.hidden=!on;document.getElementById("noteSave").hidden=!on;document.getElementById("noteCancel").hidden=!on;document.getElementById("noteAdd").hidden=on;document.getElementById("noteEdit").hidden=on;nlist.hidden=on;}
+    document.getElementById("noteEdit").onclick=function(){noteOrig=ta.value;noteEditor(true);ta.focus();};
+    document.getElementById("noteCancel").onclick=function(){ta.value=noteOrig;noteEditor(false);renderNotes();};
+    document.getElementById("noteAdd").onclick=function(){noteOrig=ta.value;noteEditor(true);var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
       ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+d+": ";ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);ta.scrollTop=ta.scrollHeight;};
     document.getElementById("noteSave").onclick=async function(){var b=this,m=document.getElementById("noteMsg");b.disabled=true;
       try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:ta.value.trim()},roles:readRoles()});
-        L.notes=ta.value.trim();m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+        L.notes=ta.value.trim();m.textContent="Saved";noteEditor(false);renderNotes();renderTabs();}catch(e){m.textContent=e.message;}b.disabled=false;};
     if(L.roles&&L.roles.buyer){ // Property Details tab for buyers
       var pw2=document.createElement("div");pw2.dataset.pane="wants";pw2.hidden=true;var sum=hwSummary(L.wants);
       pw2.innerHTML='<div class="touch" style="margin-top:0"><div class="hd"><span>Ideal home</span>'+(L.wants&&L.wants.updated?'<span class="due later">Updated '+esc(fmtD(L.wants.updated))+'</span>':'')+'</div><p class="goal" id="hw_sum">'+(sum?esc(sum):'Nothing recorded yet. Fill this in during your buyer consultation.')+'</p>'
