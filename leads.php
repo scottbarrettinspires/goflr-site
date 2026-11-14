@@ -44,8 +44,8 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs button.on .n{background:rgba(255,255,255,.25)}
 .ltabs .ov{color:#5a6a6c;font-weight:600}
 .lwrap{display:flex;flex-direction:column;gap:14px}
-.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.lside>.sb{flex:1 1 0;min-width:max-content;scroll-snap-align:start;margin-top:0!important}
-.sb{font:inherit;font-weight:700;text-align:left;padding:12px 14px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.lside{align-items:center}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
+.sb{font:inherit;font-weight:700;text-align:left;padding:6px 12px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
 .sb.on{outline:3px solid #1f2a2c;outline-offset:2px}
 .wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden}
@@ -107,7 +107,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .btn.sm{padding:5px 10px;font-size:.78rem;border-radius:8px}
 .modal .btns .btn,.modal .btns a.btn{padding:7px 13px;font-size:.84rem;border-radius:9px}
 .ltabs button{padding:8px 13px;font-size:.88rem;border-radius:10px}.ltabs button .n{font-size:.72rem;padding:1px 7px}
-.sb{padding:9px 12px;font-size:.9rem;border-radius:10px}
+.sb{padding:6px 10px;font-size:.9rem;border-radius:10px}.lside>.sb{padding:6px 10px}
 .qa a{width:30px;height:30px;font-size:.85rem}
 .due{font-size:.72rem;padding:2px 8px}
 .bulk .btn{padding:5px 10px;font-size:.78rem}
