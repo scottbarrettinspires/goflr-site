@@ -43,6 +43,11 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs button .n{font-size:.78rem;font-weight:700;background:rgba(0,0,0,.08);border-radius:99px;padding:1px 8px}
 .ltabs button.on .n{background:rgba(255,255,255,.25)}
 .ltabs .ov{color:#5a6a6c;font-weight:600}
+@keyframes newpulse{0%{box-shadow:0 0 0 0 rgba(229,57,53,.55)}70%{box-shadow:0 0 0 12px rgba(229,57,53,0)}100%{box-shadow:0 0 0 0 rgba(229,57,53,0)}}
+@keyframes newbeat{0%,100%{transform:scale(1)}15%{transform:scale(1.35)}30%{transform:scale(1)}45%{transform:scale(1.2)}60%{transform:scale(1)}}
+.ltabs .newtab.alert:not(.on){animation:newpulse 1.8s ease-out infinite}.ltabs .newtab.alert .n{display:inline-block;animation:newbeat 1.8s ease-in-out infinite;background:#fff;color:#c62828}
+@media (prefers-reduced-motion:reduce){.ltabs .newtab.alert,.ltabs .newtab.alert .n{animation:none}}
+
 .lwrap{display:flex;flex-direction:column;gap:14px}
 .lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:7px 8px 9px;scroll-snap-type:x proximity}.lside>.sb{border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 3px rgba(20,40,50,.18);letter-spacing:.01em}.lside>.hall{background:#fff;border:1px solid #cfdcdc;color:#2b3a3c}
 .lside>.h1{background:linear-gradient(135deg,#b3261e,#e5534b);color:#fff}.lside>.h2{background:linear-gradient(135deg,#e5614f,#f2a064);color:#fff}
@@ -196,7 +201,7 @@ function row(L,v){
 function counts(){var c={new:0,buyer:0,seller:0,sphere:0};LEADS.forEach(function(L){["new","buyer","seller","sphere"].forEach(function(r){if(inRole(L,r))c[r]++;});});return c;}
 function renderTabs(){
   var c=counts(),h='<button class="ov'+(view.tab==="overview"?" on":"")+'" data-t="overview">Overview</button>';
-  h+='<button data-t="new" class="newtab'+(view.tab==="new"?" on":"")+'">NEW <span class="n">'+c.new+'</span></button>';
+  h+='<button data-t="new" class="newtab'+(view.tab==="new"?" on":"")+(c.new>=1?" alert":"")+'">NEW <span class="n">'+c.new+'</span></button>';
   h+='<button type="button" class="addtab" id="addlead" title="Add a lead by hand">+ ADD</button>';
   ["buyer","seller","sphere"].forEach(function(k){h+='<button data-t="'+k+'" class="'+(view.tab===k?"on":"")+'">'+CATS[k].label+' <span class="n">'+c[k]+'</span></button>';});
   h+='<button data-t="tags" class="'+(view.tab==="tags"?"on":"")+'">By Source</button>';
