@@ -529,20 +529,19 @@ function openLead(L,preset,inl){
       [].forEach.call(modal.querySelectorAll("#mvbox .mvb[data-act]"),function(b){if(b.closest(".mvh"))return;var c=document.createElement("button");c.type="button";c.className="mvb h6";c.style.cssText="opacity:1;font-size:.85rem;padding:5px 12px;border-radius:99px;white-space:nowrap";c.innerHTML=b.innerHTML;c.title=b.title||"";c.onclick=function(){b.click();};slot.insertBefore(c,slot.firstChild);b.style.display="none";}); // Buyer Consultation / Listing Appointment sit beside the pipeline label
       hd.appendChild(slot);if(pw){hd.parentNode.insertBefore(pw,hd.nextSibling);}sb.remove();}
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
-    var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">'+(sphOnly?'Contact':'Lead')+'</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button><button type="button" data-p="hist">History<span class="n">'+hl+'</span></button>';
+    var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">Actions</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button>';
     h2.parentNode.insertBefore(bar,h2.nextSibling);
-    var pLead=document.createElement("div"),pNotes=document.createElement("div"),pHist=document.createElement("div");
+    var pLead=document.createElement("div"),pNotes=document.createElement("div");
     while(bar.nextSibling){pLead.appendChild(bar.nextSibling);}
-    modal.appendChild(pLead);modal.appendChild(pNotes);modal.appendChild(pHist);pNotes.hidden=true;pHist.hidden=true;
+    modal.appendChild(pLead);modal.appendChild(pNotes);pNotes.hidden=true;
     var ta=document.getElementById("f_notes"),nwrap=ta.closest(".full");
     pNotes.innerHTML='<p class="goal" style="margin:0 0 6px">Dated notes about this person. Tap <strong>Add Note</strong> to start a new line with today\'s date.</p>';
     pNotes.appendChild(nwrap);ta.rows=12;var lb=nwrap.querySelector("label");if(lb)lb.remove();
     ta.style.cssText="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:.92rem;line-height:1.5";
     var nb=document.createElement("div");nb.className="btns";nb.innerHTML='<button type="button" class="btn" id="noteAdd">Add Note</button><button type="button" class="btn ghost" id="noteSave">Save notes</button><button type="button" class="btn ghost mclose">Close</button><span class="goal" id="noteMsg"></span>';pNotes.appendChild(nb);
-    var hb=document.getElementById("histbox");if(hb){hb.classList.add("pane");pHist.appendChild(hb);}
-    var hc=document.createElement("div");hc.className="btns";hc.innerHTML='<button type="button" class="btn ghost mclose">Close</button>';pHist.appendChild(hc);
+    var hb=document.getElementById("histbox");if(hb){hb.classList.add("pane");hb.style.marginTop="14px";pLead.appendChild(hb);} // History sits at the bottom of the Actions tab
     modal.querySelectorAll(".mclose").forEach(function(b){b.onclick=close;});
-    pLead.dataset.pane="lead";pNotes.dataset.pane="notes";pHist.dataset.pane="hist";
+    pLead.dataset.pane="lead";pNotes.dataset.pane="notes";
     function showPane(p){modal.querySelectorAll("[data-pane]").forEach(function(x){x.hidden=x.dataset.pane!==p;});bar.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.p===p);});}
     bar.addEventListener("click",function(e){var b=e.target.closest("button[data-p]");if(b)showPane(b.dataset.p);});
     document.getElementById("noteAdd").onclick=function(){var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
@@ -588,6 +587,9 @@ function openLead(L,preset,inl){
         +(isBuy?'<div class="full"><label>Paying with</label>'+hwChips("fin",HW.fin,cd.fin||w0.fin,false)+'</div><div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,cd.pre||w0.pre,false)+'</div>'
           +'<div><label>Lender</label><input id="cd_lender" value="'+esc(cdv("lender",w0.lender))+'"></div><div><label>Pre-approved amount</label><input id="cd_preamt" inputmode="numeric" value="'+esc(cdv("preamt",w0.preamt))+'"></div>':'')
         +'</div><div class="btns"><button type="button" class="btn" id="cd_save">Save client details</button><span class="goal" id="cd_msg"></span></div>';
+      var lf=pLead.querySelector(":scope > .fgrid"),lbt=pLead.querySelector(":scope > .btns"),lmsg=document.getElementById("m_msg"); // the contact fields (name, phone, email, source...) live here
+      if(lf){var ch=document.createElement("h3");ch.style.margin="0 0 6px";ch.textContent="Contact";pc.insertBefore(lf,pc.firstChild);pc.insertBefore(ch,pc.firstChild);var ch2=document.createElement("h3");ch2.style.margin="14px 0 6px";ch2.textContent="Details for contracts";pc.insertBefore(ch2,lf.nextSibling);}
+      if(lbt){pc.appendChild(lbt);if(lmsg)pc.appendChild(lmsg);}
       modal.appendChild(pc);var cbt=document.createElement("button");cbt.type="button";cbt.dataset.p="client";cbt.textContent="Client Details";bar.insertBefore(cbt,bar.children[1]);
       var ac=pc.querySelector("#cd_addco");if(ac)ac.onclick=function(){pc.querySelector("#cd_cobox").hidden=false;ac.remove();var n=pc.querySelector("#cd_co_name");if(n)n.focus();};
       pc.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
