@@ -59,6 +59,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .mvb.h5{background:linear-gradient(135deg,#2f6db3,#1b4a85);color:#fff}.mvb.h6{background:linear-gradient(135deg,#0a8a86,#036f72);color:#fff}
 .mvb{border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 2px rgba(20,40,50,.15)}
 .mvsel{font:inherit;font-weight:700;padding:7px 12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:#2b3a3c;min-width:200px;margin-right:8px}
+.lwrap.inrec>.lside{display:none}
 .lside{align-items:center}.lside>.sb[data-s="dnc"]{margin-left:auto}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
 .sb{font:inherit;font-weight:700;text-align:left;padding:6px 12px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
@@ -454,6 +455,7 @@ function mvBox(L,isNew,rs){MV_ACT=!isNew;
 function openLead(L,preset,inl){
   if(!inl){ // a lead (or + ADD) opens in the page body, below the buttons, instead of in a popup
     var host=body.querySelector(".lwrap")?body.querySelector(".lwrap").lastElementChild:body;
+    var lw0=body.querySelector(".lwrap");if(lw0)lw0.classList.add("inrec"); // the pipeline button row is hidden while a lead record is open
     host.innerHTML='<div class="modal inl" id="inlDetail" style="max-width:none;margin:0;border:1px solid var(--line)"></div>';
     inl=document.getElementById("inlDetail");
     if(!EMB)setTimeout(function(){var t=document.getElementById("tabs");if(t)window.scrollTo({top:Math.max(0,t.getBoundingClientRect().top+window.pageYOffset-12),behavior:"smooth"});},30);
