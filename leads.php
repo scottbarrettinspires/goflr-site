@@ -209,7 +209,7 @@ function renderTabs(){
   h+='<button class="srcbtn" id="mysrc" type="button">&#9881; My Lead Sources</button>';
   tabs.innerHTML=h;
 }
-tabs.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.id==="mysrc"){openSources();return;}if(b.id==="addlead"){openLead(null,{});return;}view.tab=b.dataset.t;view.sub=null;view.q="";render();});
+tabs.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(b.id==="mysrc"){openSources();return;}if(b.id==="addlead"){openLead(null,{});return;}view.tab=b.dataset.t;view.sub=null;view.q="";render();autoOpenNew();});
 function hotList(){
   var items=[];LEADS.forEach(function(L){L.view.forEach(function(v){if(v.due&&v.over>=0&&v.sub!=="dnc")items.push([L,v]);});});
   items.sort(function(a,b){return (HEAT[a[1].sub]-HEAT[b[1].sub])||(b[1].over-a[1].over);});return items;
@@ -247,7 +247,7 @@ function renderOverview(){
   h+='<div class="lpanel" style="margin-top:14px"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
   body.innerHTML=h;
   var sd=document.getElementById("st_due");if(sd)sd.onclick=function(){var hp=body.querySelector(".lpanel");if(hp)hp.scrollIntoView({behavior:"smooth",block:"start"});};
-  var sn=document.getElementById("st_new");if(sn)sn.onclick=function(){view.tab="new";view.sub=null;render();};
+  var sn=document.getElementById("st_new");if(sn)sn.onclick=function(){view.tab="new";view.sub=null;render();autoOpenNew();};
 }
 function renderCat(){
   var role=view.tab,subs=role==="new"?{}:CATS[role].subs,keys=Object.keys(subs);
@@ -273,6 +273,8 @@ function renderCat(){
   var ia=document.getElementById("inlAdd");if(ia){var r={};r[role]="-";openLead(null,r,ia);var mc=document.getElementById("m_close");if(mc)mc.textContent="Clear";}
   var lq=document.getElementById("lq");if(lq)lq.oninput=function(){view.q=lq.value;var p=lq.selectionStart;renderCat();var n=document.getElementById("lq");n.focus();n.setSelectionRange(p,p);};
 }
+// With exactly one NEW lead, opening the NEW tab goes straight to that lead's record (runs only when the agent navigates to the tab, so closing the record does not reopen it).
+function autoOpenNew(){if(view.tab!=="new")return;var l=LEADS.filter(function(L){return inRole(L,"new");});if(l.length===1)openLead(l[0]);}
 function render(){modal=MODAL;renderTabs();if(view.tab==="overview")renderOverview();else if(view.tab==="tags")renderTags();else renderCat();}
 function isDnc(L){return L.view.some(function(v){return v.sub==="dnc";});}
 function tagCounts(){var c={};LEADS.forEach(function(L){(L.tags||[]).forEach(function(t){c[t]=(c[t]||0)+1;});});return c;}
