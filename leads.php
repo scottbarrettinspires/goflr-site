@@ -44,7 +44,11 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs button.on .n{background:rgba(255,255,255,.25)}
 .ltabs .ov{color:#5a6a6c;font-weight:600}
 .lwrap{display:flex;flex-direction:column;gap:14px}
-.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:7px 8px 9px;scroll-snap-type:x proximity}.lside{align-items:center}.lside>.sb[data-s="dnc"]{margin-left:auto}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
+.lside{display:flex;flex-direction:row;gap:6px;overflow-x:auto;padding:7px 8px 9px;scroll-snap-type:x proximity}.lside>.sb{border:1px solid rgba(255,255,255,.35);box-shadow:0 1px 3px rgba(20,40,50,.18);letter-spacing:.01em}.lside>.hall{background:#fff;border:1px solid #cfdcdc;color:#2b3a3c}
+.lside>.h1{background:linear-gradient(135deg,#b3261e,#e5534b);color:#fff}.lside>.h2{background:linear-gradient(135deg,#e5614f,#f2a064);color:#fff}
+.lside>.h3{background:linear-gradient(135deg,#f3d6a6,#d3e2ee);color:#3d3a2e}.lside>.h4{background:linear-gradient(135deg,#cfe0ee,#9fc1e0);color:#143a5c}
+.lside>.h5{background:linear-gradient(135deg,#2f6db3,#1b4a85);color:#fff}.lside>.h6{background:linear-gradient(135deg,#0a8a86,#036f72);color:#fff}
+.lside{align-items:center}.lside>.sb[data-s="dnc"]{margin-left:auto}.lside>.sb{flex:0 0 auto;width:auto;min-width:0;scroll-snap-align:start;margin-top:0!important;padding:6px 12px;line-height:1.2}
 .sb{font:inherit;font-weight:700;text-align:left;padding:6px 12px;border-radius:12px;border:2px solid rgba(0,0,0,.08);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .sb .n{font-size:.8rem;opacity:.85}
 .sb.on{outline:3px solid #1f2a2c;outline-offset:2px}
