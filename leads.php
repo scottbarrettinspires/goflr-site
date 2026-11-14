@@ -532,27 +532,27 @@ function openLead(L,preset,inl){
       [].forEach.call(modal.querySelectorAll("#mvbox .mvb[data-act]"),function(b){if(b.closest(".mvh"))return;var c=document.createElement("button");c.type="button";c.className="mvb h6";c.style.cssText="opacity:1;font-size:.85rem;padding:5px 12px;border-radius:99px;white-space:nowrap";c.innerHTML=b.innerHTML;c.title=b.title||"";c.onclick=function(){b.click();};slot.insertBefore(c,slot.firstChild);b.style.display="none";}); // Buyer Consultation / Listing Appointment sit beside the pipeline label
       hd.appendChild(slot);if(pw){hd.parentNode.insertBefore(pw,hd.nextSibling);}sb.remove();}
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
-    var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">Nurture</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button>';
+    var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">Nurture</button><button type="button" data-p="addnote">Add Note</button>';
     h2.parentNode.insertBefore(bar,h2.nextSibling);
     [].forEach.call(modal.querySelectorAll("#mvbox .mvx"),function(x,i){var t=document.createElement("button");t.type="button";t.className="mtx";t.textContent=x.textContent;if(i===0)t.style.marginLeft="auto";t.onclick=function(){x.click();};bar.appendChild(t);x.parentNode.style.display="none";}); // Add As Seller Also / Move To Sphere sit in the tab row, after Notes
     var pLead=document.createElement("div"),pNotes=document.createElement("div");
     while(bar.nextSibling){pLead.appendChild(bar.nextSibling);}
-    modal.appendChild(pLead);modal.appendChild(pNotes);pNotes.hidden=true;
+    modal.appendChild(pLead);
     var ta=document.getElementById("f_notes"),nwrap=ta.closest(".full");
-    pNotes.innerHTML='<p class="goal" style="margin:0 0 6px">Dated notes about this person. Tap <strong>Add Note</strong> to start a new line with today\'s date.</p>';
+    pNotes.style.marginTop="14px";pNotes.innerHTML='<h3 style="margin:0 0 6px">Notes</h3><p class="goal" style="margin:0 0 6px">Dated notes about this person. Tap <strong>Add Note</strong> to start a new line with today\'s date.</p>';
     pNotes.appendChild(nwrap);ta.rows=12;var lb=nwrap.querySelector("label");if(lb)lb.remove();
     ta.style.cssText="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:.92rem;line-height:1.5";
     var nb=document.createElement("div");nb.className="btns";nb.innerHTML='<button type="button" class="btn" id="noteAdd">Add Note</button><button type="button" class="btn ghost" id="noteSave">Save notes</button><button type="button" class="btn ghost mclose">Close</button><span class="goal" id="noteMsg"></span>';pNotes.appendChild(nb);
-    var hb=document.getElementById("histbox");if(hb){hb.classList.add("pane");hb.style.marginTop="14px";pLead.appendChild(hb);} // History sits at the bottom of the Actions tab
+    var hb=document.getElementById("histbox");pLead.appendChild(pNotes);if(hb){hb.classList.add("pane");hb.style.marginTop="14px";pLead.appendChild(hb);} // Notes, then History, at the bottom of the Nurture tab
     modal.querySelectorAll(".mclose").forEach(function(b){b.onclick=close;});
-    pLead.dataset.pane="lead";pNotes.dataset.pane="notes";
+    pLead.dataset.pane="lead";
     function showPane(p){modal.querySelectorAll("[data-pane]").forEach(function(x){x.hidden=x.dataset.pane!==p;});bar.querySelectorAll("button").forEach(function(b){b.classList.toggle("on",b.dataset.p===p);});}
-    bar.addEventListener("click",function(e){var b=e.target.closest("button[data-p]");if(b)showPane(b.dataset.p);});
+    bar.addEventListener("click",function(e){var b=e.target.closest("button[data-p]");if(!b)return;if(b.dataset.p==="addnote"){showPane("lead");var na=document.getElementById("noteAdd");if(na)na.click();if(ta.scrollIntoView)ta.scrollIntoView({behavior:"smooth",block:"center"});return;}showPane(b.dataset.p);});
     document.getElementById("noteAdd").onclick=function(){var d=new Date(TODAY+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"});
       ta.value=(ta.value.trim()?ta.value.replace(/\s+$/,"")+"\n":"")+d+": ";ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);ta.scrollTop=ta.scrollHeight;};
     document.getElementById("noteSave").onclick=async function(){var b=this,m=document.getElementById("noteMsg");b.disabled=true;
       try{await api({action:"save",id:L.id,lead:{first:val("f_first"),last:val("f_last"),phone:val("f_phone"),email:val("f_email"),source:val("f_source"),notes:ta.value.trim()},roles:readRoles()});
-        L.notes=ta.value.trim();m.textContent="Saved";bar.querySelector('[data-p="notes"] .n').textContent=L.notes?L.notes.split(/\n/).length:0;render();}catch(e){m.textContent=e.message;}b.disabled=false;};
+        L.notes=ta.value.trim();m.textContent="Saved";render();}catch(e){m.textContent=e.message;}b.disabled=false;};
     if(L.roles&&L.roles.buyer){ // Property Details tab for buyers
       var pw2=document.createElement("div");pw2.dataset.pane="wants";pw2.hidden=true;var sum=hwSummary(L.wants);
       pw2.innerHTML='<div class="touch" style="margin-top:0"><div class="hd"><span>Ideal home</span>'+(L.wants&&L.wants.updated?'<span class="due later">Updated '+esc(fmtD(L.wants.updated))+'</span>':'')+'</div><p class="goal" id="hw_sum">'+(sum?esc(sum):'Nothing recorded yet. Fill this in during your buyer consultation.')+'</p>'
