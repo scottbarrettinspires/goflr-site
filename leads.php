@@ -165,6 +165,7 @@ body.emb{background:transparent}body.emb .wrap{padding:0;margin:0;max-width:none
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>, ALLSRC=<?= json_encode(LD_SOURCES) ?>, MYSRC=<?= json_encode(array_values($mySources)) ?>, ALLINT=<?= json_encode(LD_INTERESTS) ?>, MYINT=<?= json_encode(array_values($myInterests)) ?>, CATS=<?= json_encode($cats) ?>, LEADS=<?= json_encode($leads) ?>, TODAY=<?= json_encode(ld_today()) ?>, INTAKE=<?= json_encode($intakeUrl) ?>;
 var WEEK=<?php $wk = []; for ($i = 0; $i < 7; $i++) { $dd = date('Y-m-d', strtotime(ld_today() . " +$i days")); $o = dl_offday($dd); $wk[] = ['d' => $dd, 'dn' => date('D', strtotime($dd)), 'n' => date('j', strtotime($dd)), 'm' => date('M', strtotime($dd)), 'off' => $o, 'hol' => in_array($o, ['Saturday', 'Sunday'], true) ? '' : $o]; } echo json_encode($wk); ?>;
+var NEWALERT=true;setTimeout(function(){NEWALERT=false;[].forEach.call(document.querySelectorAll(".newtab.alert"),function(b){b.classList.remove("alert");});},10000); // the NEW tab animates for 10 seconds each time the page opens
 var HEAT={new:0,ready:1,a:1,unid:1,soon:2,b:2,later:3,c:3,d:4,dnc:5,client:6};
 var SOURCES=ALLSRC;
 var view={tab:"overview",sub:null,q:""};
@@ -201,7 +202,7 @@ function row(L,v){
 function counts(){var c={new:0,buyer:0,seller:0,sphere:0};LEADS.forEach(function(L){["new","buyer","seller","sphere"].forEach(function(r){if(inRole(L,r))c[r]++;});});return c;}
 function renderTabs(){
   var c=counts(),h='<button class="ov'+(view.tab==="overview"?" on":"")+'" data-t="overview">Overview</button>';
-  h+='<button data-t="new" class="newtab'+(view.tab==="new"?" on":"")+(c.new>=1?" alert":"")+'">NEW <span class="n">'+c.new+'</span></button>';
+  h+='<button data-t="new" class="newtab'+(view.tab==="new"?" on":"")+(c.new>=1&&NEWALERT?" alert":"")+'">NEW <span class="n">'+c.new+'</span></button>';
   h+='<button type="button" class="addtab" id="addlead" title="Add a lead by hand">+ ADD</button>';
   ["buyer","seller","sphere"].forEach(function(k){h+='<button data-t="'+k+'" class="'+(view.tab===k?"on":"")+'">'+CATS[k].label+' <span class="n">'+c[k]+'</span></button>';});
   h+='<button data-t="tags" class="'+(view.tab==="tags"?"on":"")+'">By Source</button>';
