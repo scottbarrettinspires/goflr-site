@@ -131,7 +131,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .ltabs button.addtab{background:#e07b39;border-color:#e07b39;color:#fff;font-weight:800}.ltabs button.addtab:hover{background:#c96a2c}
 .ltabs button.newtab{background:#d32f2f;border-color:#d32f2f;color:#fff}.ltabs button.newtab .n{background:rgba(255,255,255,.28);color:#fff}.ltabs button.newtab.on{background:#b71c1c;border-color:#b71c1c;box-shadow:0 0 0 3px rgba(183,28,28,.25)}
 .mtabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 12px}.mtabs button{font:inherit;font-size:.86rem;font-weight:700;padding:8px 14px;border:0;border-bottom:3px solid transparent;background:none;color:#5a6a6c;cursor:pointer}
-.mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
+.mtabs button.on{color:var(--teal);border-bottom-color:var(--teal)}.mtabs{flex-wrap:wrap}.mtabs button.mtx{color:var(--teal);font-weight:600;text-decoration:underline;padding:8px 8px}.mtabs .n{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px;margin-left:4px}
 .hist.pane{max-height:none;border-top:0;margin-top:0;padding-top:0;font-size:.9rem;line-height:1.7}
 #mvbox.mvnew{border:2px solid #d32f2f;background:#fff6f5;box-shadow:0 2px 10px rgba(211,47,47,.12)}
 .stat.urgent{background:#d32f2f;border-color:#d32f2f;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(211,47,47,.25)}.stat.urgent span{color:#fff;font-weight:600}.stat.urgent b{font-size:2rem}.stat.urgent:hover{background:#b71c1c}
@@ -531,6 +531,7 @@ function openLead(L,preset,inl){
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
     var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">Actions</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button>';
     h2.parentNode.insertBefore(bar,h2.nextSibling);
+    [].forEach.call(modal.querySelectorAll("#mvbox .mvx"),function(x,i){var t=document.createElement("button");t.type="button";t.className="mtx";t.textContent=x.textContent;if(i===0)t.style.marginLeft="18px";t.onclick=function(){x.click();};bar.appendChild(t);x.parentNode.style.display="none";}); // Add As Seller Also / Move To Sphere sit in the tab row, after Notes
     var pLead=document.createElement("div"),pNotes=document.createElement("div");
     while(bar.nextSibling){pLead.appendChild(bar.nextSibling);}
     modal.appendChild(pLead);modal.appendChild(pNotes);pNotes.hidden=true;
