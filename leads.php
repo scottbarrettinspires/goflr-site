@@ -531,7 +531,7 @@ function openLead(L,preset,inl){
     var h2=modal.querySelector("h2"),nl=(L.notes||"").trim()?(L.notes||"").trim().split(/\n/).length:0,hl=(L.log||[]).length;
     var bar=document.createElement("div");bar.className="mtabs";var sphOnly=L.roles&&L.roles.sphere&&!L.roles.buyer&&!L.roles.seller;bar.innerHTML='<button type="button" data-p="lead" class="on">Actions</button><button type="button" data-p="notes">Notes<span class="n">'+nl+'</span></button>';
     h2.parentNode.insertBefore(bar,h2.nextSibling);
-    [].forEach.call(modal.querySelectorAll("#mvbox .mvx"),function(x,i){var t=document.createElement("button");t.type="button";t.className="mtx";t.textContent=x.textContent;if(i===0)t.style.marginLeft="18px";t.onclick=function(){x.click();};bar.appendChild(t);x.parentNode.style.display="none";}); // Add As Seller Also / Move To Sphere sit in the tab row, after Notes
+    [].forEach.call(modal.querySelectorAll("#mvbox .mvx"),function(x,i){var t=document.createElement("button");t.type="button";t.className="mtx";t.textContent=x.textContent;if(i===0)t.style.marginLeft="auto";t.onclick=function(){x.click();};bar.appendChild(t);x.parentNode.style.display="none";}); // Add As Seller Also / Move To Sphere sit in the tab row, after Notes
     var pLead=document.createElement("div"),pNotes=document.createElement("div");
     while(bar.nextSibling){pLead.appendChild(bar.nextSibling);}
     modal.appendChild(pLead);modal.appendChild(pNotes);pNotes.hidden=true;
