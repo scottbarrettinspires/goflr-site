@@ -33,8 +33,8 @@ if ($act === 'wants') {
         $side = ($j['side'] ?? '') === 'seller' ? 'seller' : 'buyer'; $p2 = $side === 'seller' ? 's2' : 'b2';
         $f = [$p2 . '_name' => $clean['co_name'] ?? '', $p2 . '_phone' => $clean['co_phone'] ?? '', $p2 . '_email' => $clean['co_email'] ?? ''];
         if ($side === 'buyer') {
-            $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava'];
-            $f += ['mailing' => $clean['mailing'] ?? '', 'lender' => $clean['lender'] ?? '', 'preapproval' => $clean['preamt'] ?? ''];
+            $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava', 'FHA/VA' => 'fhava'];
+            $f += ['mailing' => $clean['mailing'] ?? '', 'lender' => $clean['lender'] ?? '', 'lender_rep' => $clean['lender_rep'] ?? '', 'lender_phone' => $clean['lender_phone'] ?? '', 'lender_email' => $clean['lender_email'] ?? '', 'preapproval' => $clean['preamt'] ?? ''];
             $fin0 = (array)($clean['fin'] ?? []); if (!empty($fin0[0]) && isset($pm[$fin0[0]])) $f['payment'] = $pm[$fin0[0]];
             if (!sg_buyer_info_merge($me, $tx, $f)) $recNote = 'Saved on the lead, but the buyer record could not be updated.';
         } else {

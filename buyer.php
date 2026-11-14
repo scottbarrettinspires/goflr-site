@@ -54,7 +54,7 @@ if ($isNew && $lead && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     if (!empty($pre)) $info['preapproval'] = (string)$pre;
     if (!empty($cd['mailing'])) $info['mailing'] = (string)$cd['mailing'];
     if (!empty($cd['co_name'])) { $info['b2_name'] = (string)$cd['co_name']; $info['b2_phone'] = (string)($cd['co_phone'] ?? ''); $info['b2_email'] = (string)($cd['co_email'] ?? ''); }
-    $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava'];
+    $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava', 'FHA/VA' => 'fhava'];
     if (!empty($fin[0]) && isset($pm[$fin[0]])) $info['payment'] = $pm[$fin[0]];
 }
 if ($buyer || $pastStage1) {

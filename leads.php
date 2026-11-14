@@ -14,8 +14,8 @@ $emb = !empty($_GET['embed']);
 $recTx = $emb ? (string)($_GET['tx'] ?? '') : ''; $recSide = ($_GET['side'] ?? '') === 'seller' ? 'seller' : 'buyer'; $recCd = [];
 if ($recTx !== '' && preg_match('/^[A-Za-z0-9_-]{10,80}$/', $recTx)) { // opened from an Active Business record: that record's own details come first
     require_once __DIR__ . '/sigtools.php'; $ri = $recSide === 'seller' ? sg_seller_info($me, $recTx) : sg_buyer_info($me, $recTx); $ri = (!empty($ri['ok']) && is_array($ri['info'] ?? null)) ? $ri['info'] : []; $q = $recSide === 'seller' ? 's2' : 'b2';
-    $recCd = array_filter(['co_name' => $ri[$q . '_name'] ?? '', 'co_phone' => $ri[$q . '_phone'] ?? '', 'co_email' => $ri[$q . '_email'] ?? '', 'mailing' => $ri['mailing'] ?? '', 'lender' => $ri['lender'] ?? '', 'preamt' => $ri['preapproval'] ?? '',
-        'fin' => isset($ri['payment']) && $ri['payment'] !== '' ? [['cash' => 'Cash', 'conventional' => 'Conventional', 'fhava' => 'FHA'][$ri['payment']] ?? ''] : ''], function ($v) { return $v !== '' && $v !== [''] ; });
+    $recCd = array_filter(['co_name' => $ri[$q . '_name'] ?? '', 'co_phone' => $ri[$q . '_phone'] ?? '', 'co_email' => $ri[$q . '_email'] ?? '', 'mailing' => $ri['mailing'] ?? '', 'lender' => $ri['lender'] ?? '', 'lender_rep' => $ri['lender_rep'] ?? '', 'lender_phone' => $ri['lender_phone'] ?? '', 'lender_email' => $ri['lender_email'] ?? '', 'preamt' => $ri['preapproval'] ?? '',
+        'fin' => isset($ri['payment']) && $ri['payment'] !== '' ? [['cash' => 'Cash', 'conventional' => 'Conventional', 'fhava' => 'FHA/VA'][$ri['payment']] ?? ''] : ''], function ($v) { return $v !== '' && $v !== [''] ; });
 } else { $recTx = ''; }
 $cats = [];
 foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $c['subs'], 'stage' => LD_STAGE[$k]]; }
@@ -595,8 +595,8 @@ function openLead(L,preset,inl){
         +'<div class="full" id="cd_coslot">'+(hasCo?'':'<button type="button" class="btn sm ghost" id="cd_addco">+ Add a second '+(isBuy?'buyer':'seller')+'</button>')+'</div>'
         +'<div class="full" id="cd_cobox"'+(hasCo&&!RECTX?'':' hidden')+'><div class="fgrid"><div class="full"><label>'+(isBuy?"Second buyer":"Second seller")+'</label></div>'
         +'<div><label>Name</label><input id="cd_co_name" value="'+esc(cdv("co_name"))+'"></div><div><label>Phone</label><input id="cd_co_phone" inputmode="tel" value="'+esc(cdv("co_phone"))+'"></div><div class="full"><label>Email</label><input id="cd_co_email" type="email" value="'+esc(cdv("co_email"))+'"></div></div></div>'
-        +(isBuy?'<div class="full"><label>Paying with</label>'+hwChips("fin",HW.fin,cd.fin||w0.fin,false)+'</div><div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,cd.pre||w0.pre,false)+'</div>'
-          +'<div><label>Lender</label><input id="cd_lender" value="'+esc(cdv("lender",w0.lender))+'"></div><div><label>Pre-approved amount</label><input id="cd_preamt" inputmode="numeric" value="'+esc(cdv("preamt",w0.preamt))+'"></div>':'')
+        +(isBuy?'<div class="full"><label>Paying with</label>'+hwChips("fin",["Cash","Conventional","FHA/VA"],[].concat(cd.fin||w0.fin||[]).map(function(x){return x==="FHA"||x==="VA"?"FHA/VA":x;}),false)+'</div><div class="full"><label>Loan status</label>'+hwChips("pre",HW.pre,cd.pre||w0.pre,false)+'</div>'
+          +'<div class="cdlend"><label>Lender company name</label><input id="cd_lender" value="'+esc(cdv("lender",w0.lender))+'"></div><div class="cdlend"><label>Lender representative</label><input id="cd_lender_rep" value="'+esc(cdv("lender_rep"))+'"></div><div class="cdlend"><label>Lender phone</label><input id="cd_lender_phone" inputmode="tel" value="'+esc(cdv("lender_phone"))+'"></div><div class="cdlend"><label>Lender email</label><input id="cd_lender_email" type="email" value="'+esc(cdv("lender_email"))+'"></div><div class="cdlend"><label>Pre-approved amount</label><input id="cd_preamt" inputmode="numeric" value="'+esc(cdv("preamt",w0.preamt))+'"></div>':'')
         +'</div><div class="btns"><button type="button" class="btn" id="cd_save">Save client details</button><span class="goal" id="cd_msg"></span></div>';
       var lf=pLead.querySelector(":scope > .fgrid"),lbt=pLead.querySelector(":scope > .btns"),lmsg=document.getElementById("m_msg"); // the contact fields (name, phone, email, source...) live here
       if(lf){var ch=document.createElement("h3");ch.style.margin="0 0 6px";ch.textContent="Contact";pc.insertBefore(lf,pc.firstChild);pc.insertBefore(ch,pc.firstChild);var ch2=document.createElement("h3");ch2.style.margin="14px 0 6px";ch2.textContent="Details for contracts";pc.insertBefore(ch2,lf.nextSibling);}
@@ -609,7 +609,7 @@ function openLead(L,preset,inl){
       function cdArr(v){return Array.isArray(v)?v.join(", "):(v||"");}
       function cdCardRefresh(){var q=function(id){var e=document.getElementById(id)||pc.querySelector("#"+id);return e?e.value.trim():"";},nm=(q("f_first")+" "+q("f_last")).trim()||"Client",c1=[q("f_phone"),q("f_email"),q("f_source")?"Source: "+q("f_source"):""].filter(Boolean).join(" · ");
         var cur=[],ch=function(g){var c=pc.querySelector('.chips[data-grp="'+g+'"]');return c?[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;}).join(", "):"";};
-        var pay=[];if(isBuy){var f=ch("fin"),p=ch("pre"),ld=q("cd_lender"),am=q("cd_preamt");pay.push("Method of payment: "+(f||"not set"));if(p)pay.push("Loan: "+p);if(ld)pay.push("Lender: "+ld);if(am)pay.push("Pre-approved: $"+am.replace(/^\$/,""));}
+        var pay=[];if(isBuy){var f=ch("fin"),p=ch("pre"),ld=q("cd_lender"),lr=q("cd_lender_rep"),lp=q("cd_lender_phone"),le=q("cd_lender_email"),am=q("cd_preamt");pay.push("Method of payment: "+(f||"not set"));if(p)pay.push("Loan: "+p);if(p==="Pre-approved"){var lc=[ld,lr,lp,le].filter(Boolean).join(" · ");if(lc)pay.push("Lender: "+lc);if(am)pay.push("Pre-approved for $"+am.replace(/^\$/,""));}}
         var ml=q("cd_mailing"),co=[q("cd_co_name"),q("cd_co_phone"),q("cd_co_email")].filter(Boolean).join(" · ");
         pc.querySelector("#cd_card_txt").innerHTML='<div style="font-size:1.05rem"><b>'+esc(nm)+'</b></div>'+(c1?'<div class="m" style="color:#5a6a6c;margin-top:2px">'+esc(c1)+'</div>':'')
           +(ml?'<div style="margin-top:6px"><b>Mailing:</b> '+esc(ml)+'</div>':'<div style="margin-top:6px;color:#8a6d1f">No mailing address yet. Click Edit to add the details for contracts.</div>')
@@ -619,8 +619,10 @@ function openLead(L,preset,inl){
       modal.appendChild(pc);var cbt=document.createElement("button");cbt.type="button";cbt.dataset.p="client";cbt.textContent="Client Details";bar.insertBefore(cbt,bar.children[1]);
       var ac=pc.querySelector("#cd_addco");if(ac)ac.onclick=function(){pc.querySelector("#cd_cobox").hidden=false;ac.remove();var n=pc.querySelector("#cd_co_name");if(n)n.focus();};
       pc.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
+      function cdLendVis(){var pc2=pc.querySelector('.chips[data-grp="pre"] .chip.on'),on=pc2&&pc2.dataset.v==="Pre-approved";pc.querySelectorAll(".cdlend").forEach(function(e){e.style.display=on?"":"none";});}
+      pc.querySelectorAll('.chips[data-grp="pre"] .chip').forEach(function(c){c.addEventListener("click",cdLendVis);});cdLendVis();
       document.getElementById("cd_save").onclick=async function(){var b=this,m=document.getElementById("cd_msg");b.disabled=true;var o={};
-        ["mailing","co_name","co_phone","co_email","lender","preamt"].forEach(function(k){var el=pc.querySelector("#cd_"+k);if(el)o[k]=el.value.trim();});
+        ["mailing","co_name","co_phone","co_email","lender","lender_rep","lender_phone","lender_email","preamt"].forEach(function(k){var el=pc.querySelector("#cd_"+k);if(el)o[k]=el.value.trim();});
         pc.querySelectorAll(".chips[data-grp]").forEach(function(c){o[c.dataset.grp]=[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;});});
         try{var rj=await api({action:"wants",field:"client",id:L.id,wants:o,tx:RECTX,side:RECSIDE});L.client=o;m.textContent=rj.note||"Saved";if(RECTX&&!rj.note)setTimeout(function(){try{parent.postMessage({flrcontact:1,saved:true},location.origin);}catch(e){}},500);cdEditor(false);if(!EMB)renderTabs();}catch(e){m.textContent=e.message;}b.disabled=false;};
     }
