@@ -607,15 +607,15 @@ function openLead(L,preset,inl){
       cdCard.innerHTML='<div id="cd_card_txt"></div><button type="button" class="btn" id="cd_editbtn" style="width:auto;padding:8px 18px;margin:0">Edit</button>';
       pc.appendChild(cdCard);pc.appendChild(cdEd);
       function cdArr(v){return Array.isArray(v)?v.join(", "):(v||"");}
-      function cdCardRefresh(){var q=function(id){var e=document.getElementById(id);return e?e.value.trim():"";},nm=(q("f_first")+" "+q("f_last")).trim()||"Client",c1=[q("f_phone"),q("f_email"),q("f_source")?"Source: "+q("f_source"):""].filter(Boolean).join(" · ");
+      function cdCardRefresh(){var q=function(id){var e=document.getElementById(id)||pc.querySelector("#"+id);return e?e.value.trim():"";},nm=(q("f_first")+" "+q("f_last")).trim()||"Client",c1=[q("f_phone"),q("f_email"),q("f_source")?"Source: "+q("f_source"):""].filter(Boolean).join(" · ");
         var cur=[],ch=function(g){var c=pc.querySelector('.chips[data-grp="'+g+'"]');return c?[].map.call(c.querySelectorAll(".chip.on"),function(x){return x.dataset.v;}).join(", "):"";};
         var pay=[];if(isBuy){var f=ch("fin"),p=ch("pre"),ld=q("cd_lender"),am=q("cd_preamt");if(f)pay.push("Paying with: "+f);if(p)pay.push("Loan: "+p);if(ld)pay.push("Lender: "+ld);if(am)pay.push("Pre-approved: $"+am.replace(/^\$/,""));}
         var ml=q("cd_mailing"),co=[q("cd_co_name"),q("cd_co_phone"),q("cd_co_email")].filter(Boolean).join(" · ");
-        document.getElementById("cd_card_txt").innerHTML='<div style="font-size:1.05rem"><b>'+esc(nm)+'</b></div>'+(c1?'<div class="m" style="color:#5a6a6c;margin-top:2px">'+esc(c1)+'</div>':'')
+        pc.querySelector("#cd_card_txt").innerHTML='<div style="font-size:1.05rem"><b>'+esc(nm)+'</b></div>'+(c1?'<div class="m" style="color:#5a6a6c;margin-top:2px">'+esc(c1)+'</div>':'')
           +(ml?'<div style="margin-top:6px"><b>Mailing:</b> '+esc(ml)+'</div>':'<div style="margin-top:6px;color:#8a6d1f">No mailing address yet. Click Edit to add the details for contracts.</div>')
           +(co?'<div style="margin-top:4px"><b>Second '+(isBuy?'buyer':'seller')+':</b> '+esc(co)+'</div>':'')+(pay.length?'<div style="margin-top:4px">'+esc(pay.join(" · "))+'</div>':'');}
       function cdEditor(on){cdEd.style.display=on?"":"none";cdCard.style.display=on?"none":"flex";if(!on)cdCardRefresh();}
-      cdCardRefresh();document.getElementById("cd_editbtn").onclick=function(){cdEditor(true);};
+      cdCardRefresh();pc.querySelector("#cd_editbtn").onclick=function(){cdEditor(true);};
       modal.appendChild(pc);var cbt=document.createElement("button");cbt.type="button";cbt.dataset.p="client";cbt.textContent="Client Details";bar.insertBefore(cbt,bar.children[1]);
       var ac=pc.querySelector("#cd_addco");if(ac)ac.onclick=function(){pc.querySelector("#cd_cobox").hidden=false;ac.remove();var n=pc.querySelector("#cd_co_name");if(n)n.focus();};
       pc.querySelectorAll(".chips[data-grp] .chip").forEach(function(c){c.onclick=function(){var g=c.parentNode;if(!c.classList.contains("on"))g.querySelectorAll(".chip").forEach(function(x){x.classList.remove("on");});c.classList.toggle("on");};});
