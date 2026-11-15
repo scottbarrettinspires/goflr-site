@@ -617,8 +617,10 @@ function openLead(L,preset,inl){
       // Payment fields sit in their own section under the card; they stay open until payment details have been added
       var cdPay=document.createElement("div");cdPay.id="cd_pay";cdPay.style.cssText="margin-top:12px;display:none";
       if(isBuy){var finC=cdEd.querySelector('.chips[data-grp="fin"]'),preC=cdEd.querySelector('.chips[data-grp="pre"]');
-        if(finC&&preC){var pg=document.createElement("div");pg.className="fgrid";pg.appendChild(finC.parentNode);pg.appendChild(preC.parentNode);[].slice.call(cdEd.querySelectorAll(".cdlend")).forEach(function(e){pg.appendChild(e);});
-          var ph=document.createElement("h3");ph.style.margin="0 0 6px";ph.textContent="Payment";cdPay.appendChild(ph);cdPay.appendChild(pg);
+        if(finC&&preC){var fd=finC.parentNode,pd=preC.parentNode,row=document.createElement("div");row.style.cssText="display:flex;flex-wrap:wrap;gap:12px 48px;align-items:flex-end";
+          fd.className="";pd.className="";var fh=document.createElement("h3");fh.style.margin="0 0 8px";fh.textContent="Payment Method";fd.insertBefore(fh,fd.firstChild);
+          pd.style.cssText="padding-bottom:0";row.appendChild(fd);row.appendChild(pd);cdPay.appendChild(row);
+          var pg=document.createElement("div");pg.className="fgrid";pg.style.marginTop="12px";[].slice.call(cdEd.querySelectorAll(".cdlend")).forEach(function(e){pg.appendChild(e);});cdPay.appendChild(pg);
           var pb=document.createElement("div");pb.className="btns";pb.innerHTML='<button type="button" class="btn" id="cd_paysave">Save payment details</button>';cdPay.appendChild(pb);}}
       pc.insertBefore(cdPay,cdEd);
       function cdHasPay(){if(!isBuy)return false;var on=pc.querySelector('.chips[data-grp="fin"] .chip.on,.chips[data-grp="pre"] .chip.on');if(on)return true;return ["cd_lender","cd_lender_rep","cd_lender_phone","cd_lender_email","cd_preamt"].some(function(i){var e=pc.querySelector("#"+i);return e&&e.value.trim();});}
