@@ -677,8 +677,35 @@ function openLead(L,preset,inl){
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
     else{modal.querySelector(".mvtip").textContent="Pick the "+(b.dataset.role==="seller"?"seller":"buyer")+" stage. Both plans then run side by side.";}
     b.remove();};});
+  function openConsult(){ // Buyer Consultation stays inside the lead record: prep for the appointment, then the buyer agreement screen exactly as in Active Business
+    var old=document.getElementById("consultbox");if(old){old.scrollIntoView({behavior:"smooth",block:"start"});return;}
+    var cl=L.client||{},w=L.wants||{},fin=[].concat(cl.fin||w.fin||[]).join(", "),pre=[].concat(cl.pre||w.pre||[]).join(", "),lend=[cl.lender||w.lender,cl.lender_rep,cl.lender_phone,cl.lender_email].filter(Boolean).join(" · ");
+    var li=function(k,v,ok){return '<li style="margin:3px 0"><b>'+k+':</b> '+(v?esc(v):'<span style="color:#8a6d1f">'+ok+'</span>')+'</li>';};
+    var bx=document.createElement("div");bx.id="consultbox";bx.className="touch";bx.style.margin="12px 0";
+    bx.innerHTML='<div class="hd"><span>Buyer consultation: '+esc(nm(L))+'</span><button type="button" class="btn sm ghost" id="cn_close">Close</button></div>'
+      +'<h3 style="margin:6px 0 4px;font-size:.98rem">Prep for the appointment</h3><ul style="margin:0 0 8px;padding-left:18px;font-size:.92rem">'
+      +li("Contact",[L.phone,L.email].filter(Boolean).join(" · "),"Add a phone and email on the Client Details tab")
+      +li("What they want",hwSummary(w),"Nothing recorded yet. Fill in Property Details")
+      +li("Payment method",fin,"Not set. Add it on the Client Details tab")
+      +li("Loan status",pre,"Not set")
+      +(/pre-approved/i.test(pre)?li("Lender",lend,"Add the lender on the Client Details tab"):"")
+      +'</ul><p class="goal" style="margin:0 0 10px">Have the buyer agreement ready to complete and sign. An Exclusive Buyer Brokerage Agreement covers every home shown from here on; a Showing Agreement only covers the home(s) named on that signed form.</p>'
+      +'<div id="cn_body"><p class="goal"><span class="bspin"></span> Getting the buyer agreement ready...</p></div>';
+    var tb=modal.querySelector(".mtabs");if(tb&&tb.parentNode)tb.parentNode.insertBefore(bx,tb.nextSibling);else modal.insertBefore(bx,modal.firstChild);
+    document.getElementById("cn_close").onclick=function(){bx.remove();};
+    bx.scrollIntoView({behavior:"smooth",block:"nearest"});
+    api({action:"consult",id:L.id}).then(function(j){
+      var body=document.getElementById("cn_body");if(!body)return;
+      body.innerHTML='<iframe id="cn_frame" title="Buyer Agreement" style="width:100%;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff" scrolling="no"></iframe>';
+      var f=document.getElementById("cn_frame"),ro=null;
+      function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
+      f.addEventListener("load",function(){fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});
+      f.src="buyer_agreement.php?tx="+encodeURIComponent(j.tx)+"&embed=1";
+      if(j.created)renderTabs();
+    }).catch(function(e){var body=document.getElementById("cn_body");if(body)body.innerHTML='<p class="sigerr">'+esc(e.message)+'</p>';});
+  }
   modal.querySelectorAll(".mvrow").forEach(function(r){r.addEventListener("click",async function(e){var b=e.target.closest(".mvb");if(!b||b.classList.contains("on")||b.classList.contains("mvside"))return;
-    if(b.dataset.act==="execute"){location.href="buyer.php?new=1&auto=1&lead="+encodeURIComponent(L.id);return;}
+    if(b.dataset.act==="execute"){openConsult();return;}
     if(b.dataset.act==="prelist"){var pp=modal.querySelector(".mvpre");if(pp){pp.hidden=false;var mbx0=document.getElementById("mvbox");if(mbx0)mbx0.style.display="";var ia=document.getElementById("pre_addr");ia.focus();}return;}
     var prev=r.dataset.val;r.dataset.val=b.dataset.v;r.querySelectorAll(".mvb").forEach(function(x){x.classList.toggle("on",x===b);});
     if(sideMode==="both"){var oth=r.dataset.role==="buyer"?"seller":"buyer",orow=modal.querySelector('.mvh[data-role="'+oth+'"] .mvrow');

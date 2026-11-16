@@ -18,6 +18,12 @@ if ($act === 'sources') {
     ld_update($me, function (&$db) use ($src, $int) { $db['sources'] = $src; $db['interests'] = $int; });
     out(['ok' => true, 'sources' => $src, 'interests' => $int, 'leads' => ld_view($me, $agent, $phone)]);
 }
+if ($act === 'consult') { // Buyer Consultation from inside the lead record: find or create the buyer's Active Business record
+    require_once __DIR__ . '/consultlib.php';
+    $r = cn_start($me, (string)($j['id'] ?? ''));
+    if (empty($r['ok'])) out(['ok' => false, 'msg' => $r['msg'] ?? 'Could not start the consultation.']);
+    out(['ok' => true, 'tx' => $r['tx'], 'created' => !empty($r['created']), 'leads' => ld_view($me, $agent, $phone)]);
+}
 if ($act === 'wants') {
     $w = (array)($j['wants'] ?? []); $clean = [];
     foreach ($w as $k => $v) {
