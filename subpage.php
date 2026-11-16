@@ -24,10 +24,10 @@ function sp_head($title, $backTx = '') {
 </head>
 <body>
 <div class="embedwrap">
-<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
+<?php if (empty($_GET['bare'])): ?><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px">
   <h2 style="margin:0;font-size:1.1rem"><?= htmlspecialchars($title) ?></h2>
   <a href="<?= htmlspecialchars(sp_full_url()) ?>" target="_top" style="font-size:.82rem;white-space:nowrap">Open full page &#8599;</a>
-</div>
+</div><?php endif; /* bare=1: no title row (used where the page sits inside another screen that already has its own heading) */ ?>
         <?php
         return;
     }

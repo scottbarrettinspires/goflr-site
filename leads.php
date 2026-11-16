@@ -702,7 +702,7 @@ function openLead(L,preset,inl){
       var f=document.getElementById("cn_frame"),ro=null;
       function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
       f.addEventListener("load",function(){fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});
-      f.src="buyer_agreement.php?tx="+encodeURIComponent(j.tx)+"&embed=1";
+      f.src="buyer_agreement.php?tx="+encodeURIComponent(j.tx)+"&embed=1&bare=1";
       if(j.created)renderTabs();
     }).catch(function(e){var body=document.getElementById("cn_body");if(body)body.innerHTML='<p class="sigerr">'+esc(e.message)+'</p>';});
   }

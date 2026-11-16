@@ -8,7 +8,7 @@ require_once __DIR__ . "/subpage.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
-$self = 'buyer_agreement.php?tx=' . urlencode($tx) . (sp_embed() ? '&embed=1' : '');
+$self = 'buyer_agreement.php?tx=' . urlencode($tx) . (sp_embed() ? '&embed=1' : '') . (!empty($_GET['bare']) ? '&bare=1' : '');
 $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'upload') {
     if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) $err = 'That file is too large to upload. Please choose a smaller PDF.';
@@ -84,7 +84,7 @@ sp_head('Buyer Agreement', $tx);
     <div class="bagact" style="margin:10px 0 0"><a class="btn ghost" href="<?= $h($self) ?>">&#8635; Check again</a><button type="button" class="btn up" id="bagupbtn">&#8679; Upload signed copy instead</button></div>
   </div>
 <?php else: ?>
-  <div class="bagt" role="tablist"><?php foreach (BAG_FORMS as $kk => $ff): ?><a role="tab" href="buyer_agreement.php?tx=<?= urlencode($tx) ?>&amp;k=<?= $kk ?><?= sp_embed() ? '&amp;embed=1' : '' ?>" class="<?= $kk === $k ? 'on' : '' ?>" aria-selected="<?= $kk === $k ? 'true' : 'false' ?>"><?= $h($ff['title']) ?></a><?php endforeach; ?></div>
+  <div class="bagt" role="tablist"><?php foreach (BAG_FORMS as $kk => $ff): ?><a role="tab" href="buyer_agreement.php?tx=<?= urlencode($tx) ?>&amp;k=<?= $kk ?><?= sp_embed() ? '&amp;embed=1' : '' ?><?= !empty($_GET['bare']) ? '&amp;bare=1' : '' ?>" class="<?= $kk === $k ? 'on' : '' ?>" aria-selected="<?= $kk === $k ? 'true' : 'false' ?>"><?= $h($ff['title']) ?></a><?php endforeach; ?></div>
   <p class="bagnote"><?= $h($f['note']) ?></p>
   <div class="bagact">
     <a class="btn ghost" id="bagdl" href="<?= $h($src) ?>&amp;dl=1">&#8681; Download</a>
