@@ -116,7 +116,7 @@ foreach (LD_CATS as $k => $c) { $cats[$k] = ['label' => $c['label'], 'subs' => $
 .chip.on{background:var(--teal);border-color:var(--teal);color:#fff}.chip .n{font-weight:700;opacity:.8;margin-left:4px}
 .ltabs .srcbtn{margin-left:auto;font-weight:600;color:#4b5b5d}
 .bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#f4f8f8;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:0 0 12px}
-.lhead{margin:-16px -16px 14px;padding:14px 16px 4px;border-radius:14px 14px 0 0;border-bottom:1px solid #9fd3cf;background:linear-gradient(135deg,#c6e9e7 0%,#ddf2f0 55%,#e9f7f5 100%)}.lhead h2{margin-top:0}.lhead .lsearch{background:#fff;border-color:#9fd3cf;box-shadow:0 2px 8px rgba(3,111,114,.10)}
+.lhead{margin:-16px -16px 14px;padding:12px 16px 12px;display:grid;grid-template-columns:1fr minmax(200px,320px);align-items:center;gap:2px 16px;border-radius:14px 14px 0 0;border-bottom:1px solid #9fd3cf;background:linear-gradient(135deg,#c6e9e7 0%,#ddf2f0 55%,#e9f7f5 100%)}.lhead h2{margin:0;grid-column:1;grid-row:1}.lhead p{grid-column:1/-1;grid-row:2;margin:4px 0 0!important}.lhead .lsearch{grid-column:2;grid-row:1;max-width:none;margin:0}@media(max-width:640px){.lhead{grid-template-columns:1fr}.lhead .lsearch{grid-column:1;grid-row:auto;margin-top:8px}.lhead p{grid-row:auto}}.lhead .lsearch{background:#fff;border-color:#9fd3cf;box-shadow:0 2px 8px rgba(3,111,114,.10)}
 .lsearch{width:100%;max-width:340px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;margin:0 0 12px}
 @media(max-width:800px){.fgrid{grid-template-columns:1fr}}
 
