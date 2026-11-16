@@ -135,6 +135,25 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
 <?php if ($perr): ?>  <p class="sigerr"><?= htmlspecialchars($perr) ?></p>
 <?php endif; ?>
 <style>@media(max-width:760px){.deskonly{display:none}}</style>
+  <?php $abIdx = []; foreach (['buyer' => $ovB, 'seller' => $ovS] as $sd => $rows) foreach ($rows as $r) $abIdx[] = ['n' => (string)$r['nm'], 'a' => (string)$r['addr'], 's' => $sd, 'u' => ($sd === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($r['t']['folder'])]; ?>
+  <div class="abjump" id="abjump">
+    <div class="abbtns"><a class="btn" href="#acbuyers" id="jb">Active Buyers <span><?= count($ovB) ?></span></a><a class="btn" href="#acsellers" id="js">Active Sellers <span><?= count($ovS) ?></span></a></div>
+    <div class="abfind"><input type="search" id="abq" placeholder="Find a client by name" autocomplete="off" aria-label="Find a client by name"><div class="abres" id="abres" hidden></div></div>
+  </div>
+  <style>.abjump{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;margin:0 0 14px}.abbtns{display:flex;gap:8px;flex-wrap:wrap}
+.abbtns .btn{display:inline-flex;gap:8px;align-items:center;text-decoration:none;font-weight:700;padding:9px 16px;border-radius:10px;background:var(--teal);color:#fff}.abbtns .btn+.btn{background:#e07b39}.abbtns .btn span{background:rgba(255,255,255,.25);border-radius:99px;padding:0 8px;font-size:.85rem}
+.abfind{position:relative;flex:0 1 320px;width:100%;max-width:320px}.abfind input{width:100%;padding:10px 12px;border:1px solid #9fd3cf;border-radius:10px;font:inherit;background:#fff;box-shadow:0 2px 8px rgba(3,111,114,.10)}
+.abres{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:30;max-height:320px;overflow:auto}.abres a{display:block;padding:9px 12px;text-decoration:none;color:inherit;border-bottom:1px solid #eef3f3}.abres a:last-child{border:0}.abres a:hover,.abres a.on{background:#eaf6f5}.abres small{display:block;color:#5a6a6c}.abres p{margin:0;padding:10px 12px;color:#5a6a6c}
+@media(max-width:640px){.abfind{max-width:none;flex-basis:100%}}</style>
+  <script>(function(){var D=<?= json_encode($abIdx) ?>,q=document.getElementById("abq"),r=document.getElementById("abres"),on=-1;
+  function go(a){if(a)location.href=a.getAttribute("href");}
+  function draw(){var v=q.value.trim().toLowerCase();on=-1;if(!v){r.hidden=true;return;}var m=D.filter(function(x){return (x.n+" "+x.a).toLowerCase().indexOf(v)>-1;}).slice(0,8);
+    r.innerHTML=m.length?m.map(function(x){return '<a href="'+x.u.replace(/"/g,"&quot;")+'">'+x.n.replace(/[<>&]/g,"")+' <small>'+(x.s==="seller"?"Seller":"Buyer")+(x.a?" · "+x.a.replace(/[<>&]/g,""):"")+'</small></a>';}).join(""):'<p>No active client matches that name.</p>';r.hidden=false;}
+  q.addEventListener("input",draw);q.addEventListener("focus",draw);
+  q.addEventListener("keydown",function(e){var L=[].slice.call(r.querySelectorAll("a"));if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();if(!L.length)return;on=(on+(e.key==="ArrowDown"?1:-1)+L.length)%L.length;L.forEach(function(a,i){a.classList.toggle("on",i===on);});}
+    else if(e.key==="Enter"){e.preventDefault();go(L[on>=0?on:0]);}else if(e.key==="Escape"){r.hidden=true;}});
+  document.addEventListener("click",function(e){if(!e.target.closest(".abfind"))r.hidden=true;});
+  document.getElementById("abjump").addEventListener("click",function(e){var a=e.target.closest(".abbtns a");if(!a)return;e.preventDefault();var t=document.querySelector(a.getAttribute("href"));if(t)t.scrollIntoView({behavior:"smooth",block:"start"});});})();</script>
   <div class="lpanel" id="deadlines"><h2>Contract deadlines: next 7 days</h2>
 <?php
     // A week strip like a calendar row: today plus 6 days, each item under the day it's actually due (a deadline on
