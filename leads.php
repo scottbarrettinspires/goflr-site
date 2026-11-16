@@ -235,17 +235,7 @@ function renderOverview(){
   LEADS.forEach(function(L){(L.log||[]).forEach(function(g){if(g.d>=wkS)wk++;});if((L.added||"")>=wkS)newWk++;
     if(L.roles&&L.roles.buyer&&L.roles.buyer.sub==="ready")readyB++;if(L.roles&&L.roles.seller&&L.roles.seller.sub==="ready")readyS++;if(L.roles&&L.roles.sphere&&L.roles.sphere.sub==="a")sa++;
     L.view.forEach(function(v){if(v.sub==="unid")unr++;if(v.sub==="dnc"||v.sub==="d")cold++;});});
-  var h='<div class="stats">'
-   +'<div class="stat urgent" id="st_due" role="button" title="See them"><b>'+hot.length+'</b><span>Touches due now</span></div>'
-   +'<div class="stat urgent" id="st_new" role="button" title="Open NEW"><b>'+c.new+'</b><span>NEW leads to sort</span></div>'
-   +'<div class="stat hot"><b>'+unr+'</b><span>Not reached yet (Undetermined)</span></div>'
-   +'<div class="stat hot"><b>'+readyB+'</b><span>Ready buyers</span></div>'
-   +'<div class="stat hot"><b>'+readyS+'</b><span>Ready sellers</span></div>'
-   +'<div class="stat"><b>'+sa+'</b><span>Sphere A Always</span></div>'
-   +'<div class="stat" style="border-left:5px solid #036f72"><b>'+LEADS.filter(function(L){return L.roles&&((L.roles.buyer&&L.roles.buyer.sub==="client")||(L.roles.seller&&L.roles.seller.sub==="client"));}).length+'</b><span>Clients in Active Business</span></div>'
-   +'<div class="stat"><b>'+wk+'</b><span>Touches done, last 7 days</span></div>'
-   +'<div class="stat"><b>'+newWk+'</b><span>Leads added, last 7 days</span></div>'
-   +'<div class="stat cold"><b>'+cold+'</b><span>Cold (D Maybe Not, Do Not Contact)</span></div></div>';
+  var h='';
   h+=weekStrip();
   h+='<div class="lpanel" style="margin-top:14px"><h2>Hot leads: do these today</h2>'+(hot.length?hot.map(function(x){return row(x[0],x[1]);}).join(""):'<p class="empty">Nothing due. Nice work.</p>')+'</div>';
   body.innerHTML=h;
