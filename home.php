@@ -102,7 +102,7 @@ if (!$nextGroup && $next) $nextGroup = [$next];
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Home - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 <header class="top"><div class="in">

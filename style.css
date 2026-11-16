@@ -152,3 +152,13 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 
 /* One rounded look for every text box, drop-down and notes box across the site (specific rules above still win). */
 input[type=text],input[type=email],input[type=tel],input[type=date],input[type=number],input[type=url],input[type=search],input[type=password],select,textarea{border-radius:10px}
+
+/* Phones: the top bar is just the logo (to Home), Leads & Contacts and Active Business. Everything else is done on a computer. */
+@media(max-width:760px){
+  .top nav a:not([href="leads.php"]):not([href="my-transactions.php"]){display:none}
+  .top .in{flex-wrap:nowrap;gap:8px;padding:10px 14px}
+  .top .brand span{display:none}
+  .top .brand img{height:38px}
+  .top nav{flex-wrap:nowrap;gap:2px}
+  .top nav a{padding:8px 10px;font-size:.88rem;white-space:nowrap}
+}
