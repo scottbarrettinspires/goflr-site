@@ -66,29 +66,53 @@ function sd_load($email) {
         if ($r[6]) dl_save($email, $r[0], $r[1], $r[6]);
     }
     // Leads from every prospecting source, in every category; some are the clients above.
-    $L = function ($id, $f, $l, $ph, $src, $tags, $roles, $added, $notes = '') use ($email) {
-        return ['id' => $id, 'first' => $f, 'last' => $l, 'phone' => $ph, 'email' => strtolower($f) . '.' . strtolower($l) . '@example.com', 'source' => $src, 'tags' => $tags, 'added' => $added, 'created' => $added . 'T09:00:00-05:00', 'notes' => $notes, 'roles' => $roles, 'log' => []];
+    $L = function ($id, $f, $l, $ph, $src, $tags, $roles, $added, $notes = '', $extra = []) use ($email) {
+        return ['id' => $id, 'first' => $f, 'last' => $l, 'phone' => $ph, 'email' => strtolower($f) . '.' . strtolower($l) . '@example.com', 'source' => $src, 'tags' => $tags, 'added' => $added, 'created' => $added . 'T09:00:00-05:00', 'notes' => $notes, 'roles' => $roles, 'log' => []] + $extra;
     };
     $R = function ($sub, $since, $extra = []) { return ['sub' => $sub, 'since' => $since, 'touches' => 0, 'last' => ''] + $extra; };
+    // Buyers waiting for a consultation carry complete Client Details and "ideal home" wants, so Buyer Consultation -> Buyer Agreement -> record can be tried end to end.
+    $bc = function ($mail, $fin, $pre, $lend = [], $co = []) { return ['mailing' => $mail, 'fin' => [$fin], 'pre' => [$pre]] + $lend + $co; };
     $leads = [
+        // NEW (online leads that just arrived)
         $L('smp01', 'Taylor', 'Reed', '727-555-0301', 'Facebook', ['Facebook', 'Social media'], ['new' => ['since' => $D(0), 'touches' => 0]], $D(0), 'Asked about homes near Starkey Ranch.'),
         $L('smp02', 'Morgan', 'Blake', '727-555-0302', 'Zillow', ['Zillow'], ['new' => ['since' => $D(-1), 'touches' => 0]], $D(-1)),
+        // BUYERS before Active Business: each is ready for Buyer Consultation
         $L('smp03', 'Jordan', 'Price', '727-555-0303', 'Landing page', ['Landing page'], ['buyer' => $R('unid', $D(-12))], $D(-12)),
-        $L('smp04', 'Casey', 'Nguyen', '727-555-0304', 'Open house', ['Open house'], ['buyer' => $R('ready', $D(-6))], $D(-6), 'Met at 55 Palm Ave open house.'),
+        $L('smp04', 'Casey', 'Nguyen', '727-555-0304', 'Open house', ['Open house'], ['buyer' => $R('ready', $D(-6))], $D(-6), 'Met at 55 Palm Ave open house. Wants to start touring this week.',
+            ['client' => $bc('410 Magnolia St, Trinity FL 34655', 'Conventional', 'Pre-approved', ['lender' => 'Gulf Coast Lending', 'lender_rep' => 'Dana Wells', 'lender_phone' => '727-555-0911', 'lender_email' => 'dwells@gulfcoastlending.example.com', 'preamt' => '425,000']),
+             'wants' => ['price_min' => '325000', 'price_max' => '425000', 'beds' => '3', 'baths' => '2', 'types' => ['Single family'], 'areas' => 'Trinity, Odessa, Land O Lakes', 'fin' => ['Conventional'], 'pre' => ['Pre-approved']]]),
+        $L('smp09', 'Lee', 'Warren', '727-555-0309', 'Referral', ['Referral'], ['buyer' => $R('soon', $D(-15))], $D(-15), 'Referred by Drew Martin.',
+            ['client' => $bc('77 Sandpiper Ln, Port Richey FL 34668', 'FHA/VA', 'In progress'),
+             'wants' => ['price_min' => '250000', 'price_max' => '340000', 'beds' => '3', 'types' => ['Single family', 'Townhome'], 'areas' => 'Port Richey, New Port Richey', 'fin' => ['FHA/VA'], 'pre' => ['In progress']]]),
+        $L('smp14', 'Quinn', 'Foster', '727-555-0311', 'Website', ['Website'], ['buyer' => $R('later', $D(-8))], $D(-8)),
+        $L('smp15', 'Jesse', 'Park', '727-555-0312', 'Agent referral', ['Agent referral'], ['buyer' => $R('ready', $D(-2))], $D(-2), 'Relocating from Ohio, referred by an agent there. Paying cash.',
+            ['client' => $bc('1920 Lakeview Dr, Columbus OH 43215', 'Cash', 'Not yet'),
+             'wants' => ['price_min' => '500000', 'price_max' => '700000', 'beds' => '4', 'baths' => '3', 'types' => ['Single family', 'New construction'], 'pool' => ['Pool wanted'], 'areas' => 'Trinity, Odessa', 'fin' => ['Cash']]]),
+        // SELLERS before Active Business: each is ready for a Listing Appointment
         $L('smp05', 'Avery', 'Collins', '727-555-0305', 'Networking', ['Networking'], ['seller' => $R('soon', $D(-20))], $D(-20), 'Chamber mixer. Thinking of selling in spring.'),
+        $L('smp08', 'Pat', 'Hughes', '727-555-0308', 'Direct mail', ['Direct mail'], ['seller' => $R('later', $D(-30))], $D(-30), 'Farm postcard response.'),
+        $L('smp10', 'Kelly', 'Shaw', '727-555-0310', 'Expired', ['Expired'], ['seller' => $R('unid', $D(-3))], $D(-3)),
+        $L('smp16', 'Dana', 'Whitfield', '727-555-0313', 'Sign call', ['Sign call'], ['seller' => $R('ready', $D(-4))], $D(-4), 'Called on the sign at 22 Fern Court. Wants a listing appointment this week.', ['client' => ['mailing' => '22 Fern Ct, Trinity FL 34655']]),
+        // SPHERE
         $L('smp06', 'Drew', 'Martin', '727-555-0306', 'Sphere', ['Sphere / friend or family'], ['sphere' => $R('a', $D(-45))], $D(-45)),
         $L('smp07', 'Sam', 'Ortiz', '727-555-0307', 'Past client', ['Past client'], ['sphere' => $R('b', $D(-90))], $D(-90)),
-        $L('smp08', 'Pat', 'Hughes', '727-555-0308', 'Direct mail', ['Direct mail'], ['seller' => $R('later', $D(-30))], $D(-30), 'Farm postcard response.'),
-        $L('smp09', 'Lee', 'Warren', '727-555-0309', 'Referral', ['Referral'], ['buyer' => $R('soon', $D(-15))], $D(-15), 'Referred by Drew Martin.'),
-        $L('smp10', 'Kelly', 'Shaw', '727-555-0310', 'Expired', ['Expired'], ['seller' => $R('unid', $D(-3))], $D(-3)),
-        $L('smp11', 'Bill', 'Smith', '727-555-0101', 'Instagram', ['Instagram', 'Social media'], ['buyer' => $R('client', $D(-25), ['folder' => 'SAMPLE-B1', 'stage' => 1])], $D(-25)),
-        $L('smp12', 'Linda', 'Hart', '727-555-0201', 'Sphere', ['Sphere / friend or family'], ['seller' => $R('client', $D(-18), ['folder' => 'SAMPLE-S1', 'stage' => 1]), 'sphere' => $R('a', $D(-18))], $D(-60)),
-        $L('smp13', 'Riley', 'Turner', '727-555-0202', 'Sign call', ['Sign call'], ['seller' => $R('client', $D(-40), ['folder' => 'SAMPLE-S2', 'stage' => 2])], $D(-50)),
-        $L('smp14', 'Quinn', 'Foster', '727-555-0311', 'Website', ['Website'], ['buyer' => $R('later', $D(-8))], $D(-8)),
-        $L('smp15', 'Jesse', 'Park', '727-555-0312', 'Agent referral', ['Agent referral'], ['buyer' => $R('ready', $D(-2))], $D(-2), 'Relocating from Ohio, referred by an agent there.'),
+        $L('smp17', 'Renee', 'Castillo', '727-555-0314', 'Sphere', ['Sphere / friend or family'], ['sphere' => $R('a', $D(-120))], $D(-120), 'Neighbor. Mentioned her son may buy next year.'),
+        // IN ACTIVE BUSINESS: one lead for each sample record, so the Leads -> Active Business link can be followed at every stage
+        $L('smp11', 'Bill', 'Smith', '727-555-0101', 'Instagram', ['Instagram', 'Social media'], ['buyer' => $R('client', $D(-25), ['folder' => 'SAMPLE-B1', 'stage' => 1, 'record' => 'Bill & Sue Smith'])], $D(-25)),
+        $L('smp18', 'Jamie', 'Milano', '727-555-0102', 'Zillow', ['Zillow'], ['buyer' => $R('client', $D(-30), ['folder' => 'SAMPLE-B2', 'stage' => 1, 'record' => 'Jamie Milano'])], $D(-30)),
+        $L('smp19', 'Jeremy', 'Bergman', '727-555-0103', 'Open house', ['Open house'], ['buyer' => $R('client', $D(-40), ['folder' => 'SAMPLE-B3', 'stage' => 1, 'record' => 'Jeremy Bergman'])], $D(-40)),
+        $L('smp20', 'Maria', 'Lopez', '727-555-0104', 'Referral', ['Referral'], ['buyer' => $R('client', $D(-50), ['folder' => 'SAMPLE-B4', 'stage' => 3, 'record' => '1150 Round Street'])], $D(-50)),
+        $L('smp21', 'Chris', 'Patel', '727-555-0105', 'Website', ['Website'], ['buyer' => $R('client', $D(-60), ['folder' => 'SAMPLE-B5', 'stage' => 3, 'record' => '6045 5th Avenue N'])], $D(-60)),
+        $L('smp22', 'Robert', 'Kim', '727-555-0106', 'Landing page', ['Landing page'], ['buyer' => $R('client', $D(-55), ['folder' => 'SAMPLE-B6', 'stage' => 3, 'record' => '2210 Gulf Blvd #402'])], $D(-55)),
+        $L('smp12', 'Linda', 'Hart', '727-555-0201', 'Sphere', ['Sphere / friend or family'], ['seller' => $R('client', $D(-18), ['folder' => 'SAMPLE-S1', 'stage' => 1, 'record' => '9 Oak Lane']), 'sphere' => $R('a', $D(-18))], $D(-60)),
+        $L('smp13', 'Riley', 'Turner', '727-555-0202', 'Sign call', ['Sign call'], ['seller' => $R('client', $D(-40), ['folder' => 'SAMPLE-S2', 'stage' => 2, 'record' => '55 Palm Avenue'])], $D(-50)),
+        $L('smp23', 'Gary', 'Olson', '727-555-0203', 'Direct mail', ['Direct mail'], ['seller' => $R('client', $D(-45), ['folder' => 'SAMPLE-S3', 'stage' => 2, 'record' => '314 Heron Way'])], $D(-70)),
+        $L('smp24', 'Nancy', 'Ruiz', '727-555-0204', 'Expired', ['Expired'], ['seller' => $R('client', $D(-60), ['folder' => 'SAMPLE-S4', 'stage' => 3, 'record' => '78 Cypress Point Dr'])], $D(-80)),
+        $L('smp25', 'Tom', 'Bradley', '727-555-0205', 'Past client', ['Past client'], ['seller' => $R('client', $D(-80), ['folder' => 'SAMPLE-S5', 'stage' => 3, 'record' => '1402 Bayshore Ct'])], $D(-100)),
+        $L('smp26', 'Ann', 'Foster', '727-555-0206', 'Networking', ['Networking'], ['sphere' => $R('a', $D(-10))], $D(-110), 'Closed sale at 603 Lakeview Rd. Now in Sphere.'),
     ];
     flr_leads_update($ak, function (&$db) use ($leads) { $db['leads'] = array_merge($leads, array_values(array_filter((array)$db['leads'], function ($x) { return strpos((string)($x['id'] ?? ''), 'smp') !== 0; }))); return null; }, $email);
-    foreach (['SAMPLE-B1' => 'smp11', 'SAMPLE-S1' => 'smp12', 'SAMPLE-S2' => 'smp13'] as $f => $lid) flr_tx_set($f, ['lead_id' => $lid]);
+    foreach (['SAMPLE-B1' => 'smp11', 'SAMPLE-B2' => 'smp18', 'SAMPLE-B3' => 'smp19', 'SAMPLE-B4' => 'smp20', 'SAMPLE-B5' => 'smp21', 'SAMPLE-B6' => 'smp22', 'SAMPLE-S1' => 'smp12', 'SAMPLE-S2' => 'smp13', 'SAMPLE-S3' => 'smp23', 'SAMPLE-S4' => 'smp24', 'SAMPLE-S5' => 'smp25'] as $f => $lid) flr_tx_set($f, ['lead_id' => $lid]);
     // Prospecting activity and weekly goals
     $pdo->exec('CREATE TABLE IF NOT EXISTS pr_log (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL, method TEXT NOT NULL, d TEXT NOT NULL, what TEXT, qty INTEGER DEFAULT 1, notes TEXT, created TEXT)');
     $pdo->exec('CREATE TABLE IF NOT EXISTS pr_goals (email TEXT NOT NULL, method TEXT NOT NULL, per_week INTEGER, PRIMARY KEY (email, method))');

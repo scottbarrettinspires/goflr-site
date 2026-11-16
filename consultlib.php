@@ -34,6 +34,25 @@ function cn_start($me, $leadId) {
     if (!empty($fin[0]) && isset($pm[$fin[0]])) $info['payment'] = $pm[$fin[0]];
     $miss = cn_missing($info);
     if ($miss !== '') return ['ok' => false, 'msg' => 'Before the agreement can be prepared, ' . $miss . ' (Client Details tab).'];
+    if (strpos((string)$leadId, 'smp') === 0) { // a sample lead: make a local SAMPLE- record, never a real Drive folder
+        $ak = flr_akey($me); $pdo = flr_db(); $now = date('c');
+        $label = preg_replace('/\s+/', ' ', trim($info['b1_name'] . (($info['b2_name'] ?? '') !== '' ? ' & ' . $info['b2_name'] : '')));
+        $fid = 'SAMPLE-C' . substr(sha1($leadId . microtime()), 0, 8);
+        require_once __DIR__ . '/pstage.php';
+        if (function_exists('ps_ensure_column')) ps_ensure_column();
+        $pdo->prepare('INSERT OR REPLACE INTO transactions (folder, akey, email, side, stage, stage_name, grp, name, lead_id, listed, first_seen, seen, updated) VALUES (?,?,?,?,?,?,?,?,?,1,?,?,?)')
+            ->execute([$fid, $ak, $me, 'buyer', 1, ld_stage_name('buyer', 1), '1 BUYERS / sample', $label, $leadId, $now, $now, $now]);
+        $pdo->prepare('UPDATE transactions SET pstage = ? WHERE folder = ?')->execute(['agreement', $fid]);
+        $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute(['sample_info_' . $fid, json_encode($info)]);
+        ld_update($me, function (&$db) use ($leadId, $fid, $label) {
+            foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $leadId) continue;
+                $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label, 'stage' => 1];
+                $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Sample buyer record created in Active Business'];
+            }
+        });
+        flr_audit($ak, 'consult_record_created', $fid, 'sample lead ' . $leadId);
+        return ['ok' => true, 'tx' => $fid, 'created' => true];
+    }
     $jr = flr_get_json(ROSTER_URL . '?key=' . urlencode(ROSTER_KEY) . '&op=mytxroot&email=' . urlencode($me));
     $hint = (is_array($jr) && !empty($jr['ok']) && !empty($jr['id'])) ? (string)$jr['id'] : '';
     if (!preg_match('/^[A-Za-z0-9_-]{10,80}$/', $hint)) return ['ok' => false, 'msg' => 'Could not find your Active Business folder. Please try again in a moment.'];
