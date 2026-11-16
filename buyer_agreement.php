@@ -107,6 +107,12 @@ sp_head('Buyer Agreement', $tx);
     </div>
     <div class="bagact" style="margin:8px 0 0"><button type="button" class="btn" id="bq_apply">Apply to the agreement</button><span class="bagmeta" id="bq_msg" style="margin:0"></span></div>
   </div>
+<?php endif; ?>
+<?php endif; ?>
+<?php if (!$sig && !$pend): ?>  <p class="bagfill" id="bagfill" hidden></p>
+<?php endif; ?>
+  <div class="bagview" id="bagview"<?= $pend ? " hidden" : "" ?><?= ($sig || $pend) ? '' : ' data-fill="' . $h('bag_prefill.php?tx=' . urlencode($tx) . '&kind=' . $k) . '" data-name="' . $h(BAG_FORMS[$k]['title'] . ' - ' . date('Y-m-d') . '.pdf') . '"' ?> data-src="<?= $h($src) ?>" role="document" aria-label="<?= $h($sig ? 'Signed ' . $sig['form'] : BAG_FORMS[$k]['title']) ?>"><p class="bagload">Loading the agreement&hellip;</p></div>
+<?php if (!$sig && !$pend): ?>
   <div class="bagact">
     <a class="btn ghost" id="bagdl" href="<?= $h($src) ?>&amp;dl=1">&#8681; Download</a>
     <button type="button" class="btn" id="bagsend">&#9998; Send for Signing</button>
@@ -123,7 +129,6 @@ sp_head('Buyer Agreement', $tx);
 <?php endif; ?>
   </div>
 <?php endif; ?>
-<?php endif; ?>
   <div class="bagup" id="bagup" hidden>
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="op" value="upload"><input type="hidden" name="tx" value="<?= $h($tx) ?>">
@@ -136,9 +141,6 @@ sp_head('Buyer Agreement', $tx);
       <p>Use this for an agreement signed in person or outside DigiSigner. It's saved to this buyer record and filed in the transaction folder.</p>
     </form>
   </div>
-<?php if (!$sig && !$pend): ?>  <p class="bagfill" id="bagfill" hidden></p>
-<?php endif; ?>
-  <div class="bagview" id="bagview"<?= $pend ? " hidden" : "" ?><?= ($sig || $pend) ? '' : ' data-fill="' . $h('bag_prefill.php?tx=' . urlencode($tx) . '&kind=' . $k) . '" data-name="' . $h(BAG_FORMS[$k]['title'] . ' - ' . date('Y-m-d') . '.pdf') . '"' ?> data-src="<?= $h($src) ?>" role="document" aria-label="<?= $h($sig ? 'Signed ' . $sig['form'] : BAG_FORMS[$k]['title']) ?>"><p class="bagload">Loading the agreement&hellip;</p></div>
   <p style="margin:12px 0 0"><a href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a></p>
 </div>
 <script>(function(){var a=document.getElementById("bq_apply");if(!a)return;var $=function(i){return document.getElementById(i);};
