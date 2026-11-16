@@ -508,6 +508,7 @@ function openLead(L,preset,inl){
   }
   modal.innerHTML=h;if(!inl)mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
+  if(isNew){var mvn=document.getElementById("mvbox"),fgn=modal.querySelector(".fgrid");if(mvn&&fgn){mvn.classList.remove("full");modal.insertBefore(mvn,fgn);}} // + Add: "Is this lead a..." comes first, above the contact fields
   if(!isNew){var mvbx=document.getElementById("mvbox"),ft=modal.querySelector(".touch");modal.insertBefore(mvbx,ft||fg);} // stage buttons first, then the next touch
   if(!isNew){ // the stage buttons stay in the page but hidden; the pipeline label at the top right opens the choices and presses them
     [].forEach.call(modal.querySelectorAll("#mvbox .mvrow[data-role] .mvb[data-v]"),function(b){b.style.display="none";});
