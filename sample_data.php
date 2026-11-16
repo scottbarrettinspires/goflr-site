@@ -35,7 +35,7 @@ sp_head('Sample data');
     <ul>
       <li>12 buyer and seller records across every pipeline stage, with client names, phones and addresses</li>
       <li>Contract deadlines of every kind: escrow deposits, loan application, inspection, appraisal, loan approval, title, HOA documents and closing, landing overdue, today, this week, on a weekend or holiday, and later</li>
-      <li>26 leads from every prospecting source: New, Buyers, Sellers and Sphere leads to work from Leads &amp; Contacts (buyers with full Client Details, ready for Buyer Consultation), plus one lead linked to each Active Business record</li>
+      <li>26 leads (every sample person uses the test email lsbjsb1968@gmail.com so DigiSigner steps reach you) from every prospecting source: New, Buyers, Sellers and Sphere leads to work from Leads &amp; Contacts (buyers with full Client Details, ready for Consultation), plus one lead linked to each Active Business record</li>
       <li>Prospecting activity and weekly goals</li>
       <li>Signed documents: one newly signed, one waiting for signatures</li>
     </ul>

@@ -39,21 +39,21 @@ function sd_load($email) {
     $now = date('c');
     // [folder, side, drive stage, name, pipeline stage, client info, deadline data or null]
     $recs = [
-        ['SAMPLE-B1', 'buyer', 1, 'Bill & Sue Smith', 'agreement', ['b1_name' => 'Bill Smith', 'b2_name' => 'Sue Smith', 'b1_phone' => '727-555-0101', 'b1_email' => 'bill.smith@example.com', 'mailing' => '12 Oak Ct, Trinity FL 34655', 'payment' => 'conventional', 'lender' => 'Gulf Coast Lending', 'preapproval' => '450,000'], null],
-        ['SAMPLE-B2', 'buyer', 1, 'Jamie Milano', 'shopping', ['b1_name' => 'Jamie Milano', 'b1_phone' => '727-555-0102', 'b1_email' => 'jamie.m@example.com', 'mailing' => '880 Bay Dr, New Port Richey FL 34652', 'payment' => 'cash'], null],
-        ['SAMPLE-B3', 'buyer', 1, 'Jeremy Bergman', 'offer', ['b1_name' => 'Jeremy Bergman', 'b1_phone' => '727-555-0103', 'b1_email' => 'jbergman@example.com', 'payment' => 'fhava'], null],
-        ['SAMPLE-B4', 'buyer', 3, '1150 Round Street', 'contract', ['b1_name' => 'Maria Lopez', 'b1_phone' => '727-555-0104', 'b1_email' => 'maria.lopez@example.com', 'property' => '1150 Round Street, Trinity FL 34655', 'payment' => 'conventional', 'lender' => 'Suncoast Mortgage', 'preapproval' => '380,000'],
+        ['SAMPLE-B1', 'buyer', 1, 'Bill & Sue Smith', 'agreement', ['b1_name' => 'Bill Smith', 'b2_name' => 'Sue Smith', 'b2_email' => 'lsbjsb1968+sue@gmail.com', 'b2_phone' => '727-555-0111', 'b1_phone' => '727-555-0101', 'b1_email' => 'lsbjsb1968@gmail.com', 'mailing' => '12 Oak Ct, Trinity FL 34655', 'payment' => 'conventional', 'lender' => 'Gulf Coast Lending', 'preapproval' => '450,000'], null],
+        ['SAMPLE-B2', 'buyer', 1, 'Jamie Milano', 'shopping', ['b1_name' => 'Jamie Milano', 'b1_phone' => '727-555-0102', 'b1_email' => 'lsbjsb1968@gmail.com', 'mailing' => '880 Bay Dr, New Port Richey FL 34652', 'payment' => 'cash'], null],
+        ['SAMPLE-B3', 'buyer', 1, 'Jeremy Bergman', 'offer', ['b1_name' => 'Jeremy Bergman', 'b1_phone' => '727-555-0103', 'b1_email' => 'lsbjsb1968@gmail.com', 'payment' => 'fhava'], null],
+        ['SAMPLE-B4', 'buyer', 3, '1150 Round Street', 'contract', ['b1_name' => 'Maria Lopez', 'b1_phone' => '727-555-0104', 'b1_email' => 'lsbjsb1968@gmail.com', 'property' => '1150 Round Street, Trinity FL 34655', 'payment' => 'conventional', 'lender' => 'Suncoast Mortgage', 'preapproval' => '380,000'],
             ['effective' => $D(-2), 'items' => ['deposit1' => ['days' => '3'], 'loanapp' => ['days' => '5'], 'inspect' => ['days' => '10'], 'appraisal' => ['days' => '21'], 'loan' => ['days' => '30'], 'closing' => ['date' => $D(35)]]]],
-        ['SAMPLE-B5', 'buyer', 3, '6045 5th Avenue N', 'contingencies', ['b1_name' => 'Chris & Dana Patel', 'b1_phone' => '727-555-0105', 'b1_email' => 'patel.family@example.com', 'property' => '6045 5th Avenue N, St Petersburg FL 33710', 'payment' => 'conventional', 'lender' => 'First Bay Bank', 'preapproval' => '520,000'],
+        ['SAMPLE-B5', 'buyer', 3, '6045 5th Avenue N', 'contingencies', ['b1_name' => 'Chris & Dana Patel', 'b1_phone' => '727-555-0105', 'b1_email' => 'lsbjsb1968@gmail.com', 'property' => '6045 5th Avenue N, St Petersburg FL 33710', 'payment' => 'conventional', 'lender' => 'First Bay Bank', 'preapproval' => '520,000'],
             ['effective' => $D(-12), 'items' => ['deposit1' => ['days' => '3', 'done' => true], 'deposit2' => ['days' => '15'], 'inspect' => ['days' => '15'], 'appraisal' => ['days' => '20'], 'loan' => ['days' => '30'], 'title' => ['days' => '17'], 'closing' => ['date' => $D(28)]]]],
-        ['SAMPLE-B6', 'buyer', 3, '2210 Gulf Blvd #402', 'contingencies', ['b1_name' => 'Robert Kim', 'b1_phone' => '727-555-0106', 'b1_email' => 'rkim@example.com', 'property' => '2210 Gulf Blvd #402, Indian Rocks Beach FL 33785', 'payment' => 'cash'],
+        ['SAMPLE-B6', 'buyer', 3, '2210 Gulf Blvd #402', 'contingencies', ['b1_name' => 'Robert Kim', 'b1_phone' => '727-555-0106', 'b1_email' => 'lsbjsb1968@gmail.com', 'property' => '2210 Gulf Blvd #402, Indian Rocks Beach FL 33785', 'payment' => 'cash'],
             ['effective' => $D(-9), 'items' => ['deposit1' => ['days' => '3', 'done' => true], 'inspect' => ['days' => '7'], 'hoa' => ['days' => '13'], 'title' => ['days' => '15'], 'closing' => ['date' => $D(21)]]]],
-        ['SAMPLE-S1', 'seller', 1, '9 Oak Lane', 'prelisting', ['s1_name' => 'Linda Hart', 's1_phone' => '727-555-0201', 's1_email' => 'lhart@example.com', 'property' => '9 Oak Lane, Trinity FL 34655'], null],
-        ['SAMPLE-S2', 'seller', 2, '55 Palm Avenue', 'active', ['s1_name' => 'Riley Turner', 's1_phone' => '727-555-0202', 's1_email' => 'rturner@example.com', 'property' => '55 Palm Avenue, Trinity FL 34655'], null],
-        ['SAMPLE-S3', 'seller', 2, '314 Heron Way', 'offerrecv', ['s1_name' => 'Gary & Pat Olson', 's1_phone' => '727-555-0203', 's1_email' => 'olsons@example.com', 'property' => '314 Heron Way, Odessa FL 33556'], null],
-        ['SAMPLE-S4', 'seller', 3, '78 Cypress Point Dr', 'contingencies', ['s1_name' => 'Nancy Ruiz', 's1_phone' => '727-555-0204', 's1_email' => 'nruiz@example.com', 'property' => '78 Cypress Point Dr, Palm Harbor FL 34683'],
+        ['SAMPLE-S1', 'seller', 1, '9 Oak Lane', 'prelisting', ['s1_name' => 'Linda Hart', 's1_phone' => '727-555-0201', 's1_email' => 'lsbjsb1968@gmail.com', 'property' => '9 Oak Lane, Trinity FL 34655'], null],
+        ['SAMPLE-S2', 'seller', 2, '55 Palm Avenue', 'active', ['s1_name' => 'Riley Turner', 's1_phone' => '727-555-0202', 's1_email' => 'lsbjsb1968@gmail.com', 'property' => '55 Palm Avenue, Trinity FL 34655'], null],
+        ['SAMPLE-S3', 'seller', 2, '314 Heron Way', 'offerrecv', ['s1_name' => 'Gary & Pat Olson', 's1_phone' => '727-555-0203', 's1_email' => 'lsbjsb1968@gmail.com', 'property' => '314 Heron Way, Odessa FL 33556'], null],
+        ['SAMPLE-S4', 'seller', 3, '78 Cypress Point Dr', 'contingencies', ['s1_name' => 'Nancy Ruiz', 's1_phone' => '727-555-0204', 's1_email' => 'lsbjsb1968@gmail.com', 'property' => '78 Cypress Point Dr, Palm Harbor FL 34683'],
             ['effective' => $D(-20), 'items' => ['deposit1' => ['days' => '3', 'done' => true], 'inspect' => ['days' => '15'], 'appraisal' => ['days' => '21'], 'loan' => ['days' => '30'], 'hoa' => ['days' => '22'], 'closing' => ['date' => $D(30)]]]],
-        ['SAMPLE-S5', 'seller', 3, '1402 Bayshore Ct', 'closingready', ['s1_name' => 'Tom Bradley', 's1_phone' => '727-555-0205', 's1_email' => 'tbradley@example.com', 'property' => '1402 Bayshore Ct, Tarpon Springs FL 34689'],
+        ['SAMPLE-S5', 'seller', 3, '1402 Bayshore Ct', 'closingready', ['s1_name' => 'Tom Bradley', 's1_phone' => '727-555-0205', 's1_email' => 'lsbjsb1968@gmail.com', 'property' => '1402 Bayshore Ct, Tarpon Springs FL 34689'],
             ['effective' => $D(-40), 'items' => ['deposit1' => ['days' => '3', 'done' => true], 'inspect' => ['days' => '15', 'done' => true], 'loan' => ['days' => '35', 'done' => true], 'title' => ['days' => '30', 'done' => true], 'closing' => ['date' => $D(4)]]]],
         ['SAMPLE-S6', 'seller', 3, '603 Lakeview Rd', 'closed', ['s1_name' => 'Ann Foster', 's1_phone' => '727-555-0206', 'property' => '603 Lakeview Rd, Land O Lakes FL 34639'], null],
     ];
@@ -67,7 +67,7 @@ function sd_load($email) {
     }
     // Leads from every prospecting source, in every category; some are the clients above.
     $L = function ($id, $f, $l, $ph, $src, $tags, $roles, $added, $notes = '', $extra = []) use ($email) {
-        return ['id' => $id, 'first' => $f, 'last' => $l, 'phone' => $ph, 'email' => strtolower($f) . '.' . strtolower($l) . '@example.com', 'source' => $src, 'tags' => $tags, 'added' => $added, 'created' => $added . 'T09:00:00-05:00', 'notes' => $notes, 'roles' => $roles, 'log' => []] + $extra;
+        return ['id' => $id, 'first' => $f, 'last' => $l, 'phone' => $ph, 'email' => 'lsbjsb1968@gmail.com', 'source' => $src, 'tags' => $tags, 'added' => $added, 'created' => $added . 'T09:00:00-05:00', 'notes' => $notes, 'roles' => $roles, 'log' => []] + $extra;
     };
     $R = function ($sub, $since, $extra = []) { return ['sub' => $sub, 'since' => $since, 'touches' => 0, 'last' => ''] + $extra; };
     // Buyers waiting for a consultation carry complete Client Details and "ideal home" wants, so Buyer Consultation -> Buyer Agreement -> record can be tried end to end.
@@ -127,10 +127,10 @@ function sd_load($email) {
     foreach (['social' => 10, 'openhouse' => 1, 'sphere' => 15, 'calls' => 100, 'network' => 2] as $k => $g) $pg->execute([$email, $k, $g]);
     // Signed documents: one newly signed and filed, one waiting for signatures
     sg_save('SAMPLE-SIG1', ['id' => 'SAMPLE-SIG1', 'agent' => $email, 'form' => 'FLR - Exclusive Buyer Brokerage Agreement', 'form_id' => '', 'doc' => '', 'created' => gmdate('c', strtotime('-1 day')), 'completed_at' => gmdate('c', strtotime('-2 hours')),
-        'signers' => [['email' => 'bill.smith@example.com'], ['email' => 'sue.smith@example.com']], 'signers_status' => ['bill.smith@example.com' => true, 'sue.smith@example.com' => true],
+        'signers' => [['email' => 'lsbjsb1968@gmail.com'], ['email' => 'lsbjsb1968+sue@gmail.com']], 'signers_status' => ['lsbjsb1968@gmail.com' => true, 'lsbjsb1968+sue@gmail.com' => true],
         'folder' => ['id' => 'SAMPLE-B1', 'label' => '1 BUYERS / Bill & Sue Smith'], 'completed' => true, 'filed' => ['name' => 'Signed - Exclusive Buyer Brokerage Agreement.pdf', 'url' => '#', 'folder' => '1 BUYERS / Bill & Sue Smith', 'at' => gmdate('c')]]);
     sg_save('SAMPLE-SIG2', ['id' => 'SAMPLE-SIG2', 'agent' => $email, 'form' => 'FLR - Listing Agreement', 'form_id' => '', 'doc' => '', 'created' => gmdate('c', strtotime('-3 hours')),
-        'signers' => [['email' => 'lhart@example.com']], 'signers_status' => ['lhart@example.com' => false], 'folder' => ['id' => 'SAMPLE-S1', 'label' => '2 SELLERS / 9 Oak Lane'], 'completed' => false, 'filed' => null]);
+        'signers' => [['email' => 'lsbjsb1968@gmail.com']], 'signers_status' => ['lsbjsb1968@gmail.com' => false], 'folder' => ['id' => 'SAMPLE-S1', 'label' => '2 SELLERS / 9 Oak Lane'], 'completed' => false, 'filed' => null]);
     $em = sd_emails(); if (!in_array($email, $em, true)) $em[] = $email;
     $pdo->prepare("INSERT OR REPLACE INTO kv (k, v) VALUES ('sample_emails', ?)")->execute([json_encode($em)]);
     flr_audit($ak, 'sample_load', '', 'Sample data loaded');
