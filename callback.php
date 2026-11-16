@@ -7,6 +7,7 @@ if ($id !== '') {
     $rec = sg_load($id);
     $was = $rec && !empty($rec['completed']);
     if ($rec && sg_refresh($rec) && !empty($rec['completed']) && empty($rec['filed']) && sg_can_file($rec)) { sg_file($rec); }
+    if ($rec && !$was && !empty($rec['completed'])) { try { require_once __DIR__ . '/baglib.php'; if (ag_kind($rec['form'] ?? '') && !empty($rec['folder']['id'])) ag_activate($rec['agent'], (string)$rec['folder']['id']); } catch (Throwable $e) {} }
     if ($rec && !$was && !empty($rec['completed'])) { // just finished: phone alert to the agent, linking to the client record
         try { require_once __DIR__ . '/pushlib.php'; require_once __DIR__ . '/leadlib.php'; require_once __DIR__ . '/signed_panel.php'; require_once __DIR__ . '/flrdb.php';
             $cl = sg_record_for($rec, flr_tx_list($rec['agent']));

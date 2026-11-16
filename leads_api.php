@@ -24,6 +24,22 @@ if ($act === 'consult') { // Buyer Consultation from inside the lead record: fin
     if (empty($r['ok'])) out(['ok' => false, 'msg' => $r['msg'] ?? 'Could not start the consultation.']);
     out(['ok' => true, 'tx' => $r['tx'], 'created' => !empty($r['created']), 'leads' => ld_view($me, $agent, $phone)]);
 }
+if ($act === 'agreements') { // signed buyer agreements on a lead's buyer record, and where the buyer stands
+    require_once __DIR__ . '/baglib.php';
+    $tx = (string)($j['tx'] ?? ''); if (!preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx)) out(['ok' => false, 'msg' => 'That buyer record could not be found.']);
+    $own = false; foreach (ld_load($me)['leads'] as $x) { if ((string)($x['roles']['buyer']['folder'] ?? '') === $tx) $own = true; }
+    if (!$own) out(['ok' => false, 'msg' => 'That buyer record could not be found.']);
+    $conv = ag_activate($me, $tx);
+    out(['ok' => true, 'agreement' => ag_standing($me, $tx), 'converted' => $conv, 'leads' => ld_view($me, $agent, $phone)]);
+}
+if ($act === 'agreement_terms') { // enter / change an agreement's expiration date (Exclusive, Extension) or the homes a Showing Agreement covers
+    require_once __DIR__ . '/baglib.php';
+    $tx = (string)($j['tx'] ?? ''); $own = false; foreach (ld_load($me)['leads'] as $x) { if ((string)($x['roles']['buyer']['folder'] ?? '') === $tx) $own = true; }
+    if (!$own) out(['ok' => false, 'msg' => 'That buyer record could not be found.']);
+    $e = ag_set_terms($me, $tx, (string)($j['rid'] ?? ''), (string)($j['expires'] ?? ''), (string)($j['homes'] ?? ''));
+    if ($e !== '') out(['ok' => false, 'msg' => $e]);
+    out(['ok' => true, 'agreement' => ag_standing($me, $tx)]);
+}
 if ($act === 'wants') {
     $w = (array)($j['wants'] ?? []); $clean = [];
     foreach ($w as $k => $v) {

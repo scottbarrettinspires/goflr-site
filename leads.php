@@ -5,6 +5,7 @@ require_once __DIR__ . "/leadlib.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? '');
 list($agent, $phone) = ld_me();
+require_once __DIR__ . "/baglib.php"; try { ag_sync($me); } catch (Throwable $e) {}
 ld_autosort($me);
 $leads = ld_view($me, $agent, $phone);
 $intake = ld_intake($me, $agent, $phone);
@@ -679,6 +680,22 @@ function openLead(L,preset,inl){
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
     else{modal.querySelector(".mvtip").textContent="Pick the "+(b.dataset.role==="seller"?"seller":"buyer")+" stage. Both plans then run side by side.";}
     b.remove();};});
+  function agrDraw(b,a,tx){
+    var KN={exclusive:"Exclusive Buyer Brokerage Agreement",showing:"Showing Agreement",extension:"Extension"},col={none:"#8a6d1f",showing:"#8a6d1f",exclusive:"#2e7d32",expired:"#b3261e"}[a.state]||"#555",bg={none:"#fff6df",showing:"#fff6df",exclusive:"#e3f4e8",expired:"#fde7e5"}[a.state]||"#eee";
+    if(a.state==="exclusive"&&a.soon){col="#8a4b00";bg="#ffeccf";}
+    var h='<div style="border:1px solid #d7e2e2;border-radius:12px;padding:10px 12px;background:'+bg+'"><div style="font-weight:700;color:'+col+'">'+esc({none:"Still a lead: waiting on a signed buyer agreement",showing:"Active Business: Showing Agreement",exclusive:"Active Business: Exclusive agreement"+(a.expires?" through "+a.expires:""),expired:"Expired buyer agreement"}[a.state])+'</div><div style="font-size:.88rem;margin-top:3px">'+esc(a.message)+'</div>';
+    if(a.state==="none")h+='<div style="font-size:.84rem;margin-top:4px">When DigiSigner returns the signed agreement, or you upload the signed copy below, this buyer moves to Active Business automatically.</div>';
+    if(a.items&&a.items.length){h+='<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,.08);padding-top:6px">';
+      a.items.forEach(function(it){
+        h+='<div class="agr" data-rid="'+esc(it.id)+'" style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:4px 0;font-size:.88rem"><b>'+esc(KN[it.kind]||it.title)+'</b><span>signed '+esc(it.signed_on)+' ('+(it.source==="upload"?"uploaded":"e-signed")+')</span>';
+        if(it.kind==="showing")h+='<input class="ag_homes" type="text" maxlength="200" placeholder="Home(s) covered" value="'+esc(it.homes)+'" style="flex:1;min-width:140px"><button type="button" class="btn sm ghost ag_save">Save</button>';
+        else h+='<label>'+(it.kind==="extension"?"New expiration":"Expires")+' <input class="ag_exp" type="date" value="'+esc(it.expires)+'"></label><button type="button" class="btn sm ghost ag_save">Save</button>';
+        h+='</div>';});
+      h+='<div class="ag_msg" style="font-size:.84rem;color:#b3261e"></div></div>';}
+    h+='</div>';b.innerHTML=h;
+    b.querySelectorAll(".ag_save").forEach(function(btn){btn.onclick=function(){var row=btn.closest(".agr"),m=b.querySelector(".ag_msg"),e=row.querySelector(".ag_exp"),hm=row.querySelector(".ag_homes");m.textContent="";
+      api({action:"agreement_terms",tx:tx,rid:row.dataset.rid,expires:e?e.value:"",homes:hm?hm.value:""}).then(function(r){agrDraw(b,r.agreement,tx);}).catch(function(x){m.textContent=x.message;});};});
+  }
   function openConsult(){ // Buyer Consultation stays inside the lead record: prep for the appointment, then the buyer agreement screen exactly as in Active Business
     var old=document.getElementById("consultbox");if(old){old.scrollIntoView({behavior:"smooth",block:"start"});return;}
     var cl=L.client||{},w=L.wants||{},fin=[].concat(cl.fin||w.fin||[]).join(", "),pre=[].concat(cl.pre||w.pre||[]).join(", "),lend=[cl.lender||w.lender,cl.lender_rep,cl.lender_phone,cl.lender_email].filter(Boolean).join(" · ");
@@ -692,6 +709,7 @@ function openLead(L,preset,inl){
       +li("Loan status",pre,"Not set")
       +(/pre-approved/i.test(pre)?li("Lender",lend,"Add the lender on the Client Details tab"):"")
       +'</ul><p class="goal" style="margin:0 0 10px">Have the buyer agreement ready to complete and sign. An Exclusive Buyer Brokerage Agreement covers every home shown from here on; a Showing Agreement only covers the home(s) named on that signed form.</p>'
+      +'<div id="agrbox" style="margin:0 0 10px"></div>'
       +'<div id="cn_body"><p class="goal"><span class="bspin"></span> Getting the buyer agreement ready...</p></div>';
     var tb=modal.querySelector(".mtabs");if(tb&&tb.parentNode)tb.parentNode.insertBefore(bx,tb.nextSibling);else modal.insertBefore(bx,modal.firstChild);
     document.getElementById("cn_close").onclick=function(){bx.remove();};
@@ -701,7 +719,10 @@ function openLead(L,preset,inl){
       body.innerHTML='<iframe id="cn_frame" title="Buyer Agreement" style="width:100%;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff" scrolling="no"></iframe>';
       var f=document.getElementById("cn_frame"),ro=null;
       function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
-      f.addEventListener("load",function(){fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});
+      var TX=j.tx;
+      function agrLoad(){api({action:"agreements",tx:TX}).then(function(r){var b=document.getElementById("agrbox");if(!b)return;agrDraw(b,r.agreement,TX);if(r.converted){renderTabs();}}).catch(function(){});}
+      agrLoad();
+      f.addEventListener("load",function(){agrLoad();fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});
       f.src="buyer_agreement.php?tx="+encodeURIComponent(j.tx)+"&embed=1&bare=1";
       if(j.created)renderTabs();
     }).catch(function(e){var body=document.getElementById("cn_body");if(body)body.innerHTML='<p class="sigerr">'+esc(e.message)+'</p>';});

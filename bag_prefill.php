@@ -19,6 +19,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     echo json_encode(['ok' => true, 'token' => bag_pf_put($me, $pdf)]); exit;
 }
 $tx = (string)($_GET['tx'] ?? ''); $kind = (string)($_GET['kind'] ?? 'exclusive');
-$own = false; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = true; }
+$own = false; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = true; }
 if (!$own || !isset(BAG_FORMS[$kind])) { echo json_encode(['ok' => false, 'msg' => 'That buyer record was not found in your business.']); exit; }
 echo json_encode(['ok' => true] + bag_prefill($me, $tx, $kind));

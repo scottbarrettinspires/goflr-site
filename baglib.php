@@ -4,6 +4,9 @@
 // Plain functions so the page, its PDF endpoint (bagdoc.php) and assistants share one set of rules.
 require_once __DIR__ . '/sigtools.php';
 require_once __DIR__ . '/pstage.php';
+require_once __DIR__ . '/leadlib.php';
+require_once __DIR__ . '/flrdb.php';
+const AG_EXT_TITLE = 'Buyer Agreement Extension';
 
 const BAG_FORMS = [
     'exclusive' => ['id' => BAG_EXCLUSIVE_FORM_ID, 'title' => 'Exclusive Buyer Brokerage Agreement', 'note' => 'Covers every home shown to this buyer from here on. No further agreement needed.'],
@@ -53,9 +56,11 @@ function bag_signed_pdf(array $rec) {
 // Save a signed copy the agent uploads ($file = one $_FILES entry). It becomes this record's signed agreement, is filed
 // to the transaction folder in Drive when possible, and shows everywhere a DigiSigner-signed copy does.
 // Returns [record id, ''] or ['', error message].
-function bag_upload($me, $tx, $kind, array $file, $signedOn = '') {
-    if (!isset(BAG_FORMS[$kind])) return ['', 'Choose which agreement this is.'];
-    $own = null; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = $t; }
+function bag_upload($me, $tx, $kind, array $file, $signedOn = '', $expires = '', $homes = '') {
+    $title = $kind === 'extension' ? AG_EXT_TITLE : (BAG_FORMS[$kind]['title'] ?? '');
+    if ($title === '') return ['', 'Choose which agreement this is.'];
+    $terr = ag_check_terms($kind, $signedOn !== '' ? $signedOn : date('Y-m-d'), $expires); if ($terr !== '') return ['', $terr];
+    $own = null; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = $t; }
     if (!$own) return ['', 'That buyer record was not found in your business.'];
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return ['', 'Choose the signed PDF to upload.'];
     if (($file['error'] ?? 1) !== UPLOAD_ERR_OK) return ['', 'The upload did not finish. Please try again with a smaller file.'];
@@ -66,13 +71,15 @@ function bag_upload($me, $tx, $kind, array $file, $signedOn = '') {
     $id = 'UP' . bin2hex(random_bytes(8));
     if (!@file_put_contents(bag_updir() . '/' . $id . '.pdf', $pdf, LOCK_EX)) return ['', 'The signed copy could not be saved. Please try again.'];
     $at = $signedOn !== '' ? $signedOn . 'T12:00:00' . date('P') : date('c');
-    $rec = ['id' => $id, 'agent' => $me, 'form' => BAG_FORMS[$kind]['title'], 'form_id' => BAG_FORMS[$kind]['id'], 'doc' => '', 'created' => $at, 'completed' => true,
+    $rec = ['id' => $id, 'agent' => $me, 'form' => $title, 'form_id' => (BAG_FORMS[$kind]['id'] ?? ''), 'doc' => '', 'created' => $at, 'completed' => true,
         'completed_at' => $at, 'uploaded' => true, 'local' => $id . '.pdf', 'signers' => [], 'seen' => true,
         'folder' => ['id' => $tx, 'label' => trim((string)$own['grp'] . ' / ' . (string)$own['name'], ' /')]];
-    list($ok, $r) = sg_save_bytes($rec, $pdf, 'Signed - ' . BAG_FORMS[$kind]['title'] . ' - ' . ($signedOn ?: date('Y-m-d')) . '.pdf');
-    $rec['filed'] = $ok ? $r : ['name' => 'Signed - ' . BAG_FORMS[$kind]['title'] . '.pdf', 'url' => '', 'at' => gmdate('c'), 'folder' => 'Saved here only (' . (is_string($r) ? $r : 'Drive filing failed') . ')'];
+    list($ok, $r) = sg_save_bytes($rec, $pdf, 'Signed - ' . $title . ' - ' . ($signedOn ?: date('Y-m-d')) . '.pdf');
+    $rec['filed'] = $ok ? $r : ['name' => 'Signed - ' . $title . '.pdf', 'url' => '', 'at' => gmdate('c'), 'folder' => 'Saved here only (' . (is_string($r) ? $r : 'Drive filing failed') . ')'];
     sg_save($id, $rec);
-    flr_audit(flr_akey($me), 'agreement', $tx, 'Uploaded signed ' . BAG_FORMS[$kind]['title'] . ($ok ? ' and filed it to the transaction folder' : ' (not filed to Drive)'));
+    flr_audit(flr_akey($me), 'agreement', $tx, 'Uploaded signed ' . $title . ($ok ? ' and filed it to the transaction folder' : ' (not filed to Drive)'));
+    if ($expires !== '' || $homes !== '') ag_set_terms_raw($tx, $id, $expires, $homes);
+    ag_activate($me, $tx);
     return [$id, ''];
 }
 
@@ -151,7 +158,7 @@ function bag_signers($me, $tx) {
 // Send the (filled) agreement to DigiSigner with the buyer's own contact details as the signers. Returns [request id, ''] or ['', error].
 function bag_send($me, $tx, $kind, $pdf) {
     if (!isset(BAG_FORMS[$kind])) return ['', 'Choose which agreement to send.'];
-    $own = null; foreach (flr_tx_list($me) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = $t; }
+    $own = null; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = $t; }
     if (!$own) return ['', 'That buyer record was not found in your business.'];
     if (!is_string($pdf) || strlen($pdf) < 500 || substr($pdf, 0, 4) !== '%PDF') $pdf = bag_blank_pdf($kind);
     if (!$pdf) return ['', 'The agreement could not be loaded. Please try again.'];
@@ -167,4 +174,97 @@ function bag_send($me, $tx, $kind, $pdf) {
     @file_put_contents(sg_dir() . '/../signature-requests.log', json_encode(['t' => gmdate('c'), 'agent' => $me, 'form' => $title, 'tx' => $tx, 'signers' => array_column($signers, 'email'), 'id' => $r['id']]) . "\n", FILE_APPEND | LOCK_EX);
     flr_audit(flr_akey($me), 'agreement', $tx, 'Sent ' . $title . ' for signature to ' . implode(', ', array_column($signers, 'email')));
     return [$r['id'], ''];
+}
+
+// ---- Agreements on a buyer record ------------------------------------------------------------------------------
+// A buyer stays a LEAD until a signed buyer agreement is on file (DigiSigner returned it, or the agent uploaded it).
+// Then the record converts to Active Business. A record can hold several agreements: Showing Agreements (cover only
+// the homes named on the form) until an Exclusive Buyer Brokerage Agreement (a term agreement: expiration date tracked),
+// and Extensions that push the expiration date out. When the term runs out with no extension, the buyer is expired.
+function ag_kv($k) { $pdo = flr_db(); $pdo->exec('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)'); $q = $pdo->prepare('SELECT v FROM kv WHERE k = ?'); $q->execute([$k]); $v = $q->fetchColumn(); return $v === false ? null : (string)$v; }
+function ag_kv_put($k, $v) { $pdo = flr_db(); $pdo->exec('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)'); if ($v === null) $pdo->prepare('DELETE FROM kv WHERE k = ?')->execute([$k]); else $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute([$k, $v]); }
+function ag_prep($tx) { return ag_kv('prep_' . $tx) !== null; }
+function ag_set_prep($tx, $on) { ag_kv_put('prep_' . $tx, $on ? gmdate('c') : null); }
+function ag_kind($form) {
+    $t = strtolower((string)$form);
+    if (strpos($t, 'extension') !== false && strpos($t, 'buyer') !== false) return 'extension';
+    return bag_kind_of($form);
+}
+function ag_meta($tx) { $j = json_decode((string)ag_kv('bag_agr_' . $tx), true); return is_array($j) ? $j : []; }
+function ag_set_terms_raw($tx, $recId, $expires, $homes) { $m = ag_meta($tx); $m[$recId] = ['expires' => (string)$expires, 'homes' => trim((string)$homes)]; ag_kv_put('bag_agr_' . $tx, json_encode($m)); }
+// '' if fine, else a readable message. Exclusive agreements and extensions are term agreements and need an expiration date.
+function ag_check_terms($kind, $signedOn, $expires) {
+    if ($kind === 'showing') return '';
+    if ($expires === '') return $kind === 'extension' ? 'Enter the new expiration date from the extension.' : 'Enter the expiration date of the Exclusive Buyer Brokerage Agreement.';
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $expires) || !strtotime($expires)) return 'Enter the expiration date as a real date.';
+    if ($expires <= $signedOn) return 'The expiration date must be after the date the agreement was signed.';
+    return '';
+}
+// Signed buyer agreements on one record, newest first: id, kind, title, signed_on, source (esign|upload), expires, homes.
+function ag_list($me, $tx, $recs = null) {
+    $recs = $recs === null ? sg_for_agent($me) : $recs; $meta = ag_meta($tx); $out = [];
+    foreach ($recs as $r) {
+        if ((string)($r['folder']['id'] ?? '') !== $tx || empty($r['completed'])) continue;
+        $k = ag_kind($r['form'] ?? ''); if (!$k) continue;
+        $m = (array)($meta[$r['id']] ?? []);
+        $out[] = ['id' => $r['id'], 'kind' => $k, 'title' => $r['form'], 'signed_on' => substr((string)($r['completed_at'] ?? $r['created'] ?? ''), 0, 10),
+            'source' => !empty($r['uploaded']) ? 'upload' : 'esign', 'expires' => (string)($m['expires'] ?? ''), 'homes' => (string)($m['homes'] ?? '')];
+    }
+    usort($out, function ($a, $b) { return strcmp($b['signed_on'], $a['signed_on']); });
+    return $out;
+}
+// Where the buyer stands: state none|showing|exclusive|expired, expires (latest term end), days left, needs_date, a one-line message.
+function ag_standing($me, $tx, $recs = null) {
+    $items = ag_list($me, $tx, $recs); $today = ld_today();
+    $st = ['state' => 'none', 'expires' => '', 'days' => null, 'soon' => false, 'needs_date' => false, 'message' => 'No signed buyer agreement yet. The buyer stays a lead until one is signed or uploaded.', 'items' => $items, 'prep' => ag_prep($tx)];
+    if (!$items) return $st;
+    $exp = ''; $hasEx = false; $lastExpiry = '';
+    foreach ($items as $i) {
+        if ($i['kind'] === 'showing') continue;
+        $hasEx = true; if ($i['expires'] === '') $st['needs_date'] = true; elseif ($i['expires'] > $exp) $exp = $i['expires'];
+    }
+    $newest = $items[0];
+    if (!$hasEx) { $st['state'] = 'showing'; $st['message'] = 'Showing Agreement only. It covers just the home(s) named on the form. For another home, get a new Showing Agreement or an Exclusive Buyer Brokerage Agreement signed.'; return $st; }
+    $st['expires'] = $exp;
+    if ($st['needs_date'] && $exp === '') { $st['state'] = 'exclusive'; $st['message'] = 'Exclusive Buyer Brokerage Agreement on file. Enter its expiration date so it can be tracked.'; return $st; }
+    $days = (int)round((strtotime($exp) - strtotime($today)) / 86400); $st['days'] = $days;
+    if ($exp < $today) {
+        if ($newest['kind'] === 'showing' && $newest['signed_on'] > $exp) { $st['state'] = 'showing'; $st['message'] = 'The Exclusive agreement expired ' . $exp . '. A newer Showing Agreement covers only the home(s) it names.'; return $st; }
+        $st['state'] = 'expired'; $st['message'] = 'The Exclusive Buyer Brokerage Agreement expired ' . $exp . '. Get an extension or a new agreement signed, or this buyer is expired.'; return $st;
+    }
+    $st['state'] = 'exclusive'; $st['soon'] = $days <= 30;
+    $st['message'] = 'Exclusive Buyer Brokerage Agreement in force through ' . $exp . ' (' . $days . ' day' . ($days === 1 ? '' : 's') . ' left).' . ($st['soon'] ? ' Expiring soon: get an extension signed to keep working with this buyer.' : '');
+    return $st;
+}
+// Lead -> Active Business: once a signed agreement is on file, the record leaves "prep" and the lead becomes a client.
+function ag_activate($me, $tx, $recs = null) {
+    if (!ag_prep($tx) || !ag_list($me, $tx, $recs)) return false;
+    ag_set_prep($tx, false);
+    ld_update($me, function (&$db) use ($tx) {
+        foreach ($db['leads'] as &$L) { if ((string)($L['roles']['buyer']['folder'] ?? '') !== $tx) continue;
+            $L['roles']['buyer']['sub'] = 'client'; $L['roles']['buyer']['since'] = ld_today(); $L['roles']['buyer']['touches'] = 0; $L['roles']['buyer']['last'] = ''; unset($L['roles']['buyer']['prep']);
+            $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Signed buyer agreement received. Moved to Active Business'];
+        }
+    });
+    flr_tx_dirty($me);
+    flr_audit(flr_akey($me), 'buyer_converted', $tx, 'Signed buyer agreement on file: lead became Active Business');
+    return true;
+}
+// Check every lead still waiting on a signed agreement (cheap: only leads with a prep record).
+function ag_sync($me) {
+    $pending = []; foreach (ld_load($me)['leads'] as $L) { $f = (string)($L['roles']['buyer']['folder'] ?? ''); if ($f !== '' && !empty($L['roles']['buyer']['prep'])) $pending[] = $f; }
+    if (!$pending) return 0; $recs = sg_for_agent($me); $n = 0;
+    foreach ($pending as $f) if (ag_activate($me, $f, $recs)) $n++;
+    return $n;
+}
+// Enter or change the expiration date (and, for a Showing Agreement, the home(s) it covers) of a signed agreement. '' or an error message.
+function ag_set_terms($me, $tx, $recId, $expires, $homes = '') {
+    $own = false; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = true; }
+    if (!$own) return 'That buyer record was not found in your business.';
+    $it = null; foreach (ag_list($me, $tx) as $i) { if ($i['id'] === $recId) $it = $i; }
+    if (!$it) return 'That agreement was not found on this record.';
+    $e = ag_check_terms($it['kind'], $it['signed_on'], trim((string)$expires)); if ($e !== '') return $e;
+    ag_set_terms_raw($tx, $recId, trim((string)$expires), $homes);
+    flr_audit(flr_akey($me), 'agreement_terms', $tx, $it['title'] . ': expires ' . ($expires ?: 'n/a'));
+    return '';
 }

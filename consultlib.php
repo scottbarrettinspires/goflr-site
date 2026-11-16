@@ -5,6 +5,7 @@
 require_once __DIR__ . '/leadlib.php';
 require_once __DIR__ . '/sigtools.php';
 require_once __DIR__ . '/flrdb.php';
+require_once __DIR__ . '/baglib.php';
 
 function cn_missing($n) {
     if (($n['b1_name'] ?? '') === '') return 'add the buyer\'s name';
@@ -20,7 +21,7 @@ function cn_start($me, $leadId) {
     foreach ($all as $x) { if (($x['id'] ?? '') === $leadId) { $lead = $x; break; } }
     if (!$lead) return ['ok' => false, 'msg' => 'That lead could not be found.'];
     $have = (string)($lead['roles']['buyer']['folder'] ?? '');
-    if (preg_match('/^[A-Za-z0-9_-]{10,80}$/', $have)) return ['ok' => true, 'tx' => $have, 'created' => false];
+    if (preg_match('/^[A-Za-z0-9_-]{10,80}$/', $have)) { ag_activate($me, $have); return ['ok' => true, 'tx' => $have, 'created' => false]; }
     $cd = (array)($lead['client'] ?? []); $w = (array)($lead['wants'] ?? []);
     $info = ['b1_name' => trim(($lead['first'] ?? '') . ' ' . ($lead['last'] ?? '')), 'b1_phone' => (string)($lead['phone'] ?? ''), 'b1_email' => (string)($lead['email'] ?? '')];
     $fin = !empty($cd['fin']) ? (array)$cd['fin'] : (array)($w['fin'] ?? []);
@@ -46,10 +47,12 @@ function cn_start($me, $leadId) {
         $pdo->prepare('INSERT OR REPLACE INTO kv (k, v) VALUES (?, ?)')->execute(['sample_info_' . $fid, json_encode($info)]);
         ld_update($me, function (&$db) use ($leadId, $fid, $label) {
             foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $leadId) continue;
-                $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label, 'stage' => 1];
-                $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Sample buyer record created in Active Business'];
+                $o = (array)($L['roles']['buyer'] ?? []);
+                $L['roles']['buyer'] = ['sub' => $o['sub'] ?? 'unid', 'since' => $o['since'] ?? ld_today(), 'touches' => (int)($o['touches'] ?? 0), 'last' => $o['last'] ?? '', 'folder' => $fid, 'record' => $label, 'stage' => 1, 'prep' => 1];
+                $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer consultation started. Stays a lead until a signed buyer agreement comes back'];
             }
         });
+        ag_set_prep($fid, true);
         flr_audit($ak, 'consult_record_created', $fid, 'sample lead ' . $leadId);
         return ['ok' => true, 'tx' => $fid, 'created' => true];
     }
@@ -64,10 +67,12 @@ function cn_start($me, $leadId) {
     $fid = (string)$r['id'];
     ld_update($me, function (&$db) use ($leadId, $fid, $label) {
         foreach ($db['leads'] as &$L) { if (($L['id'] ?? '') !== $leadId) continue;
-            $L['roles']['buyer'] = ['sub' => 'client', 'since' => ld_today(), 'touches' => 0, 'last' => '', 'folder' => $fid, 'record' => $label, 'stage' => 1];
-            $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer record created in Active Business'];
+            $o = (array)($L['roles']['buyer'] ?? []);
+            $L['roles']['buyer'] = ['sub' => $o['sub'] ?? 'unid', 'since' => $o['since'] ?? ld_today(), 'touches' => (int)($o['touches'] ?? 0), 'last' => $o['last'] ?? '', 'folder' => $fid, 'record' => $label, 'stage' => 1, 'prep' => 1];
+            $L['log'][] = ['d' => ld_today(), 'role' => 'buyer', 'mid' => '', 'note' => 'Buyer consultation started. Stays a lead until a signed buyer agreement comes back'];
         }
     });
+    ag_set_prep($fid, true);
     flr_tx_dirty($me);
     flr_audit(flr_akey($me), 'consult_record_created', $fid, 'lead ' . $leadId);
     return ['ok' => true, 'tx' => $fid, 'created' => true];

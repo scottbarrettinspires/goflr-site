@@ -13,7 +13,7 @@ $err = '';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['op'] ?? '') === 'upload') {
     if (!$_POST && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) $err = 'That file is too large to upload. Please choose a smaller PDF.';
     elseif (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) $err = 'This page expired. Please reload and try again.';
-    else { list($rid, $err) = bag_upload($me, $tx, (string)($_POST['kind'] ?? ''), $_FILES['pdf'] ?? [], (string)($_POST['on'] ?? '')); if ($err === '') { header('Location: ' . $self . '&ok=up'); exit; } }
+    else { list($rid, $err) = bag_upload($me, $tx, (string)($_POST['kind'] ?? ''), $_FILES['pdf'] ?? [], (string)($_POST['on'] ?? ''), (string)($_POST['expires'] ?? ''), (string)($_POST['homes'] ?? '')); if ($err === '') { header('Location: ' . $self . '&ok=up'); exit; } }
 }
 // Check DigiSigner for anything still out for signature on this record, so a just-signed copy shows right away.
 $all = sg_for_agent($me);
@@ -106,8 +106,10 @@ sp_head('Buyer Agreement', $tx);
   <div class="bagup" id="bagup" hidden>
     <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="op" value="upload"><input type="hidden" name="tx" value="<?= $h($tx) ?>">
-      <label>Which agreement<select name="kind"><?php foreach (BAG_FORMS as $kk => $ff): ?><option value="<?= $kk ?>"<?= $kk === ($sig ? $kind : $k) ? ' selected' : '' ?>><?= $h($ff['title']) ?></option><?php endforeach; ?></select></label>
+      <label>Which agreement<select name="kind"><?php foreach (BAG_FORMS as $kk => $ff): ?><option value="<?= $kk ?>"<?= $kk === ($sig ? $kind : $k) ? ' selected' : '' ?>><?= $h($ff['title']) ?></option><?php endforeach; ?><option value="extension">Extension of the Buyer Agreement</option></select></label>
       <label>Date signed<input type="date" name="on" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>"></label>
+      <label id="bagexpl">Expiration date <small>(from the agreement)</small><input type="date" name="expires"></label>
+      <label id="baghomel" hidden>Home(s) it covers <small>(optional)</small><input type="text" name="homes" maxlength="200" placeholder="e.g. 123 Main St"></label>
       <label>Signed PDF<input type="file" name="pdf" accept="application/pdf,.pdf" required></label>
       <button type="submit" class="btn" style="border:0;cursor:pointer;font:inherit;font-weight:700;padding:9px 16px;border-radius:10px">Save signed copy</button>
       <p>Use this for an agreement signed in person or outside DigiSigner. It's saved to this buyer record and filed in the transaction folder.</p>
@@ -171,6 +173,7 @@ go.onclick=async function(){go.disabled=true;go.textContent="Sending...";er.hidd
     var j=await fetch("bag_prefill.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,action:"send",tx:<?= json_encode($tx) ?>,kind:<?= json_encode($k) ?>,b64:b64})}).then(function(r){return r.json();});
     if(!j.ok)throw new Error(j.msg||"Could not send it.");location.href=<?= json_encode($self) ?>+"&ok=sent";}
   catch(e){er.textContent=e.message;er.hidden=false;go.disabled=false;go.textContent="Send now";}};})();</script>
+<script>(function(){var s=document.querySelector('#bagup select[name=kind]');function sync(){var sh=s&&s.value==="showing",e=document.getElementById("bagexpl"),h=document.getElementById("baghomel"),i=e&&e.querySelector("input");if(e){e.hidden=sh;if(i)i.required=!sh;}if(h)h.hidden=!sh;}if(s){s.addEventListener("change",sync);sync();}})();</script>
 <script>(function(){var b=document.getElementById("bagupbtn"),u=document.getElementById("bagup");if(b)b.onclick=function(){u.hidden=!u.hidden;if(!u.hidden)u.scrollIntoView({behavior:"smooth",block:"nearest"});};<?php if ($err): ?>u.hidden=false;<?php endif; ?>})();</script>
 <?php if ($advanced && sp_embed()): ?><script>try{window.top.location.reload();}catch(e){}</script><?php endif; ?>
 <?php sp_foot(); ?>
