@@ -468,7 +468,7 @@ function openLead(L,preset,inl){
    +'<div><label>First name</label><input id="f_first" value="'+esc(L.first)+'"></div><div><label>Last name</label><input id="f_last" value="'+esc(L.last)+'"></div>'
    +'<div><label>Phone</label><input id="f_phone" type="tel" value="'+esc(L.phone)+'"></div><div><label>Email</label><input id="f_email" type="email" value="'+esc(L.email)+'"></div>'
    +'<div><label>Source</label><input id="f_source" list="srcs" value="'+esc(L.source)+'"><datalist id="srcs">'+SOURCES.map(function(s){return '<option value="'+esc(s)+'">';}).join("")+'</datalist></div>'
-   +'<div><label>Added</label><input value="'+esc(L.added?fmtD(L.added):"Today")+'" disabled></div>'
+   +'<div><label>Added</label><input id="f_added" value="'+esc(L.added?fmtD(L.added):"Today")+'" disabled></div>'
    +'<div class="full mvbox" id="mvbox">'+mvBox(L,isNew,rs)+'</div>'
    +'<div class="full" id="srcblock"><label>How you got this lead</label>'+tagChips(L,isNew)+'</div>'
    +'<div class="full"><label>Referred by</label>'+refPicker(L)+'</div>'
@@ -508,6 +508,7 @@ function openLead(L,preset,inl){
   }
   modal.innerHTML=h;if(!inl)mback.classList.add("show");
   var fg=modal.querySelector(".fgrid");modal.querySelectorAll(".touch").forEach(function(t){modal.insertBefore(t,fg);}); // the next touch comes first; details below
+  if(isNew){["f_source","f_added"].forEach(function(i){var e=document.getElementById(i);if(e&&e.parentNode)e.parentNode.style.display="none";});} // + Add: Source and Added aren't needed here (kept in the form, just not shown)
   if(isNew){var mvn=document.getElementById("mvbox"),fgn=modal.querySelector(".fgrid");if(mvn&&fgn){mvn.classList.remove("full");modal.insertBefore(mvn,fgn);}} // + Add: "Is this lead a..." comes first, above the contact fields
   if(!isNew){var mvbx=document.getElementById("mvbox"),ft=modal.querySelector(".touch");modal.insertBefore(mvbx,ft||fg);} // stage buttons first, then the next touch
   if(!isNew){ // the stage buttons stay in the page but hidden; the pipeline label at the top right opens the choices and presses them
