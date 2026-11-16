@@ -163,9 +163,27 @@ function sd_clear() {
 
 // Who may load sample data into the signed-in account: staff, or staff who are viewing as an agent (Login As), so an agent
 // account can be filled for testing. Clearing everyone's sample data stays staff-only (sd_may_clear_all).
+// Test-only agent logins: the person behind them may wipe and reload that account's own data from Settings > Sample data.
+const SD_TEST_ACCOUNTS = ['scott@myflroffice.com'];
+function sd_is_test_account() { return in_array(strtolower((string)($_SESSION['email'] ?? '')), SD_TEST_ACCOUNTS, true); }
 function sd_may_load() {
+    if (sd_is_test_account()) return true;
     if (flr_is_broker()) return true;
     $i = $_SESSION['impersonator'] ?? null;
     return is_array($i) && (!empty($i['staff']) || in_array(strtolower((string)($i['email'] ?? '')), FLR_BROKER_EMAILS, true));
 }
 function sd_may_clear_all() { return flr_is_broker(); }
+
+// Remove EVERYTHING for one account: all leads, all Active Business records (and their deadlines), prospecting entries and
+// sample signed documents. Used on test-only logins before loading fresh sample data. Drive folders are handled separately.
+function sd_wipe_for($email) {
+    $email = strtolower(trim($email)); $ak = flr_akey($email); $pdo = sd_db();
+    $q = $pdo->prepare('SELECT folder FROM transactions WHERE akey = ?'); $q->execute([$ak]);
+    foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $f) { $pdo->prepare('DELETE FROM kv WHERE k IN (?, ?)')->execute(['sample_info_' . $f, 'nt_info_' . $f]); $pdo->prepare('DELETE FROM contracts WHERE folder = ?')->execute([$f]); }
+    $pdo->prepare('DELETE FROM transactions WHERE akey = ?')->execute([$ak]);
+    try { flr_leads_update($ak, function (&$db) { $db['leads'] = []; return null; }, $email); } catch (Throwable $e) {}
+    try { $pdo->prepare("DELETE FROM pr_log WHERE email = ?")->execute([$email]); $pdo->prepare('DELETE FROM pr_goals WHERE email = ?')->execute([$email]); } catch (Throwable $e) {}
+    foreach (glob(sg_dir() . '/SAMPLE-*.json') ?: [] as $f) { $j = json_decode((string)file_get_contents($f), true); if (strtolower((string)($j['agent'] ?? '')) === $email) @unlink($f); }
+    flr_tx_dirty($email);
+    flr_audit($ak, 'account_wipe', '', 'All leads and Active Business records removed for this test account');
+}

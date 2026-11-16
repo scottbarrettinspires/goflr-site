@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) $err = 'This page expired. Please reload and try again.';
     else {
         try {
-            if (($_POST['a'] ?? '') === 'load') { sd_load($me); unset($_SESSION['ntc']); header('Location: sample_data.php?ok=load'); exit; }
+            if (($_POST['a'] ?? '') === 'load') { if (sd_is_test_account()) sd_wipe_for($me); sd_load($me); unset($_SESSION['ntc']); header('Location: sample_data.php?ok=load'); exit; }
             if (($_POST['a'] ?? '') === 'clear' && sd_may_clear_all()) { sd_clear(); unset($_SESSION['ntc']); header('Location: sample_data.php?ok=clear'); exit; }
         } catch (Throwable $e) { $err = 'Something went wrong: ' . $e->getMessage(); }
     }
