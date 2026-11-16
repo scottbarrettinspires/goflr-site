@@ -91,13 +91,19 @@ function bag_prefill($me, $tx, $kind) {
     if ($n2 === '') { $n2 = trim((string)($cd['co_name'] ?? '')); $p2 = $p2 !== '' ? $p2 : trim((string)($cd['co_phone'] ?? '')); $e2 = $e2 !== '' ? $e2 : trim((string)($cd['co_email'] ?? '')); }
     $mail = $g('mailing'); if ($mail === '') $mail = trim((string)($cd['mailing'] ?? '')); $street = $mail; $zip = '';
     if (preg_match('/^(.*?)[,\s]*(\d{5})(?:-\d{4})?\s*$/', $mail, $m)) { $street = trim($m[1], " ,"); $zip = $m[2]; }
-    $f = []; $used = [];
-    $set = function ($k, $v, $label) use (&$f, &$used) { if ($v !== '') { $f[$k] = $v; $used[$label] = true; } };
+    $f = []; $used = []; $lab = [];
+    $set = function ($k, $v, $label) use (&$f, &$used, &$lab) { if ($v !== '') { $f[$k] = $v; $used[$label] = true; $lab[$k] = $label; } };
     $set('Buyer_Names', implode(' and ', array_filter([$n1, $n2])), 'Buyer names');
     $set('Buyer1_Name', $n1, 'Buyer names'); $set('Buyer1_Phone', $p1, 'Phone'); $set('Buyer1_Email', $e1, 'Email');
     $set('Buyer1_Address', $street, 'Mailing address'); $set('Buyer1_Zip', $zip, 'Mailing address');
     if ($n2 !== '') { $set('Buyer2_Name', $n2, 'Buyer names'); $set('Buyer2_Phone', $p2, 'Phone'); $set('Buyer2_Email', $e2, 'Email'); $set('Buyer2_Address', $street, 'Mailing address'); $set('Buyer2_Zip', $zip, 'Mailing address'); }
     $set('Date_Effective', date('m/d/Y'), 'Effective date (today)');
+    // The agent and brokerage (standard FLR field names; a form without that field simply skips it)
+    $agent = trim((string)($_SESSION['name'] ?? ''));
+    $set('Agent_Name', $agent, 'Agent'); $set('BuyerAgent_Name', $agent, 'Agent'); $set('BuyerBroker_Name', 'Florida Luxury Realty, Inc.', 'Brokerage');
+    try { $lic = function_exists('sg_license') ? (string)sg_license($me) : ''; $set('Agent_License', trim($lic), 'Agent license'); } catch (Throwable $e) {}
+    // Compensation and term already captured on this record from an earlier version of the agreement
+    try { require_once __DIR__ . '/offerlib.php'; $oc = (array)((of_raw($tx)['comp'] ?? [])); foreach ($oc as $k => $v) { if (preg_match('/^(Comp_[A-Za-z0-9_]+|Price_Retainer|Price_CancellationFee|Term_ProtectionDays|Date_Termination)$/', (string)$k) && trim((string)$v) !== '') $set($k, trim((string)$v), 'Compensation and term from this record'); } } catch (Throwable $e) {}
     $w = (array)($lead['wants'] ?? []);
     $types = array_values(array_filter((array)($w['types'] ?? []), 'strlen'));
     $set('Search_PropertyType', implode(', ', $types), 'Property type');
@@ -108,7 +114,7 @@ function bag_prefill($me, $tx, $kind) {
             $i = 0; $seen = []; foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $a) { $a = trim($a); if ($a === '' || isset($seen[strtolower($a)]) || $i >= 7) continue; $seen[strtolower($a)] = 1; $set('Property_List_' . (++$i), $a, 'Homes scheduled to show'); }
         } catch (Throwable $e) {}
     }
-    return ['fields' => $f, 'filled' => array_keys($used)];
+    return ['fields' => $f, 'filled' => array_keys($used), 'labels' => $lab];
 }
 // A filled agreement handed from the Buyer Agreement screen to the send-for-signature page (sign.php ?pf=token).
 function bag_pf_dir() { $d = flr_db_dir() . '/prefill'; if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
