@@ -37,7 +37,7 @@ $csrf = '<input type="hidden" name="csrf" value="' . $h($_SESSION['csrf']) . '">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Learn And Grow Your Business - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=19">
 <style>
 .lt{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}
 .lt button{font:inherit;font-weight:700;padding:11px 20px;border-radius:12px;border:1px solid var(--line);background:var(--white);color:var(--teal);cursor:pointer;display:flex;gap:8px;align-items:center}

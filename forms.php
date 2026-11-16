@@ -43,7 +43,7 @@ $csrfIn = '<input type="hidden" name="csrf" value="' . htmlspecialchars($_SESSIO
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Forms - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 <header class="top"><div class="in">

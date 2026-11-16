@@ -64,7 +64,7 @@ $v = function ($k) use ($info) { return htmlspecialchars((string)($info[$k] ?? '
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Seller Info - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=18">
+<link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 <header class="top"><div class="in">

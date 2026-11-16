@@ -39,7 +39,7 @@ if ($buyer) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Seller Disclosures for Signature - FLR Agent Back Office</title>
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=19">
 <style>
 .sdbar{position:sticky;top:0;z-index:5;background:#fff;border:1px solid #dbe6e5;border-radius:12px;padding:10px 14px;margin:0 0 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .sdbar .tb{border:1px solid #006b68;background:#fff;color:#006b68;border-radius:8px;padding:6px 12px;font-weight:600;cursor:pointer}
