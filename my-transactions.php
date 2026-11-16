@@ -140,6 +140,36 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
     <div class="abbtns"><a class="btn" href="#acbuyers" id="jb">Active Buyers <span><?= count($ovB) ?></span></a><a class="btn" href="#acsellers" id="js">Active Sellers <span><?= count($ovS) ?></span></a></div>
     <div class="abfind"><input type="search" id="abq" placeholder="Find a client by name" autocomplete="off" aria-label="Find a client by name"><div class="abres" id="abres" hidden></div></div>
   </div>
+  <dialog class="nc" id="tkd"><form method="dialog" id="tkf">
+    <h2 id="tk_h">Task completed</h2><p class="goal" id="tk_who" style="margin:0 0 8px"></p>
+    <div id="tk_fields" class="tkg"></div>
+    <label style="display:block;margin-top:8px;font-weight:600;font-size:.85rem">Notes for this client <small style="font-weight:400;color:#5a6a6c">(saved to the client record)</small><textarea id="tk_note" rows="3" maxlength="500" style="width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-top:4px" placeholder="Add anything else about this task (optional)"></textarea></label>
+    <p class="sigerr" id="tk_err" hidden></p>
+    <div class="ncbtns" style="display:flex;gap:8px;margin-top:10px"><button type="submit" class="btn" id="tk_go">Save: task completed</button><button type="button" class="btn ghost" id="tk_x">Cancel</button><a id="tk_rec" href="#" style="margin-left:auto;align-self:center;font-size:.85rem">Open client record</a></div>
+    <p class="goal" style="margin:8px 0 0;font-size:.8rem">Saving marks the task completed and records the note. Cancel leaves the task open.</p>
+  </form></dialog>
+  <style>.tkg{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.tkg label{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}.tkg input,.tkg select{font:inherit;font-size:.92rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}@media(max-width:560px){.tkg{grid-template-columns:1fr}}</style>
+  <script>(function(){var d=document.getElementById("tkd"),f=document.getElementById("tkf"),cur=null,er=document.getElementById("tk_err"),go=document.getElementById("tk_go"),FW=document.getElementById("tk_fields");
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function cancel(){if(cur){document.querySelectorAll('.wkdone').forEach(function(x){if(x.dataset.tx===cur.dataset.tx&&x.dataset.key===cur.dataset.key)x.checked=false;});}cur=null;}
+  document.addEventListener("change",function(e){var c=e.target.closest(".wkdone");if(!c||!c.checked)return;cur=c;er.hidden=true;go.disabled=false;
+    var F=[];try{F=JSON.parse(c.dataset.f)||[];}catch(x){}
+    document.getElementById("tk_h").textContent="Completed: "+c.dataset.task;document.getElementById("tk_who").textContent=c.dataset.who;document.getElementById("tk_note").value="";
+    document.getElementById("tk_rec").href=(c.closest(".wkit").querySelector(".wkb")||{}).href||"#";
+    var today=new Date().toISOString().slice(0,10);
+    FW.innerHTML=F.map(function(x){var t=x[2],h='<label>'+esc(x[1])+(x[3]?' *':'');
+      if(t.indexOf("choice:")===0)h+='<select name="'+x[0]+'"><option value="">Choose...</option>'+t.slice(7).split("|").map(function(o){return '<option>'+esc(o)+'</option>';}).join("")+'</select>';
+      else if(t==="date")h+='<input type="date" name="'+x[0]+'" value="'+today+'">';
+      else h+='<input type="text" name="'+x[0]+'"'+(t==="money"?' inputmode="decimal" placeholder="e.g. 5000"':' maxlength="120"')+'>';
+      return h+'</label>';}).join("");
+    d.showModal();});
+  document.getElementById("tk_x").addEventListener("click",function(){d.close();cancel();});
+  d.addEventListener("cancel",cancel);
+  f.addEventListener("submit",function(e){e.preventDefault();if(!cur)return;er.hidden=true;go.disabled=true;var fields={};FW.querySelectorAll("input,select").forEach(function(i){fields[i.name]=i.value;});
+    fetch("dl_task_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,action:"complete",tx:cur.dataset.tx,key:cur.dataset.key,note:document.getElementById("tk_note").value,fields:fields})})
+    .then(function(r){return r.json();}).then(function(j){if(!j.ok){er.textContent=j.msg||"Could not save.";er.hidden=false;go.disabled=false;return;}
+      var tx=cur.dataset.tx,key=cur.dataset.key;document.querySelectorAll(".wkdone").forEach(function(x){if(x.dataset.tx===tx&&x.dataset.key===key){var w=x.closest(".wkit");w.classList.add("fading");setTimeout(function(){w.remove();},350);}});cur=null;d.close();})
+    .catch(function(){er.textContent="Could not save. Please try again.";er.hidden=false;go.disabled=false;});});})();</script>
   <style>.abjump{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;margin:0 0 14px}.abbtns{display:flex;gap:8px;flex-wrap:wrap}
 .abbtns .btn{display:inline-flex;gap:8px;align-items:center;text-decoration:none;font-weight:700;padding:9px 16px;border-radius:10px;background:var(--teal);color:#fff}.abbtns .btn+.btn{background:#e07b39}.abbtns .btn span{background:rgba(255,255,255,.25);border-radius:99px;padding:0 8px;font-size:.85rem}
 .abfind{position:relative;flex:0 1 320px;width:100%;max-width:320px}.abfind input{width:100%;padding:10px 12px;border:1px solid #9fd3cf;border-radius:10px;font:inherit;background:#fff;box-shadow:0 2px 8px rgba(3,111,114,.10)}
@@ -167,8 +197,9 @@ a.lrow:hover{border-color:var(--teal)}.lrow .who{flex:1;min-width:0;display:bloc
         if ($nm === '') { $nm = $d['name'] ?: 'Untitled record'; if ($ad === $nm) $ad = ''; } elseif ($ad === '' && $d['name'] !== $nm) $ad = (string)$d['name'];
         return [$nm, $ad]; };
     $item = function ($d, $cls) use ($who) { list($nm, $ad) = $who($d);
-        return '<a class="wkit ' . $cls . '" href="' . ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']) . '"><span class="wd">' . htmlspecialchars($d['label']) . '</span><span class="wn">' . htmlspecialchars($nm) . '</span>'
-            . ($ad !== '' ? '<span class="wa">' . htmlspecialchars($ad) . '</span>' : '') . ($d['offday'] !== '' ? '<span class="wo">' . htmlspecialchars('Falls on ' . date('D, M j', strtotime($d['date'])) . (in_array($d['offday'], ['Saturday', 'Sunday'], true) ? '' : ' (' . $d['offday'] . ')') . ', so due the next business day') . '</span>' : '') . '</a>'; };
+        require_once __DIR__ . '/rnlib.php';
+        return '<div class="wkit ' . $cls . '"><label class="wkchk" title="Mark completed"><input type="checkbox" class="wkdone" data-tx="' . htmlspecialchars($d['folder']) . '" data-key="' . htmlspecialchars($d['key']) . '" data-task="' . htmlspecialchars($d['label']) . '" data-who="' . htmlspecialchars($nm) . '" data-f="' . htmlspecialchars(json_encode(RN_TASK_FIELDS[$d['key']] ?? [])) . '" aria-label="Mark ' . htmlspecialchars($d['label']) . ' completed"></label><a class="wkb" href="' . ($d['side'] === 'seller' ? 'seller.php' : 'buyer.php') . '?tx=' . urlencode($d['folder']) . '"><span class="wd">' . htmlspecialchars($d['label']) . '</span><span class="wn">' . htmlspecialchars($nm) . '</span>'
+            . ($ad !== '' ? '<span class="wa">' . htmlspecialchars($ad) . '</span>' : '') . ($d['offday'] !== '' ? '<span class="wo">' . htmlspecialchars('Falls on ' . date('D, M j', strtotime($d['date'])) . (in_array($d['offday'], ['Saturday', 'Sunday'], true) ? '' : ' (' . $d['offday'] . ')') . ', so due the next business day') . '</span>' : '') . '</a></div>'; };
 ?>
     <div class="wk<?= $over ? ' hasover' : '' ?><?= $dlSoon ? '' : ' wkempty' ?>">
 <?php if ($over): ?>
@@ -223,6 +254,7 @@ a.addEventListener("click",function(e){e.preventDefault();var open=m.hidden;m.hi
 .wkd.today .wkh .dn{color:var(--teal)}.wkd.today .wkh .dd{background:var(--teal);color:#fff}
 .wkd.over .wkh .dn{color:#b71c1c}.wkd.over .wkh .dd{background:#d32f2f;color:#fff;font-weight:700}
 .wkit{display:flex;flex-direction:column;gap:1px;padding:6px 7px;border-radius:7px;background:#e1f3f2;border-left:3px solid #036f72;text-decoration:none;color:#1f2a2c;font-size:.78rem;line-height:1.3;overflow-wrap:anywhere}
+.wkit{position:relative}.wkit .wkb{display:flex;flex-direction:column;gap:1px;color:inherit;text-decoration:none;padding-right:22px}.wkchk{position:absolute;top:5px;right:6px;cursor:pointer;line-height:0}.wkchk input{width:17px;height:17px;accent-color:#036f72;cursor:pointer;margin:0}.wkit.fading{opacity:.35;transition:opacity .3s}
 .wkit:hover{filter:brightness(.96)}.wkit.amber{background:#fdf3dc;border-left-color:#d49a00}.wkit.red{background:#fde2e1;border-left-color:#c0392b}
 .wkit .wd{font-weight:700}.wkit .wn{font-weight:600;color:#2a3638}.wkit .wa{color:#5a6a6c}.wkit .wo{color:#8a5a0e;font-size:.72rem;font-style:italic}
 .wnone{color:#c4cfd0;text-align:center;margin-top:8px}
