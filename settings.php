@@ -4,6 +4,7 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php"; // flr_is_broker()
 require_once __DIR__ . "/push_keys.php";
+require_once __DIR__ . "/samplelib.php";
 require __DIR__ . "/subpage.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $isStaff = flr_is_broker();
@@ -78,6 +79,14 @@ sp_head('Settings');
     <div class="tx">
       <h2>Sample data</h2>
       <p>Load realistic agent data into your account to preview screens as they're built, and clear it all before launch.</p>
+      <div class="acts"><a class="btn" href="sample_data.php">Open Sample data</a></div>
+    </div>
+  </div>
+<?php elseif (sd_may_load()): /* staff viewing as an agent (Login As) */ ?>
+  <div class="setc">
+    <div class="tx">
+      <h2>Sample data</h2>
+      <p>Load realistic sample leads and Active Business records into this agent account to test from leads through every Active Business step.</p>
       <div class="acts"><a class="btn" href="sample_data.php">Open Sample data</a></div>
     </div>
   </div>

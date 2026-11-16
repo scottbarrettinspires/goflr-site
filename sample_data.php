@@ -5,7 +5,7 @@ require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
 require_once __DIR__ . "/samplelib.php";
 require __DIR__ . "/subpage.php";
-if (!flr_is_broker()) { http_response_code(403); exit('Staff only.'); }
+if (!sd_may_load()) { http_response_code(403); exit('Staff only.'); }
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? ''); $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     else {
         try {
             if (($_POST['a'] ?? '') === 'load') { sd_load($me); unset($_SESSION['ntc']); header('Location: sample_data.php?ok=load'); exit; }
-            if (($_POST['a'] ?? '') === 'clear') { sd_clear(); unset($_SESSION['ntc']); header('Location: sample_data.php?ok=clear'); exit; }
+            if (($_POST['a'] ?? '') === 'clear' && sd_may_clear_all()) { sd_clear(); unset($_SESSION['ntc']); header('Location: sample_data.php?ok=clear'); exit; }
         } catch (Throwable $e) { $err = 'Something went wrong: ' . $e->getMessage(); }
     }
 }
@@ -43,11 +43,11 @@ sp_head('Sample data');
     <form method="post"><?= $csrfIn ?><input type="hidden" name="a" value="load"><button class="btn" type="submit"><?= $mine ? 'Reload sample data' : 'Load sample data' ?></button>
       <?php if ($mine): ?> <a href="home.php?view=agent" style="margin-left:10px">Open Agent View &rarr;</a><?php endif; ?></form>
   </div>
-  <div class="sdc">
+<?php if (sd_may_clear_all()): ?>  <div class="sdc">
     <h2>Clear all sample data</h2>
     <p>Before the official launch, this removes every sample item for everyone<?= $who ? ' (loaded for ' . htmlspecialchars(implode(', ', $who)) . ')' : '' ?>. Real records, leads and documents are never touched; sample items are marked SAMPLE / smp.</p>
     <div class="sdn"><?php foreach ($c as $k => $n): ?><span><?= (int)$n ?> <?= htmlspecialchars($k) ?></span><?php endforeach; ?></div>
     <form method="post" onsubmit="return confirm('Remove ALL sample data for everyone? This cannot be undone.')"><?= $csrfIn ?><input type="hidden" name="a" value="clear"><button class="btn del" type="submit"<?= $total ? '' : ' disabled' ?>>Clear all sample data</button></form>
   </div>
-</div>
+<?php endif; ?></div>
 <?php sp_foot();

@@ -160,3 +160,12 @@ function sd_clear() {
     $pdo->exec("DELETE FROM kv WHERE k = 'sample_emails'");
     flr_audit('', 'sample_clear', '', 'All sample data cleared');
 }
+
+// Who may load sample data into the signed-in account: staff, or staff who are viewing as an agent (Login As), so an agent
+// account can be filled for testing. Clearing everyone's sample data stays staff-only (sd_may_clear_all).
+function sd_may_load() {
+    if (flr_is_broker()) return true;
+    $i = $_SESSION['impersonator'] ?? null;
+    return is_array($i) && (!empty($i['staff']) || in_array(strtolower((string)($i['email'] ?? '')), FLR_BROKER_EMAILS, true));
+}
+function sd_may_clear_all() { return flr_is_broker(); }
