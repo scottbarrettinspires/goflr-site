@@ -54,6 +54,11 @@ sp_head('Buyer Agreement', $tx);
 .bagcnt{font-size:.78rem;font-weight:700;background:#fff;border:1px solid #f0dca8;border-radius:99px;padding:2px 9px;color:#8a5a00}
 .bagsl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}.bagsl li{font-size:.9rem;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.bagsl li span{font-size:.75rem;font-weight:700;color:#8a5a00;min-width:90px}.bagsl li.ok span{color:#2e7d32}
 .bagsend{margin:0 0 12px;padding:12px 14px;border:1px solid #cfe5e5;background:#f0f8f8;border-radius:12px}.bagsend .bagsl li span{color:var(--teal)}
+.bagq{margin:0 0 12px;padding:12px 14px;border:1.5px solid #9fd3cf;background:linear-gradient(135deg,#eef9f8,#fff);border-radius:12px}.bagq h3{margin:0 0 8px;font-size:1rem}.bagq h3 small{display:block;font-weight:400;font-size:.8rem;color:#5a6a6c}
+.bagqg{display:flex;flex-wrap:wrap;gap:10px 16px}.bagqg>div{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}.bagqg>.full{flex-basis:100%}.bagqg label small{font-weight:400;color:#5a6a6c}
+.bagq input[type=text],.bagq input[type=date],.bagq textarea{font:inherit;font-size:.9rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.bagch{display:flex;flex-wrap:wrap;gap:6px}.bagq .chip{display:inline-flex;gap:5px;align-items:center;font-weight:600;font-size:.84rem;border:1px solid #cfe5e5;border-radius:99px;padding:4px 10px;background:#fff;cursor:pointer}
+.bagqq{display:flex;gap:6px;margin-top:5px}.bagqq .btn.sm{padding:1px 10px!important;font-size:.76rem!important}
 @media(max-width:640px){.bagview{max-height:600px;padding:6px}}
 </style>
 <div class="bag">
@@ -86,6 +91,22 @@ sp_head('Buyer Agreement', $tx);
 <?php else: ?>
   <div class="bagt" role="tablist"><?php foreach (BAG_FORMS as $kk => $ff): ?><a role="tab" href="buyer_agreement.php?tx=<?= urlencode($tx) ?>&amp;k=<?= $kk ?><?= sp_embed() ? '&amp;embed=1' : '' ?><?= !empty($_GET['bare']) ? '&amp;bare=1' : '' ?>" class="<?= $kk === $k ? 'on' : '' ?>" aria-selected="<?= $kk === $k ? 'true' : 'false' ?>"><?= $h($ff['title']) ?></a><?php endforeach; ?></div>
   <p class="bagnote"><?= $h($f['note']) ?></p>
+  <?php $T = bag_terms($me, $tx); $isEx = $k === 'exclusive'; ?>
+  <div class="bagq" id="bagq">
+    <h3>Agreement setup <small>Answer these first. They fill the form below and are kept on the record for later forms.</small></h3>
+    <div class="bagqg">
+<?php if ($isEx): ?>      <div class="full"><label>Property type</label><div class="bagch"><?php foreach (BAG_TYPES as $ty): ?><label class="chip"><input type="checkbox" name="types" value="<?= $h($ty) ?>"<?= in_array($ty, $T['types'], true) ? ' checked' : '' ?>> <?= $h(BAG_TYPE_FORM[$ty] ?? $ty) ?></label><?php endforeach; ?></div></div>
+      <div class="full"><label for="bq_areas">Location <small>(counties or cities)</small></label><input id="bq_areas" type="text" maxlength="200" value="<?= $h($T['areas']) ?>" placeholder="e.g. Pasco County, Hernando County, Trinity"></div>
+<?php else: ?>      <div class="full"><label for="bq_homes">Home(s) this agreement covers <small>(one per line; scheduled showings fill in automatically if left blank)</small></label><textarea id="bq_homes" rows="3" maxlength="400"><?= $h($T['homes']) ?></textarea></div>
+<?php endif; ?>
+      <div><label for="bq_comm">Commission rate (% of purchase price)</label><input id="bq_comm" type="text" inputmode="decimal" value="<?= $h($T['comm']) ?>" size="6"></div>
+      <div><label for="bq_admin">FLR admin fee ($)</label><input id="bq_admin" type="text" inputmode="decimal" value="<?= $h($T['admin']) ?>" size="8"><label class="chip" style="margin-top:4px"><input type="checkbox" id="bq_adminok"<?= $T['admin_ok'] ? ' checked' : '' ?>> Admin fee confirmed (FLR default is $325)</label></div>
+<?php if ($isEx): ?>      <div><label for="bq_exp">Expiration date</label><input id="bq_exp" type="date" value="<?= $h($T['expires']) ?>" min="<?= date('Y-m-d', strtotime('+1 day')) ?>"><span class="bagqq"><?php foreach ([['90 days', '+90 days'], ['6 months', '+6 months'], ['1 year', '+1 year']] as $q): ?><button type="button" class="btn ghost sm" data-d="<?= date('Y-m-d', strtotime($q[1])) ?>"><?= $q[0] ?></button><?php endforeach; ?></span></div>
+<?php endif; ?>
+      <div class="full"><label for="bq_special">Special terms <small>(optional, printed on the Additional Terms lines)</small></label><textarea id="bq_special" rows="2" maxlength="340"><?= $h($T['special']) ?></textarea></div>
+    </div>
+    <div class="bagact" style="margin:8px 0 0"><button type="button" class="btn" id="bq_apply">Apply to the agreement</button><span class="bagmeta" id="bq_msg" style="margin:0"></span></div>
+  </div>
   <div class="bagact">
     <a class="btn ghost" id="bagdl" href="<?= $h($src) ?>&amp;dl=1">&#8681; Download</a>
     <button type="button" class="btn" id="bagsend">&#9998; Send for Signing</button>
@@ -120,6 +141,14 @@ sp_head('Buyer Agreement', $tx);
   <div class="bagview" id="bagview"<?= $pend ? " hidden" : "" ?><?= ($sig || $pend) ? '' : ' data-fill="' . $h('bag_prefill.php?tx=' . urlencode($tx) . '&kind=' . $k) . '" data-name="' . $h(BAG_FORMS[$k]['title'] . ' - ' . date('Y-m-d') . '.pdf') . '"' ?> data-src="<?= $h($src) ?>" role="document" aria-label="<?= $h($sig ? 'Signed ' . $sig['form'] : BAG_FORMS[$k]['title']) ?>"><p class="bagload">Loading the agreement&hellip;</p></div>
   <p style="margin:12px 0 0"><a href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a></p>
 </div>
+<script>(function(){var a=document.getElementById("bq_apply");if(!a)return;var $=function(i){return document.getElementById(i);};
+document.querySelectorAll(".bagqq .btn").forEach(function(x){x.onclick=function(){$("bq_exp").value=x.dataset.d;};});
+a.onclick=async function(){var m=$("bq_msg");m.style.color="";m.textContent="Saving...";a.disabled=true;
+  var o={csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,kind:<?= json_encode($k) ?>,comm:$("bq_comm").value,admin:$("bq_admin").value,admin_ok:$("bq_adminok").checked,special:$("bq_special").value};
+  if($("bq_areas")){o.areas=$("bq_areas").value;o.expires=$("bq_exp").value;o.types=[].map.call(document.querySelectorAll('input[name=types]:checked'),function(c){return c.value;});}else{o.homes=$("bq_homes").value;}
+  try{var r=await fetch("bag_terms_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(o)}),j=await r.json();
+    if(!j.ok){m.style.color="#b3261e";m.textContent=j.msg||"Could not save.";a.disabled=false;return;}
+    m.textContent="Saved. Updating the form...";location.reload();}catch(e){m.style.color="#b3261e";m.textContent="Could not save. Please try again.";a.disabled=false;}};})();</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script>(async function(){var v=document.getElementById("bagview");if(!v)return;var src=v.dataset.src,fillUrl=v.dataset.fill,bytes=null,doc=null,form=null,editable=false;
@@ -157,7 +186,7 @@ try{
   if(fillUrl&&window.PDFLib){ // fill in what the site knows about this buyer, then let the agent edit every field
     var res=await Promise.all([fetch(src,{credentials:"same-origin"}).then(function(r){if(!r.ok)throw 0;return r.arrayBuffer();}),fetch(fillUrl,{credentials:"same-origin"}).then(function(r){return r.json();}).catch(function(){return null;})]);
     doc=await PDFLib.PDFDocument.load(res[0]);form=doc.getForm();var done=[],F=(res[1]&&res[1].ok)?res[1].fields:{};
-    var LB=(res[1]&&res[1].labels)||{},doneL=[];Object.keys(F).forEach(function(k){try{var t=form.getTextField(k);if(!(t.getText()||"").trim()){t.setText(String(F[k]));done.push(k);if(LB[k]&&doneL.indexOf(LB[k])<0)doneL.push(LB[k]);}}catch(e){}});
+    var LB=(res[1]&&res[1].labels)||{},doneL=[];var FC=(res[1]&&res[1].force)||[];Object.keys(F).forEach(function(k){try{var t=form.getTextField(k);if(FC.indexOf(k)>=0||!(t.getText()||"").trim()){t.setText(String(F[k]));done.push(k);if(LB[k]&&doneL.indexOf(LB[k])<0)doneL.push(LB[k]);}}catch(e){}});
     bytes=await doc.save();editable=true;
     var fl=document.getElementById("bagfill");fl.innerHTML=(done.length?"<b>Filled in from this buyer's record:</b> "+(doneL.length?doneL:res[1].filled).join(", ")+". ":"")+"<b>Click any field on the form to type or change it</b>, such as the compensation and termination date. Download and Send for Signing use what you see here. At the bottom, a download marks the copy returned today by personal delivery; a DigiSigner send marks it by email with the last signer's date.";fl.hidden=false;
     var dl=document.getElementById("bagdl");dl.addEventListener("click",async function(e){e.preventDefault();var u=URL.createObjectURL(new Blob([await getBytes("download")],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=v.dataset.name||"Buyer Agreement.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);});

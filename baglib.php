@@ -98,7 +98,7 @@ function bag_prefill($me, $tx, $kind) {
     if ($n2 === '') { $n2 = trim((string)($cd['co_name'] ?? '')); $p2 = $p2 !== '' ? $p2 : trim((string)($cd['co_phone'] ?? '')); $e2 = $e2 !== '' ? $e2 : trim((string)($cd['co_email'] ?? '')); }
     $mail = $g('mailing'); if ($mail === '') $mail = trim((string)($cd['mailing'] ?? '')); $street = $mail; $zip = '';
     if (preg_match('/^(.*?)[,\s]*(\d{5})(?:-\d{4})?\s*$/', $mail, $m)) { $street = trim($m[1], " ,"); $zip = $m[2]; }
-    $f = []; $used = []; $lab = [];
+    $f = []; $used = []; $lab = []; $force = [];
     $set = function ($k, $v, $label) use (&$f, &$used, &$lab) { if ($v !== '') { $f[$k] = $v; $used[$label] = true; $lab[$k] = $label; } };
     $set('Buyer_Names', implode(' and ', array_filter([$n1, $n2])), 'Buyer names');
     $set('Buyer1_Name', $n1, 'Buyer names'); $set('Buyer1_Phone', $p1, 'Phone'); $set('Buyer1_Email', $e1, 'Email');
@@ -121,8 +121,59 @@ function bag_prefill($me, $tx, $kind) {
             $i = 0; $seen = []; foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $a) { $a = trim($a); if ($a === '' || isset($seen[strtolower($a)]) || $i >= 7) continue; $seen[strtolower($a)] = 1; $set('Property_List_' . (++$i), $a, 'Homes scheduled to show'); }
         } catch (Throwable $e) {}
     }
-    return ['fields' => $f, 'filled' => array_keys($used), 'labels' => $lab];
+    // The agreement setup questions (type, location, commission, admin fee, special terms, expiration) win over everything above.
+    $T = bag_terms($me, $tx); $fs = function ($k, $v, $label) use ($set, &$force) { if ($v !== '') { $set($k, $v, $label); $force[] = $k; } };
+    if ($kind === 'exclusive') {
+        $fs('Search_PropertyType', implode(', ', array_map(function ($t) { return BAG_TYPE_FORM[$t] ?? $t; }, $T['types'])), 'Property type');
+        $fs('Search_Location', $T['areas'], 'Location');
+        $fs('Date_Termination', $T['expires'] !== '' ? date('m/d/Y', strtotime($T['expires'])) : '', 'Expiration date');
+    } else {
+        $hl = array_values(array_filter(array_map('trim', preg_split('/[\r\n;]+/', $T['homes']))));
+        foreach (array_slice($hl, 0, 7) as $i => $a) $fs('Property_List_' . ($i + 1), $a, 'Homes it covers');
+    }
+    $fs('Comp_Purchase_Percent', $T['comm'], 'Commission rate');
+    $fs('Comp_PurchasePlus_FlatFee', $T['admin'] !== '' ? $T['admin'] . '. Admin FLR Fee' : '', 'FLR admin fee');
+    $lines = bag_wrap($T['special'], 85); foreach (array_slice($lines, 0, $kind === 'exclusive' ? 6 : 4) as $i => $ln) $fs('Additional_Terms_' . ($i + 1), $ln, 'Special terms');
+    return ['fields' => $f, 'filled' => array_keys($used), 'labels' => $lab, 'force' => $force];
 }
+const BAG_TYPES = ['Single family', 'Condo', 'Townhome', 'Villa', 'Manufactured', 'Multi-family', 'Land / lot', 'New construction'];
+const BAG_TYPE_FORM = ['Single family' => 'Single family home', 'Condo' => 'Condominium', 'Manufactured' => 'Mobile/modular home'];
+function bag_wrap($t, $w) { $t = trim(preg_replace('/\s+/', ' ', (string)$t)); return $t === '' ? [] : array_map('trim', explode("\n", wordwrap($t, $w, "\n", true))); }
+// The agreement setup answers for a buyer record: property type and location (Property Details on the lead), commission rate,
+// FLR admin fee and special terms (Client Details on the lead), expiration date and homes (this record). Defaults: 3% and $325.
+// Returns ['types'=>[], 'areas'=>'', 'comm'=>'3', 'admin'=>'325', 'special'=>'', 'expires'=>'', 'homes'=>'', 'admin_ok'=>bool].
+function bag_terms($me, $tx) {
+    $kv = json_decode((string)ag_kv('bagq_' . $tx), true); $kv = is_array($kv) ? $kv : [];
+    $lead = null; try { $lead = ld_find_by_folder($me, $tx); } catch (Throwable $e) {}
+    $w = (array)($lead['wants'] ?? []); $cd = (array)($lead['client'] ?? []);
+    $pick = function ($a, $b, $d) { foreach ([$a, $b] as $v) { if (is_scalar($v) && trim((string)$v) !== '') return trim((string)$v); } return $d; };
+    return ['types' => array_values(array_filter((array)($w['types'] ?? $kv['types'] ?? []), 'strlen')), 'areas' => $pick($w['areas'] ?? '', $kv['areas'] ?? '', ''),
+        'comm' => $pick($cd['comm_rate'] ?? '', $kv['comm'] ?? '', '3'), 'admin' => $pick($cd['admin_fee'] ?? '', $kv['admin'] ?? '', '325'),
+        'special' => $pick($cd['special_terms'] ?? '', $kv['special'] ?? '', ''), 'expires' => (string)($kv['expires'] ?? ''), 'homes' => (string)($kv['homes'] ?? ''), 'admin_ok' => !empty($kv['admin_ok'])];
+}
+// Save the answers. '' or a readable error. Keeps them on the record and on the lead so later forms can use them.
+function bag_terms_save($me, $tx, array $a) {
+    $own = false; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') $own = true; }
+    if (!$own) return 'That buyer record was not found in your business.';
+    $types = array_values(array_intersect(array_map('strval', (array)($a['types'] ?? [])), BAG_TYPES));
+    $areas = mb_substr(trim((string)($a['areas'] ?? '')), 0, 200);
+    $comm = trim(str_replace('%', '', (string)($a['comm'] ?? ''))); $admin = trim(str_replace(['$', ','], '', (string)($a['admin'] ?? '')));
+    if (!preg_match('/^\d{1,3}(\.\d{1,2})?$/', $comm) || (float)$comm <= 0 || (float)$comm > 100) return 'Enter the commission rate as a percent, for example 3.';
+    if (!preg_match('/^\d{1,5}(\.\d{1,2})?$/', $admin)) return 'Enter the FLR admin fee as a dollar amount, for example 325.';
+    if (empty($a['admin_ok'])) return 'Please confirm the FLR admin fee (check the box) before applying.';
+    $special = trim((string)($a['special'] ?? '')); if (mb_strlen($special) > 340) return 'The special terms are too long for the lines on the form (340 characters). Shorten them, or add the rest on the form.';
+    $expires = trim((string)($a['expires'] ?? '')); $homes = mb_substr(trim((string)($a['homes'] ?? '')), 0, 400);
+    if (($a['kind'] ?? 'exclusive') === 'exclusive') { $e = ag_check_terms('exclusive', date('Y-m-d'), $expires); if ($e !== '') return $e; }
+    ag_kv_put('bagq_' . $tx, json_encode(['types' => $types, 'areas' => $areas, 'comm' => $comm, 'admin' => $admin, 'admin_ok' => true, 'special' => $special, 'expires' => $expires, 'homes' => $homes, 'saved' => date('c')]));
+    ld_update($me, function (&$db) use ($tx, $types, $areas, $comm, $admin, $special) {
+        foreach ($db['leads'] as &$L) { if ((string)($L['roles']['buyer']['folder'] ?? '') !== $tx) continue;
+            if ($types) $L['wants']['types'] = $types; if ($areas !== '') $L['wants']['areas'] = $areas;
+            $L['client']['comm_rate'] = $comm; $L['client']['admin_fee'] = $admin; $L['client']['special_terms'] = $special; }
+    });
+    flr_audit(flr_akey($me), 'agreement_setup', $tx, 'Commission ' . $comm . '%, admin fee $' . $admin . ($expires !== '' ? ', expires ' . $expires : ''));
+    return '';
+}
+
 // A filled agreement handed from the Buyer Agreement screen to the send-for-signature page (sign.php ?pf=token).
 function bag_pf_dir() { $d = flr_db_dir() . '/prefill'; if (!is_dir($d)) @mkdir($d, 0750, true); return $d; }
 function bag_pf_put($me, $pdf) {
@@ -240,6 +291,8 @@ function ag_standing($me, $tx, $recs = null) {
 function ag_activate($me, $tx, $recs = null) {
     if (!ag_prep($tx) || !ag_list($me, $tx, $recs)) return false;
     ag_set_prep($tx, false);
+    $q = json_decode((string)ag_kv('bagq_' . $tx), true); $qe = is_array($q) ? (string)($q['expires'] ?? '') : '';
+    if ($qe !== '') foreach (ag_list($me, $tx, $recs) as $i) { if ($i['kind'] === 'exclusive' && $i['expires'] === '' && ag_check_terms('exclusive', $i['signed_on'], $qe) === '') { ag_set_terms_raw($tx, $i['id'], $qe, ''); break; } }
     ld_update($me, function (&$db) use ($tx) {
         foreach ($db['leads'] as &$L) { if ((string)($L['roles']['buyer']['folder'] ?? '') !== $tx) continue;
             $L['roles']['buyer']['sub'] = 'client'; $L['roles']['buyer']['since'] = ld_today(); $L['roles']['buyer']['touches'] = 0; $L['roles']['buyer']['last'] = ''; unset($L['roles']['buyer']['prep']);
