@@ -142,7 +142,10 @@ function sd_clear_for($email) {
     $q = $pdo->prepare("SELECT folder FROM transactions WHERE folder LIKE 'SAMPLE-%' AND akey = ?"); $q->execute([$ak]);
     foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $f) { $pdo->prepare('DELETE FROM kv WHERE k IN (?, ?)')->execute(['sample_info_' . $f, 'nt_info_' . $f]); $pdo->prepare('DELETE FROM contracts WHERE folder = ?')->execute([$f]); }
     $pdo->prepare("DELETE FROM transactions WHERE folder LIKE 'SAMPLE-%' AND akey = ?")->execute([$ak]);
-    try { flr_leads_update($ak, function (&$db) { $db['leads'] = array_values(array_filter((array)$db['leads'], function ($x) { return strpos((string)($x['id'] ?? ''), 'smp') !== 0; })); return null; }, $email); } catch (Throwable $e) {}
+    // Also test leads typed in by hand with the last name "Sample" (e.g. "Jamie Sample"), and the records made from them
+    $isTest = function ($x) { return strpos((string)($x['id'] ?? ''), 'smp') === 0 || strcasecmp(trim((string)($x['last'] ?? '')), 'Sample') === 0; };
+    try { flr_leads_update($ak, function (&$db) use ($isTest) { $db['leads'] = array_values(array_filter((array)$db['leads'], function ($x) use ($isTest) { return !$isTest($x); })); return null; }, $email); } catch (Throwable $e) {}
+    try { $pdo->prepare("DELETE FROM transactions WHERE akey = ? AND (name LIKE '% Sample' OR name LIKE '% Sample %')")->execute([$ak]); } catch (Throwable $e) {}
     try { $pdo->prepare("DELETE FROM pr_log WHERE created = 'SAMPLE' AND email = ?")->execute([$email]); $pdo->prepare('DELETE FROM pr_goals WHERE email = ?')->execute([$email]); } catch (Throwable $e) {}
     foreach (glob(sg_dir() . '/SAMPLE-*.json') ?: [] as $f) { $j = json_decode((string)file_get_contents($f), true); if (strtolower((string)($j['agent'] ?? '')) === $email) @unlink($f); }
 }
