@@ -267,7 +267,12 @@ function ag_list($me, $tx, $recs = null) {
 // Where the buyer stands: state none|showing|exclusive|expired, expires (latest term end), days left, needs_date, a one-line message.
 function ag_standing($me, $tx, $recs = null) {
     $items = ag_list($me, $tx, $recs); $today = ld_today();
-    $st = ['state' => 'none', 'expires' => '', 'days' => null, 'soon' => false, 'needs_date' => false, 'message' => 'No signed buyer agreement yet. The buyer stays a lead until one is signed or uploaded.', 'items' => $items, 'prep' => ag_prep($tx)];
+    $pend = []; foreach (($recs === null ? sg_for_agent($me) : $recs) as $r) {
+        if ((string)($r['folder']['id'] ?? '') !== $tx || !empty($r['completed']) || !ag_kind($r['form'] ?? '') || strtotime($r['created'] ?? '') < time() - 45 * 86400) continue;
+        $ss = (array)($r['signers_status'] ?? []); $pend[] = ['id' => $r['id'], 'title' => $r['form'], 'sent' => substr((string)$r['created'], 0, 10), 'done' => count(array_filter($ss)), 'of' => count((array)($r['signers'] ?? []))];
+    }
+    $dl = ag_kv('bag_dl_' . $tx) !== null;
+    $st = ['downloaded' => $dl, 'sent' => $pend, 'can_upload' => $dl || $pend || $items, 'state' => 'none', 'expires' => '', 'days' => null, 'soon' => false, 'needs_date' => false, 'message' => 'No signed buyer agreement yet. The buyer stays a lead until one is signed or uploaded.', 'items' => $items, 'prep' => ag_prep($tx)];
     if (!$items) return $st;
     $exp = ''; $hasEx = false; $lastExpiry = '';
     foreach ($items as $i) {

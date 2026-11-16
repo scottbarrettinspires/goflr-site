@@ -680,19 +680,31 @@ function openLead(L,preset,inl){
     if(b.dataset.mode==="move"){sphereMove=true;modal.querySelector(".mvtip").textContent="Pick the Sphere category. The lead leaves Buyers and Sellers and starts the Sphere plan.";}
     else{modal.querySelector(".mvtip").textContent="Pick the "+(b.dataset.role==="seller"?"seller":"buyer")+" stage. Both plans then run side by side.";}
     b.remove();};});
+  var AGR_RELOAD=null,AGR_LOAD=null;
+  window.addEventListener("message",function(e){if(e.origin===location.origin&&e.data&&e.data.bagdl&&AGR_LOAD)AGR_LOAD();});
   function agrDraw(b,a,tx){
     var KN={exclusive:"Exclusive Buyer Brokerage Agreement",showing:"Showing Agreement",extension:"Extension"},col={none:"#8a6d1f",showing:"#8a6d1f",exclusive:"#2e7d32",expired:"#b3261e"}[a.state]||"#555",bg={none:"#fff6df",showing:"#fff6df",exclusive:"#e3f4e8",expired:"#fde7e5"}[a.state]||"#eee";
     if(a.state==="exclusive"&&a.soon){col="#8a4b00";bg="#ffeccf";}
     var h='<div style="border:1px solid #d7e2e2;border-radius:12px;padding:10px 12px;background:'+bg+'"><div style="font-weight:700;color:'+col+'">'+esc({none:"Still a lead: waiting on a signed buyer agreement",showing:"Active Business: Showing Agreement",exclusive:"Active Business: Exclusive agreement"+(a.expires?" through "+a.expires:""),expired:"Expired buyer agreement"}[a.state])+'</div><div style="font-size:.88rem;margin-top:3px">'+esc(a.message)+'</div>';
-    if(a.state==="none")h+='<div style="font-size:.84rem;margin-top:4px">When DigiSigner returns the signed agreement, or you upload the signed copy below, this buyer moves to Active Business automatically.</div>';
+    if(a.sent&&a.sent.length)a.sent.forEach(function(p){h+='<div style="font-size:.86rem;margin-top:4px">&#9998; <b>'+esc(p.title)+'</b> sent for signing '+esc(p.sent)+': '+p.done+' of '+p.of+' signed. It moves to Active Business as soon as everyone has signed.</div>';});
+        if(a.state==="none")h+='<div style="font-size:.84rem;margin-top:4px">When DigiSigner returns the signed agreement, or you upload the signed copy below, this buyer moves to Active Business automatically.</div>';
     if(a.items&&a.items.length){h+='<div style="margin-top:8px;border-top:1px solid rgba(0,0,0,.08);padding-top:6px">';
       a.items.forEach(function(it){
-        h+='<div class="agr" data-rid="'+esc(it.id)+'" style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:4px 0;font-size:.88rem"><b>'+esc(KN[it.kind]||it.title)+'</b><span>signed '+esc(it.signed_on)+' ('+(it.source==="upload"?"uploaded":"e-signed")+')</span>';
+        h+='<div class="agr" data-rid="'+esc(it.id)+'" style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:4px 0;font-size:.88rem"><b>'+esc(KN[it.kind]||it.title)+'</b><span>signed '+esc(it.signed_on)+' ('+(it.source==="upload"?"uploaded":"e-signed")+')</span><a href="bagdoc.php?rid='+encodeURIComponent(it.id)+'" target="_blank" rel="noopener">View</a><a href="bagdoc.php?rid='+encodeURIComponent(it.id)+'&amp;dl=1">Download</a>';
         if(it.kind==="showing")h+='<input class="ag_homes" type="text" maxlength="200" placeholder="Home(s) covered" value="'+esc(it.homes)+'" style="flex:1;min-width:140px"><button type="button" class="btn sm ghost ag_save">Save</button>';
         else h+='<label>'+(it.kind==="extension"?"New expiration":"Expires")+' <input class="ag_exp" type="date" value="'+esc(it.expires)+'"></label><button type="button" class="btn sm ghost ag_save">Save</button>';
         h+='</div>';});
       h+='<div class="ag_msg" style="font-size:.84rem;color:#b3261e"></div></div>';}
+    if(a.can_upload){h+='<div style="margin-top:8px"><button type="button" class="btn sm" id="ag_upbtn" style="background:#e07b39;color:#fff;border:0">&#8679; Upload signed copy</button></div>'
+      +'<form id="ag_upform" hidden style="margin-top:8px;display:none;flex-wrap:wrap;gap:8px 12px;align-items:flex-end;font-size:.82rem"><label>Which agreement<br><select name="kind"><option value="exclusive">Exclusive Buyer Brokerage Agreement</option><option value="showing">Showing Agreement</option><option value="extension">Extension of the Buyer Agreement</option></select></label>'
+      +'<label>Date signed<br><input type="date" name="on" value="'+new Date().toISOString().slice(0,10)+'"></label><label class="ag_exl">Expiration date<br><input type="date" name="expires"></label><label class="ag_hol" style="display:none">Home(s) covered<br><input type="text" name="homes" maxlength="200"></label>'
+      +'<label>Signed PDF<br><input type="file" name="pdf" accept="application/pdf,.pdf"></label><button type="submit" class="btn sm">Save signed copy</button><span class="ag_um" style="color:#b3261e"></span></form>';}
     h+='</div>';b.innerHTML=h;
+    var ub=b.querySelector("#ag_upbtn"),uf=b.querySelector("#ag_upform");
+    if(ub&&uf){ub.onclick=function(){uf.style.display=uf.style.display==="none"?"flex":"none";};
+      var ks=uf.querySelector("select");ks.onchange=function(){var sh=ks.value==="showing";uf.querySelector(".ag_exl").style.display=sh?"none":"";uf.querySelector(".ag_hol").style.display=sh?"":"none";};
+      uf.onsubmit=function(e){e.preventDefault();var m=uf.querySelector(".ag_um");m.textContent="Saving...";var fd=new FormData(uf);fd.append("csrf",CSRF);fd.append("tx",tx);
+        fetch("bag_upload_api.php",{method:"POST",credentials:"same-origin",body:fd}).then(function(r){return r.json();}).then(function(j){if(!j.ok){m.textContent=j.msg||"Could not save.";return;}if(AGR_RELOAD)AGR_RELOAD();}).catch(function(){m.textContent="Could not save. Please try again.";});};}
     b.querySelectorAll(".ag_save").forEach(function(btn){btn.onclick=function(){var row=btn.closest(".agr"),m=b.querySelector(".ag_msg"),e=row.querySelector(".ag_exp"),hm=row.querySelector(".ag_homes");m.textContent="";
       api({action:"agreement_terms",tx:tx,rid:row.dataset.rid,expires:e?e.value:"",homes:hm?hm.value:""}).then(function(r){agrDraw(b,r.agreement,tx);}).catch(function(x){m.textContent=x.message;});};});
   }
@@ -721,6 +733,7 @@ function openLead(L,preset,inl){
       function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
       var TX=j.tx;
       function agrLoad(){api({action:"agreements",tx:TX}).then(function(r){var b=document.getElementById("agrbox");if(!b)return;agrDraw(b,r.agreement,TX);if(r.converted){renderTabs();}}).catch(function(){});}
+      AGR_LOAD=agrLoad;AGR_RELOAD=function(){agrLoad();try{f.src=f.src;}catch(e){}};
       agrLoad();
       f.addEventListener("load",function(){agrLoad();fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});
       f.src="buyer_agreement.php?tx="+encodeURIComponent(j.tx)+"&embed=1&bare=1";
