@@ -54,6 +54,7 @@ sp_head('Buyer Agreement', $tx);
 .bagcnt{font-size:.78rem;font-weight:700;background:#fff;border:1px solid #f0dca8;border-radius:99px;padding:2px 9px;color:#8a5a00}
 .bagsl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}.bagsl li{font-size:.9rem;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.bagsl li span{font-size:.75rem;font-weight:700;color:#8a5a00;min-width:90px}.bagsl li.ok span{color:#2e7d32}
 .bagsend{margin:0 0 12px;padding:12px 14px;border:1px solid #cfe5e5;background:#f0f8f8;border-radius:12px}.bagsend .bagsl li span{color:var(--teal)}
+.bagact .btn[hidden]{display:none}
 .bagq{margin:0 0 12px;padding:12px 14px;border:1.5px solid #9fd3cf;background:linear-gradient(135deg,#eef9f8,#fff);border-radius:12px}.bagq h3{margin:0 0 8px;font-size:1rem}.bagq h3 small{display:block;font-weight:400;font-size:.8rem;color:#5a6a6c}
 .bagqg{display:flex;flex-wrap:wrap;gap:10px 16px}.bagqg>div{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}.bagqg>.full{flex-basis:100%}.bagqg label small{font-weight:400;color:#5a6a6c}
 .bagq input[type=text],.bagq input[type=date],.bagq textarea{font:inherit;font-size:.9rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
@@ -116,7 +117,7 @@ sp_head('Buyer Agreement', $tx);
   <div class="bagact">
     <a class="btn ghost" id="bagdl" href="<?= $h($src) ?>&amp;dl=1">&#8681; Download</a>
     <button type="button" class="btn" id="bagsend">&#9998; Send for Signing</button>
-    <button type="button" class="btn up" id="bagupbtn">&#8679; Upload signed copy</button>
+    <button type="button" class="btn up" id="bagupbtn"<?= ag_kv('bag_dl_' . $tx) === null ? ' hidden' : '' ?>>&#8679; Upload signed copy</button>
   </div>
   <div class="bagsend" id="bagsendbox" hidden>
 <?php if ($sgn['missing'] !== ''): ?>    <p class="sigerr" style="margin:0 0 8px"><?= $h($sgn['missing']) ?></p>
@@ -191,7 +192,7 @@ try{
     var LB=(res[1]&&res[1].labels)||{},doneL=[];var FC=(res[1]&&res[1].force)||[];Object.keys(F).forEach(function(k){try{var t=form.getTextField(k);if(FC.indexOf(k)>=0||!(t.getText()||"").trim()){t.setText(String(F[k]));done.push(k);if(LB[k]&&doneL.indexOf(LB[k])<0)doneL.push(LB[k]);}}catch(e){}});
     bytes=await doc.save();editable=true;
     var fl=document.getElementById("bagfill");fl.innerHTML=(done.length?"<b>Filled in from this buyer's record:</b> "+(doneL.length?doneL:res[1].filled).join(", ")+". ":"")+"<b>Click any field on the form to type or change it</b>, such as the compensation and termination date. Download and Send for Signing use what you see here. At the bottom, a download marks the copy returned today by personal delivery; a DigiSigner send marks it by email with the last signer's date.";fl.hidden=false;
-    var dl=document.getElementById("bagdl");dl.addEventListener("click",async function(e){e.preventDefault();var u=URL.createObjectURL(new Blob([await getBytes("download")],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=v.dataset.name||"Buyer Agreement.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);});
+    var dl=document.getElementById("bagdl");dl.addEventListener("click",async function(e){e.preventDefault();try{fetch("bag_terms_api.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,action:"downloaded"})});var ub=document.getElementById("bagupbtn");if(ub)ub.hidden=false;}catch(x){}var u=URL.createObjectURL(new Blob([await getBytes("download")],{type:"application/pdf"})),a=document.createElement("a");a.href=u;a.download=v.dataset.name||"Buyer Agreement.pdf";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u);},4000);});
     await render(bytes,true);window.addEventListener("resize",sizeInputs);
   } else await render(null,false);
 }catch(e){console.error("BAGERR "+(e&&e.message||e));editable=false;fallback(e&&e.message||e);}})();</script>
