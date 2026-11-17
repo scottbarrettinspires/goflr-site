@@ -9,6 +9,16 @@ $omMine = om_my_keys($_SESSION['email'] ?? '', flr_is_broker());
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $canLoginAs = flr_is_broker();
 $d = flr_directory();
+// Languages other than English that a person speaks, from the Agent Records "Languages spoken" column ('Spanish, Haitian Creole').
+// The office script sends it as 'languages' (text or a list). Returns display names, e.g. ['Spanish', 'Haitian Creole'].
+function dir_langs($p) {
+    $raw = $p['languages'] ?? ($p['language'] ?? ''); if (is_array($raw)) $raw = implode(',', $raw); $out = [];
+    foreach (preg_split('/\s*(?:,|;|\/|\band\b|&|\n)\s*/i', (string)$raw) as $l) {
+        $l = trim($l, " \t.-"); if ($l === '' || strcasecmp($l, 'english') === 0 || strcasecmp($l, 'none') === 0 || strcasecmp($l, 'n/a') === 0) continue;
+        $l = mb_convert_case(mb_strtolower($l), MB_CASE_TITLE); $out[mb_strtolower($l)] = $l;
+    }
+    return array_values($out);
+}
 function dir_phone_digits($p) { $x = preg_replace('/[^0-9+]/', '', (string)$p); return $x; }
 function dir_phone_fmt($p) { $x = preg_replace('/\D/', '', (string)$p); if (strlen($x) === 11 && $x[0] === '1') $x = substr($x, 1); return strlen($x) === 10 ? substr($x, 0, 3) . '-' . substr($x, 3, 3) . '-' . substr($x, 6) : trim((string)$p); }
 // $msgKey: who a Message button addresses ('' = no button, e.g. your own card or someone not in Agent Records).
@@ -19,8 +29,9 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
     $pu = flr_headshot_url($em, !empty($p['photo']) ? 'dirphoto.php?k=' . flr_dir_photo_key($p['photo']) : ''); $img = $pu !== '' ? '<img src="' . htmlspecialchars($pu) . '" alt="" loading="lazy" onerror="this.remove()">' : '';
     $star = $fav === null ? '' : '<button type="button" class="dstar' . ($fav ? ' on' : '') . '" aria-pressed="' . ($fav ? 'true' : 'false') . '" title="' . ($fav ? 'Remove from favorites' : 'Add to favorites') . '" aria-label="Favorite ' . $name . '">'
         . '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg></button>';
-    $h = '<div class="dcard" data-s="' . htmlspecialchars(strtolower($p['name'] . ' ' . $sub . ' ' . $em . ' ' . $ph)) . '" data-email="' . htmlspecialchars(strtolower($em)) . '" data-n="' . htmlspecialchars(strtolower($p['name'])) . '" data-i="' . (int)$i . '"><div class="davw"><div class="dav"><span>' . htmlspecialchars($ini) . '</span>' . $img . '</div>' . $star . '</div><div class="dtx"><div class="dnm">' . $name . '</div>';
+    $h = '<div class="dcard" data-s="' . htmlspecialchars(strtolower($p['name'] . ' ' . $sub . ' ' . $em . ' ' . $ph)) . '" data-email="' . htmlspecialchars(strtolower($em)) . '" data-n="' . htmlspecialchars(strtolower($p['name'])) . '" data-i="' . (int)$i . '" data-lang="' . htmlspecialchars('|' . implode('|', array_map('mb_strtolower', dir_langs($p))) . '|') . '"><div class="davw"><div class="dav"><span>' . htmlspecialchars($ini) . '</span>' . $img . '</div>' . $star . '</div><div class="dtx"><div class="dnm">' . $name . '</div>';
     if ($sub !== '') $h .= '<div class="dsub">' . htmlspecialchars($sub) . '</div>';
+    if (dir_langs($p)) $h .= '<div class="dsub">Also speaks ' . htmlspecialchars(implode(', ', dir_langs($p))) . '</div>';
     if ($ph !== '') $h .= '<div><a href="tel:' . htmlspecialchars(dir_phone_digits($ph)) . '">' . htmlspecialchars(dir_phone_fmt($ph)) . '</a></div>';
     if ($em !== '') $h .= '<div><a href="mailto:' . htmlspecialchars($em) . '">' . htmlspecialchars($em) . '</a></div>';
     if ($msgKey !== '') $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="messages.php?to=' . urlencode($msgKey) . '#compose">&#9993; Message</a></div>';
@@ -51,6 +62,7 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
 <style>
 .dtools{margin:0 0 18px}.dtools input{width:100%;max-width:420px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin:0 0 32px}
+.dlang{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.dtools{display:flex;flex-wrap:wrap;gap:8px}
 .dcard{display:flex;gap:14px;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px}
 .dav{position:relative;flex:0 0 76px;width:76px;height:76px;border-radius:50%;overflow:hidden;background:var(--teal-soft);display:flex;align-items:center;justify-content:center;color:var(--teal);font-weight:700;font-size:1.4rem}
 .dav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -98,7 +110,9 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
 <?php if (!$d): ?>
   <p class="note">The directory could not be loaded right now. Please try again in a minute.</p>
 <?php else: ?>
-  <div class="dbar"><div class="dtools"><input type="search" id="q" placeholder="Search by name, phone or email" autocomplete="off"></div><button type="button" class="btn" id="bymap">Show By Location</button></div>
+  <div class="dbar"><div class="dtools"><input type="search" id="q" placeholder="Search by name, phone or email" autocomplete="off">
+<?php $langN = []; foreach (array_merge((array)($d['agents'] ?? []), (array)($d['staff'] ?? [])) as $pp) foreach (dir_langs($pp) as $lg) { $langN[$lg] = ($langN[$lg] ?? 0) + 1; } ksort($langN);
+if ($langN): ?><select id="lang" aria-label="Language spoken" class="dlang"><option value="">Any language</option><?php foreach ($langN as $lg => $n): ?><option value="<?= htmlspecialchars(mb_strtolower($lg)) ?>"><?= htmlspecialchars($lg) ?> (<?= (int)$n ?>)</option><?php endforeach; ?></select><?php endif; ?></div><button type="button" class="btn" id="bymap">Show By Location</button></div>
   <div id="dmap"></div>
   <div id="dlist"><section class="dsec"><h2>Staff<?php if ($canLoginAs): ?> <span><?= count($d['staff'] ?? []) ?></span><?php endif; ?></h2><div class="dgrid">
 <?php foreach ((array)($d['staff'] ?? []) as $p) { $k = om_key_for($p['email'] ?? '', true); echo dir_card($p, (string)($p['position'] ?? ''), null, in_array($k, $omMine, true) ? '' : $k), "\n"; } ?>
@@ -122,10 +136,10 @@ foreach ($agentsAll as $i => $p) {
 </main>
 <footer>Florida Luxury Realty, Inc. &middot; Agent access only.</footer>
 <script>
-(function(){var q=document.getElementById("q");if(!q)return;q.addEventListener("input",function(){var v=q.value.trim().toLowerCase(),n=0;
-[].forEach.call(document.querySelectorAll(".dcard"),function(c){var m=!v||c.dataset.s.indexOf(v)>-1;c.style.display=m?"":"none";if(m)n++;});
+(function(){var q=document.getElementById("q");if(!q)return;var lg=document.getElementById("lang");function run(){var v=q.value.trim().toLowerCase(),l=lg?lg.value:"",n=0;
+[].forEach.call(document.querySelectorAll(".dcard"),function(c){var m=(!v||c.dataset.s.indexOf(v)>-1)&&(!l||(c.dataset.lang||"").indexOf("|"+l+"|")>-1);c.style.display=m?"":"none";if(m)n++;});
 [].forEach.call(document.querySelectorAll(".dsec"),function(s){s.style.display=s.querySelector(".dcard:not([style*='none'])")?"":"none";});
-document.getElementById("none").hidden=n>0;});})();
+document.getElementById("none").hidden=n>0;}q.addEventListener("input",run);if(lg)lg.addEventListener("change",run);})();
 // Favorites: star an agent to move them into Favorites at the top (saved for you only).
 (function(){var fg=document.getElementById("favgrid"),rg=document.getElementById("restgrid"),fs=document.getElementById("favsec");if(!fg||!rg)return;
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>;
