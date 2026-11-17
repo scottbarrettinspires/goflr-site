@@ -135,9 +135,17 @@ foreach ($agentsAll as $i => $p) {
 <?php
 $bk = (array)(@include __DIR__ . '/brokerage_affiliates.php'); $myAff = []; try { foreach (af_list($myEmail) as $ck => $rows) foreach ($rows as $r) $myAff[] = $r + ['catlabel' => AF_CATS[$ck]]; } catch (Throwable $e) {}
 $phf = function ($p) { return htmlspecialchars(dir_phone_fmt($p)); }; ?>
-  <section class="dsec dsecx" id="affsec"><h2>Your favorite affiliated businesses <a class="affmng" href="affiliates.php">Manage</a></h2>
-<?php if (!$myAff): ?>    <p class="note" style="margin:0">You haven't added any favorites yet. <a href="affiliates.php">Add your go-to title companies, lenders, inspectors and more</a>.</p>
-<?php else: ?>    <div class="dgrid"><?php foreach ($myAff as $r): ?>
+  <section class="dsec dsecx" id="affsec"><h2>Affiliates <a class="affmng" href="affiliates.php">Manage my favorites</a></h2>
+<?php if (!$myAff && empty($bk['companies'])): ?>    <p class="note" style="margin:0">You haven't added any favorites yet. <a href="affiliates.php">Add your go-to title companies, lenders, inspectors and more</a>.</p>
+<?php else: ?>    <div class="dgrid"><?php foreach ((array)($bk['companies'] ?? []) as $c): $m = (array)($c['manager'] ?? []); ?>
+      <div class="acard acbig"><div class="atag"><?= htmlspecialchars($c['kind'] ?? '') ?></div><div class="dnm"><?= htmlspecialchars($c['name']) ?></div>
+<?php if (!empty($c['website'])): ?>        <div><a href="<?= htmlspecialchars($c['website']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(preg_replace('~^https?://~', '', $c['website'])) ?></a></div><?php endif; ?>
+<?php if ($m): ?>        <div class="amgr"><?php if (!empty($m['photo'])): ?><img src="affphoto.php?f=<?= urlencode($m['photo']) ?>" alt="<?= htmlspecialchars($m['name'] ?? '') ?>" loading="lazy" onerror="this.remove()"><?php endif; ?>
+          <div><b><?= htmlspecialchars($m['name'] ?? '') ?></b><div class="dsub"><?= htmlspecialchars($m['title'] ?? 'Manager') ?></div>
+<?php if (!empty($m['phone'])): ?>          <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($m['phone'])) ?>"><?= $phf($m['phone']) ?></a></div><?php endif; ?>
+<?php if (!empty($m['email'])): ?>          <div><a href="mailto:<?= htmlspecialchars($m['email']) ?>"><?= htmlspecialchars($m['email']) ?></a></div><?php endif; ?></div></div><?php endif; ?>
+      </div>
+<?php endforeach; ?><?php foreach ($myAff as $r): ?>
       <div class="acard"><div class="atag"><?= htmlspecialchars($r['catlabel']) ?></div><div class="dnm"><?= htmlspecialchars($r['name']) ?></div>
 <?php if (trim((string)$r['contact']) !== ''): ?>        <div class="dsub"><?= htmlspecialchars($r['contact']) ?></div><?php endif; ?>
 <?php if (trim((string)$r['phone']) !== ''): ?>        <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($r['phone'])) ?>"><?= $phf($r['phone']) ?></a></div><?php endif; ?>
@@ -147,18 +155,6 @@ $phf = function ($p) { return htmlspecialchars(dir_phone_fmt($p)); }; ?>
 <?php endforeach; ?>    </div>
 <?php endif; ?>
   </section>
-<?php if (!empty($bk['companies'])): ?>  <section class="dsec dsecx" id="bkaffsec"><h2><?= htmlspecialchars($bk['brokerage'] ?? 'Brokerage') ?> affiliated companies</h2>
-    <div class="dgrid"><?php foreach ($bk['companies'] as $c): $m = (array)($c['manager'] ?? []); ?>
-      <div class="acard acbig"><div class="atag"><?= htmlspecialchars($c['kind'] ?? '') ?></div><div class="dnm"><?= htmlspecialchars($c['name']) ?></div>
-<?php if (!empty($c['website'])): ?>        <div><a href="<?= htmlspecialchars($c['website']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(preg_replace('~^https?://~', '', $c['website'])) ?></a></div><?php endif; ?>
-<?php if ($m): ?>        <div class="amgr"><?php if (!empty($m['photo'])): ?><img src="affphoto.php?f=<?= urlencode($m['photo']) ?>" alt="<?= htmlspecialchars($m['name'] ?? '') ?>" loading="lazy" onerror="this.remove()"><?php endif; ?>
-          <div><b><?= htmlspecialchars($m['name'] ?? '') ?></b><div class="dsub"><?= htmlspecialchars($m['title'] ?? 'Manager') ?></div>
-<?php if (!empty($m['phone'])): ?>          <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($m['phone'])) ?>"><?= $phf($m['phone']) ?></a></div><?php endif; ?>
-<?php if (!empty($m['email'])): ?>          <div><a href="mailto:<?= htmlspecialchars($m['email']) ?>"><?= htmlspecialchars($m['email']) ?></a></div><?php endif; ?></div></div><?php endif; ?>
-      </div>
-<?php endforeach; ?>    </div>
-  </section>
-<?php endif; ?>
   <section class="dsec" id="favsec"<?= $nFav ? '' : ' style="display:none"' ?>><h2>&#9733; Favorites <span id="favn"><?= $nFav ?></span></h2><div class="dgrid" id="favgrid">
 <?= $favCards ?>  </div></section>
   <section class="dsec"><h2>Active agents <span id="restn"<?= $canLoginAs ? '' : ' hidden' ?>><?= $nRest ?></span></h2><div class="dgrid" id="restgrid">
