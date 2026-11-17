@@ -137,19 +137,14 @@ $bk = (array)(@include __DIR__ . '/brokerage_affiliates.php'); $myAff = []; try 
 $phf = function ($p) { return htmlspecialchars(dir_phone_fmt($p)); }; ?>
   <section class="dsec dsecx" id="affsec"><h2>Affiliates <a class="affmng" href="affiliates.php">Manage my favorites</a></h2>
 <?php if (!$myAff && empty($bk['companies'])): ?>    <p class="note" style="margin:0">You haven't added any favorites yet. <a href="affiliates.php">Add your go-to title companies, lenders, inspectors and more</a>.</p>
-<?php else: ?>    <div class="dgrid"><?php $bkl = (array)($bk['companies'] ?? []); usort($bkl, function ($x, $y) { return strcasecmp((string)(AF_CATS[$x['cat'] ?? ''] ?? ''), (string)(AF_CATS[$y['cat'] ?? ''] ?? '')); }); foreach ($bkl as $c): $m = (array)($c['manager'] ?? []); ?>
+<?php else: ?>    <div class="dgrid"><?php $bkl = (array)($bk['companies'] ?? []); usort($bkl, function ($x, $y) { return strcasecmp((string)(AF_CATS[$x['cat'] ?? ''] ?? ''), (string)(AF_CATS[$y['cat'] ?? ''] ?? '')); }); foreach ($bkl as $c): ?>
       <div class="acard acbig"><div class="atag"><?= htmlspecialchars($c['kind'] ?? '') ?></div><div class="dnm"><?= htmlspecialchars($c['name']) ?></div>
 <?php if (!empty($c['website'])): ?>        <div><a href="<?= htmlspecialchars($c['website']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(preg_replace('~^https?://~', '', $c['website'])) ?></a></div><?php endif; ?>
-<?php if ($m): ?>        <div class="amgr"><?php if (!empty($m['photo'])): ?><img src="affphoto.php?f=<?= urlencode($m['photo']) ?>" alt="<?= htmlspecialchars($m['name'] ?? '') ?>" loading="lazy" onerror="this.remove()"><?php endif; ?>
-          <div><b><?= htmlspecialchars($m['name'] ?? '') ?></b><div class="dsub"><?= htmlspecialchars($m['title'] ?? 'Manager') ?></div>
-<?php if (!empty($m['phone'])): ?>          <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($m['phone'])) ?>"><?= $phf($m['phone']) ?></a></div><?php endif; ?>
-<?php if (!empty($m['email'])): ?>          <div><a href="mailto:<?= htmlspecialchars($m['email']) ?>"><?= htmlspecialchars($m['email']) ?></a></div><?php endif; ?></div></div><?php endif; ?>
+        <?= af_contacts_html(af_brokerage_contacts($c)) ?>
       </div>
 <?php endforeach; ?><?php foreach ($myAff as $r): ?>
       <div class="acard"><div class="atag"><?= htmlspecialchars($r['catlabel']) ?></div><div class="dnm"><?= htmlspecialchars($r['name']) ?></div>
-<?php if (trim((string)$r['contact']) !== ''): ?>        <div class="dsub"><?= htmlspecialchars($r['contact']) ?></div><?php endif; ?>
-<?php if (trim((string)$r['phone']) !== ''): ?>        <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($r['phone'])) ?>"><?= $phf($r['phone']) ?></a></div><?php endif; ?>
-<?php if (trim((string)$r['email']) !== ''): ?>        <div><a href="mailto:<?= htmlspecialchars($r['email']) ?>"><?= htmlspecialchars($r['email']) ?></a></div><?php endif; ?>
+        <?= af_contacts_html(af_contacts($r)) ?>
 <?php if (trim((string)$r['website']) !== ''): ?>        <div><a href="<?= htmlspecialchars($r['website']) ?>" target="_blank" rel="noopener">Website</a></div><?php endif; ?>
       </div>
 <?php endforeach; ?>    </div>

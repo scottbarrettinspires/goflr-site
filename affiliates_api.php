@@ -1,7 +1,8 @@
 <?php
 // Favorite Affiliated Businesses as JSON for the signed-in agent (page widgets and assistants via the FLR MCP).
 // GET  -> {ok, categories:{key:label}, affiliates:{key:[{id, name, contact, phone, email, website, notes}]}}
-// POST JSON {csrf, action:'save', cat, name, contact?, phone?, email?, website?, notes?, id? (to update)} -> {ok, id}
+// POST JSON {csrf, action:'save', cat, name, contact?, role?, phone?, email?, contact2?, role2?, phone2?, email2?, website?, notes?, id? (to update)} -> {ok, id}
+// (pictures are uploaded from the Affiliates page, not this endpoint)
 // POST JSON {csrf, action:'delete', id} -> {ok}
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/afflib.php";
