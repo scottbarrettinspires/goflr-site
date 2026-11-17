@@ -9,6 +9,10 @@ $omMine = om_my_keys($_SESSION['email'] ?? '', flr_is_broker());
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $canLoginAs = flr_is_broker();
 $d = flr_directory();
+if ($d && !empty($d['agents'])) { // languages: the feed's own value wins; otherwise the snapshot from Agent Records (agent_languages.php)
+    $snap = (array)(@include __DIR__ . '/agent_languages.php');
+    foreach ($d['agents'] as &$pp) { if (empty($pp['languages']) && empty($pp['language'])) { $e = strtolower(trim((string)($pp['email'] ?? ''))); if ($e !== '' && isset($snap[$e])) $pp['languages'] = $snap[$e]; } } unset($pp);
+}
 // Languages other than English that a person speaks, from the Agent Records "Languages spoken" column ('Spanish, Haitian Creole').
 // The office script sends it as 'languages' (text or a list). Returns display names, e.g. ['Spanish', 'Haitian Creole'].
 function dir_langs($p) {
