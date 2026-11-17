@@ -3,6 +3,7 @@ require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php";
 require_once __DIR__ . "/msglib.php";
 require_once __DIR__ . "/favlib.php";
+require_once __DIR__ . "/afflib.php";
 $myEmail = strtolower(trim($_SESSION['email'] ?? ''));
 $myFavs = fav_list($myEmail);
 $omMine = om_my_keys($_SESSION['email'] ?? '', flr_is_broker());
@@ -67,6 +68,8 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
 .dtools{margin:0 0 18px}.dtools input{width:100%;max-width:420px;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin:0 0 32px}
 .dlang{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.dtools{display:flex;flex-wrap:wrap;gap:8px}
+.affmng{font-size:.8rem;font-weight:600;margin-left:8px}.acard{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:2px}.acard .atag{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#e07b39}.acard .dnm{font-weight:700}
+.amgr{display:flex;gap:12px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid #eef3f3}.amgr img{width:68px;height:68px;border-radius:50%;object-fit:cover;flex:none}
 .dcard{display:flex;gap:14px;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px}
 .dav{position:relative;flex:0 0 76px;width:76px;height:76px;border-radius:50%;overflow:hidden;background:var(--teal-soft);display:flex;align-items:center;justify-content:center;color:var(--teal);font-weight:700;font-size:1.4rem}
 .dav img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -129,6 +132,33 @@ foreach ($agentsAll as $i => $p) {
     $card = dir_card($p, '', $canLoginAs ? $_SESSION['csrf'] : null, in_array($k, $omMine, true) ? '' : $k, ($isMe || $em === '') ? null : $isFav, $i) . "\n";
     if ($isFav) { $favCards .= $card; $nFav++; } else { $restCards .= $card; $nRest++; }
 } ?>
+<?php
+$bk = (array)(@include __DIR__ . '/brokerage_affiliates.php'); $myAff = []; try { foreach (af_list($myEmail) as $ck => $rows) foreach ($rows as $r) $myAff[] = $r + ['catlabel' => AF_CATS[$ck]]; } catch (Throwable $e) {}
+$phf = function ($p) { return htmlspecialchars(dir_phone_fmt($p)); }; ?>
+  <section class="dsec dsecx" id="affsec"><h2>Your favorite affiliated businesses <a class="affmng" href="affiliates.php">Manage</a></h2>
+<?php if (!$myAff): ?>    <p class="note" style="margin:0">You haven't added any favorites yet. <a href="affiliates.php">Add your go-to title companies, lenders, inspectors and more</a>.</p>
+<?php else: ?>    <div class="dgrid"><?php foreach ($myAff as $r): ?>
+      <div class="acard"><div class="atag"><?= htmlspecialchars($r['catlabel']) ?></div><div class="dnm"><?= htmlspecialchars($r['name']) ?></div>
+<?php if (trim((string)$r['contact']) !== ''): ?>        <div class="dsub"><?= htmlspecialchars($r['contact']) ?></div><?php endif; ?>
+<?php if (trim((string)$r['phone']) !== ''): ?>        <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($r['phone'])) ?>"><?= $phf($r['phone']) ?></a></div><?php endif; ?>
+<?php if (trim((string)$r['email']) !== ''): ?>        <div><a href="mailto:<?= htmlspecialchars($r['email']) ?>"><?= htmlspecialchars($r['email']) ?></a></div><?php endif; ?>
+<?php if (trim((string)$r['website']) !== ''): ?>        <div><a href="<?= htmlspecialchars($r['website']) ?>" target="_blank" rel="noopener">Website</a></div><?php endif; ?>
+      </div>
+<?php endforeach; ?>    </div>
+<?php endif; ?>
+  </section>
+<?php if (!empty($bk['companies'])): ?>  <section class="dsec dsecx" id="bkaffsec"><h2><?= htmlspecialchars($bk['brokerage'] ?? 'Brokerage') ?> affiliated companies</h2>
+    <div class="dgrid"><?php foreach ($bk['companies'] as $c): $m = (array)($c['manager'] ?? []); ?>
+      <div class="acard acbig"><div class="atag"><?= htmlspecialchars($c['kind'] ?? '') ?></div><div class="dnm"><?= htmlspecialchars($c['name']) ?></div>
+<?php if (!empty($c['website'])): ?>        <div><a href="<?= htmlspecialchars($c['website']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(preg_replace('~^https?://~', '', $c['website'])) ?></a></div><?php endif; ?>
+<?php if ($m): ?>        <div class="amgr"><?php if (!empty($m['photo'])): ?><img src="affphoto.php?f=<?= urlencode($m['photo']) ?>" alt="<?= htmlspecialchars($m['name'] ?? '') ?>" loading="lazy" onerror="this.remove()"><?php endif; ?>
+          <div><b><?= htmlspecialchars($m['name'] ?? '') ?></b><div class="dsub"><?= htmlspecialchars($m['title'] ?? 'Manager') ?></div>
+<?php if (!empty($m['phone'])): ?>          <div><a href="tel:<?= htmlspecialchars(dir_phone_digits($m['phone'])) ?>"><?= $phf($m['phone']) ?></a></div><?php endif; ?>
+<?php if (!empty($m['email'])): ?>          <div><a href="mailto:<?= htmlspecialchars($m['email']) ?>"><?= htmlspecialchars($m['email']) ?></a></div><?php endif; ?></div></div><?php endif; ?>
+      </div>
+<?php endforeach; ?>    </div>
+  </section>
+<?php endif; ?>
   <section class="dsec" id="favsec"<?= $nFav ? '' : ' style="display:none"' ?>><h2>&#9733; Favorites <span id="favn"><?= $nFav ?></span></h2><div class="dgrid" id="favgrid">
 <?= $favCards ?>  </div></section>
   <section class="dsec"><h2>Active agents <span id="restn"<?= $canLoginAs ? '' : ' hidden' ?>><?= $nRest ?></span></h2><div class="dgrid" id="restgrid">
@@ -142,7 +172,7 @@ foreach ($agentsAll as $i => $p) {
 <script>
 (function(){var q=document.getElementById("q");if(!q)return;var lg=document.getElementById("lang");function run(){var v=q.value.trim().toLowerCase(),l=lg?lg.value:"",n=0;
 [].forEach.call(document.querySelectorAll(".dcard"),function(c){var m=(!v||c.dataset.s.indexOf(v)>-1)&&(!l||(c.dataset.lang||"").indexOf("|"+l+"|")>-1);c.style.display=m?"":"none";if(m)n++;});
-[].forEach.call(document.querySelectorAll(".dsec"),function(s){s.style.display=s.querySelector(".dcard:not([style*='none'])")?"":"none";});
+[].forEach.call(document.querySelectorAll(".dsec"),function(s){s.style.display=s.classList.contains("dsecx")?((v||l)?"none":""):(s.querySelector(".dcard:not([style*='none'])")?"":"none");});
 document.getElementById("none").hidden=n>0;}q.addEventListener("input",run);if(lg)lg.addEventListener("change",run);})();
 // Favorites: star an agent to move them into Favorites at the top (saved for you only).
 (function(){var fg=document.getElementById("favgrid"),rg=document.getElementById("restgrid"),fs=document.getElementById("favsec");if(!fg||!rg)return;
