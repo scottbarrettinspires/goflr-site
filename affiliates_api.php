@@ -7,7 +7,7 @@ require __DIR__ . "/guard.php";
 require_once __DIR__ . "/afflib.php";
 header('Content-Type: application/json'); header('Cache-Control: no-store');
 $me = $_SESSION['email'];
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { echo json_encode(['ok' => true, 'categories' => AF_CATS, 'affiliates' => af_list($me)]); exit; }
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { echo json_encode(['ok' => true, 'categories' => af_cats_sorted(), 'brokerage_affiliates' => af_brokerage(), 'affiliates' => af_list($me)]); exit; }
 $j = json_decode((string)file_get_contents('php://input'), true) ?: $_POST;
 if (!hash_equals((string)($_SESSION['csrf'] ?? ''), (string)($j['csrf'] ?? ''))) { http_response_code(403); echo json_encode(['ok' => false, 'msg' => 'This page expired. Please reload and try again.']); exit; }
 $a = (string)($j['action'] ?? '');

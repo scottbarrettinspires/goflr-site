@@ -27,6 +27,7 @@ sp_head('Favorite Affiliated Businesses');
 .afr .who{flex:1;min-width:0;display:block}.afr .nm{font-weight:700}.afr .meta{font-size:.85rem;color:#4b5b5d;margin-top:2px;display:flex;flex-wrap:wrap;gap:2px 14px}.afr .meta a{color:var(--teal)}
 .afr .nt{font-size:.85rem;color:#5a6a6c;margin-top:4px;white-space:pre-line}
 .afq{display:flex;gap:4px;flex:none}.afq a,.afq button{display:inline-flex;width:30px;height:30px;border-radius:9px;align-items:center;justify-content:center;background:var(--teal-soft);color:var(--teal);text-decoration:none;font-size:.85rem;border:0;cursor:pointer;font-family:inherit}
+.afbk{background:#f4fafa;border-color:#bfdcdc}.bktag{font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#fff;background:var(--teal);border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}
 .afempty{color:#6a777a;font-size:.9rem;margin:0;padding:6px 0}
 dialog.afd{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 32px));box-shadow:0 20px 60px rgba(0,0,0,.25)}dialog.afd::backdrop{background:rgba(15,30,32,.45)}
 .afd form{padding:20px 22px}.afd h2{margin:0 0 12px;font-size:1.2rem}
@@ -38,14 +39,19 @@ dialog.afd{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 32
 @media(max-width:520px){.afg{grid-template-columns:1fr}.afr{flex-wrap:wrap}.afq{margin-left:auto}}
 </style>
 <div class="afw">
-  <p class="afintro">Keep your go-to vendors in one place. Use <b>+ ADD</b> in any category to save another one.</p>
+  <p class="afintro">Keep your go-to vendors in one place. Use <b>+ ADD</b> in any category to save another one. Brokerage affiliates are always listed first as the top choice.</p>
 <?php if ($err): ?>  <p class="sigerr"><?= $h($err) ?></p>
 <?php elseif (!empty($_GET['ok'])): ?>  <p class="note"><?= $_GET['ok'] === 'del' ? 'Removed.' : 'Saved.' ?></p>
 <?php endif; ?>
-<?php foreach (AF_CATS as $k => $label): $rows = $list[$k]; ?>
+<?php foreach (af_cats_sorted() as $k => $label): $rows = $list[$k]; $bkc = af_brokerage($k); ?>
   <div class="afc" id="<?= $h($k) ?>">
-    <div class="afh"><h2><?= $h($label) ?></h2><span class="n"><?= count($rows) ?></span><button type="button" class="afadd" data-cat="<?= $h($k) ?>">+ ADD</button></div>
-<?php if (!$rows): ?>    <p class="afempty">None saved yet.</p>
+    <div class="afh"><h2><?= $h($label) ?></h2><span class="n"><?= count($rows) + count($bkc) ?></span><button type="button" class="afadd" data-cat="<?= $h($k) ?>">+ ADD</button></div>
+<?php foreach ($bkc as $c): $m = (array)($c['manager'] ?? []); $bd = preg_replace('/[^0-9+]/', '', (string)($m['phone'] ?? '')); ?>
+    <div class="afr afbk"><div class="who"><div class="nm"><?= $h($c['name']) ?> <span class="bktag">FLR affiliate &middot; top choice</span></div>
+      <div class="meta"><?php if (!empty($m['name'])): ?><span><?= $h($m['name']) ?></span><?php endif; ?><?php if (!empty($m['phone'])): ?><span><?= $h($m['phone']) ?></span><?php endif; ?><?php if (!empty($m['email'])): ?><a href="mailto:<?= $h($m['email']) ?>"><?= $h($m['email']) ?></a><?php endif; ?><?php if (!empty($c['website'])): ?><a href="<?= $h($c['website']) ?>" target="_blank" rel="noopener"><?= $h(preg_replace('~^https?://(www\.)?~i', '', rtrim($c['website'], '/'))) ?></a><?php endif; ?></div></div>
+      <span class="afq"><?php if ($bd !== ''): ?><a href="tel:<?= $h($bd) ?>" title="Call">&#9742;</a><?php endif; ?><?php if (!empty($m['email'])): ?><a href="mailto:<?= $h($m['email']) ?>" title="Email">&#9993;</a><?php endif; ?></span></div>
+<?php endforeach; ?>
+<?php if (!$rows && !$bkc): ?>    <p class="afempty">None saved yet.</p>
 <?php endif; foreach ($rows as $r): $dig = preg_replace('/[^0-9+]/', '', (string)$r['phone']); ?>
     <div class="afr" id="a<?= (int)$r['id'] ?>">
       <div class="who"><div class="nm"><?= $h($r['name']) ?></div>
@@ -63,7 +69,7 @@ dialog.afd{border:0;border-radius:16px;padding:0;width:min(520px,calc(100vw - 32
   <h2 id="aft">Add a business</h2>
   <input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="op" value="save"><input type="hidden" name="id" id="af_id">
   <div class="afg">
-    <label class="full">Category<select name="cat" id="af_cat"><?php foreach (AF_CATS as $k => $l): ?><option value="<?= $h($k) ?>"><?= $h($l) ?></option><?php endforeach; ?></select></label>
+    <label class="full">Category<select name="cat" id="af_cat"><?php foreach (af_cats_sorted() as $k => $l): ?><option value="<?= $h($k) ?>"><?= $h($l) ?></option><?php endforeach; ?></select></label>
     <label class="full">Business name<input name="name" id="af_name" maxlength="120" required></label>
     <label>Contact person<input name="contact" id="af_contact" maxlength="120"></label>
     <label>Phone<input name="phone" id="af_phone" inputmode="tel" maxlength="40"></label>

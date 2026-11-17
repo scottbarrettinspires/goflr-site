@@ -14,6 +14,15 @@ const AF_CATS = [
 ];
 const AF_FIELDS = ['name' => 120, 'contact' => 120, 'phone' => 40, 'email' => 160, 'website' => 200, 'notes' => 600];
 
+// Category keys in alphabetical order by label (how every list shows them).
+function af_cats_sorted() { $c = AF_CATS; asort($c, SORT_NATURAL | SORT_FLAG_CASE); return $c; }
+// The brokerage's own affiliated companies in one category (always shown first, for every agent). See brokerage_affiliates.php.
+function af_brokerage($cat = null) {
+    $cfg = (array)(@include __DIR__ . '/brokerage_affiliates.php'); $out = [];
+    foreach ((array)($cfg['companies'] ?? []) as $c) { if ($cat === null || ($c['cat'] ?? '') === $cat) $out[] = $c; }
+    return $out;
+}
+
 function af_db() {
     static $done = false; $pdo = flr_db();
     if (!$done) { $done = true;

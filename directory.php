@@ -133,11 +133,11 @@ foreach ($agentsAll as $i => $p) {
     if ($isFav) { $favCards .= $card; $nFav++; } else { $restCards .= $card; $nRest++; }
 } ?>
 <?php
-$bk = (array)(@include __DIR__ . '/brokerage_affiliates.php'); $myAff = []; try { foreach (af_list($myEmail) as $ck => $rows) foreach ($rows as $r) $myAff[] = $r + ['catlabel' => AF_CATS[$ck]]; } catch (Throwable $e) {}
+$bk = (array)(@include __DIR__ . '/brokerage_affiliates.php'); $myAff = []; try { $al = af_list($myEmail); foreach (af_cats_sorted() as $ck => $cl) foreach ($al[$ck] as $r) $myAff[] = $r + ['catlabel' => $cl]; } catch (Throwable $e) {}
 $phf = function ($p) { return htmlspecialchars(dir_phone_fmt($p)); }; ?>
   <section class="dsec dsecx" id="affsec"><h2>Affiliates <a class="affmng" href="affiliates.php">Manage my favorites</a></h2>
 <?php if (!$myAff && empty($bk['companies'])): ?>    <p class="note" style="margin:0">You haven't added any favorites yet. <a href="affiliates.php">Add your go-to title companies, lenders, inspectors and more</a>.</p>
-<?php else: ?>    <div class="dgrid"><?php foreach ((array)($bk['companies'] ?? []) as $c): $m = (array)($c['manager'] ?? []); ?>
+<?php else: ?>    <div class="dgrid"><?php $bkl = (array)($bk['companies'] ?? []); usort($bkl, function ($x, $y) { return strcasecmp((string)(AF_CATS[$x['cat'] ?? ''] ?? ''), (string)(AF_CATS[$y['cat'] ?? ''] ?? '')); }); foreach ($bkl as $c): $m = (array)($c['manager'] ?? []); ?>
       <div class="acard acbig"><div class="atag"><?= htmlspecialchars($c['kind'] ?? '') ?></div><div class="dnm"><?= htmlspecialchars($c['name']) ?></div>
 <?php if (!empty($c['website'])): ?>        <div><a href="<?= htmlspecialchars($c['website']) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(preg_replace('~^https?://~', '', $c['website'])) ?></a></div><?php endif; ?>
 <?php if ($m): ?>        <div class="amgr"><?php if (!empty($m['photo'])): ?><img src="affphoto.php?f=<?= urlencode($m['photo']) ?>" alt="<?= htmlspecialchars($m['name'] ?? '') ?>" loading="lazy" onerror="this.remove()"><?php endif; ?>
