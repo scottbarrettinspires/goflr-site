@@ -13,8 +13,7 @@ $addr = trim(preg_replace('/\s+/', ' ', (string)($j['property'] ?? '')));
 $b64 = (string)($j['b64'] ?? ''); $b64d = (string)($j['b64d'] ?? ''); $b64f = (string)($j['b64f'] ?? ''); $b64fd = (string)($j['b64fd'] ?? '');
 if ($b64 === '' || strlen($b64) > 60000000 || strlen($b64d) > 60000000) out(['ok' => false, 'msg' => 'empty']);
 if ($addr === '' || strlen($addr) > 120 || preg_match('/[\\\\\/:*?"<>|]/', $addr)) out(['ok' => false, 'msg' => 'address']);
-$all = preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) ? (sg_folders($_SESSION['email'], $tx) ?: []) : [];
-$pick = null; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $pick = $f; }
+$pick = sg_buyer_pick($_SESSION['email'], $tx);
 if (!$pick) out(['ok' => false, 'msg' => 'folder']);
 $d = gmdate('Y-m-d');
 $r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'hint' => $tx, 'offerAddress' => $addr, 'subfolder' => 'Drafts - Not Signed', 'name' => 'Contract Packet (draft, editable) - ' . $d . '.pdf', 'b64' => $b64]);

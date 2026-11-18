@@ -6,8 +6,7 @@ header('Cache-Control: no-store');
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = $_SESSION['email'];
 $tx = (string)($_GET['tx'] ?? '');
-$all = preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) ? (sg_folders($me, $tx) ?: []) : [];
-$buyer = null; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $buyer = $f; }
+$buyer = sg_buyer_pick($me, $tx);
 $draft = $buyer && (string)($_GET['draft'] ?? '') === '1';
 $files = ($buyer && !$draft) ? sg_packets($me, $tx) : null;
 $id = (string)($_GET['id'] ?? '');

@@ -411,3 +411,12 @@ function sg_refresh_many(&$recs, $max = 8) {
     }
     curl_multi_close($mh);
 }
+
+// The buyer folder record for $tx (stage-1 'Buyers' group): from the office script, or, for buyer records the site holds itself (sample and not-yet-filed
+// buyers), from the local transaction list. Returns the folder array {id,name,group} or null.
+function sg_buyer_pick($me, $tx) {
+    if (!preg_match('/^[A-Za-z0-9_-]{10,80}$/', (string)$tx)) return null;
+    foreach ((sg_folders($me, $tx) ?: []) as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') return $f; }
+    try { require_once __DIR__ . '/flrdb.php'; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === $tx && $t['side'] === 'buyer') return ['id' => $tx, 'name' => (string)$t['name'], 'group' => '1 BUYERS / 1 Buyers']; } } catch (Throwable $e) {}
+    return null;
+}

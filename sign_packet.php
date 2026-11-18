@@ -10,6 +10,7 @@ $all = sg_folders($me, (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''))) ?: [];
 $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
 $tx = (string)($_GET['tx'] ?? ($_POST['tx'] ?? ''));
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
+if (!$buyer) $buyer = sg_buyer_pick($me, $tx);
 $dr = trim(preg_replace('/\s+/', ' ', (string)($_GET['dr'] ?? ($_POST['dr'] ?? ''))));
 if ($dr !== '' && (strlen($dr) > 120 || preg_match('/[\\\\\/:*?"<>|]/', $dr))) $dr = '';
 $drRes = ($buyer && $dr !== '') ? sg_drafts($me, $buyer['id'], $dr) : null;
