@@ -3,6 +3,7 @@
 // like a stage (Shop Homes, Make An Offer...), and on its own page with the site header when opened full-size.
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/doclib.php";
+require_once __DIR__ . "/sharelib.php";
 require_once __DIR__ . "/subpage.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? ''); $tx = (string)($_GET['tx'] ?? '');
@@ -24,6 +25,9 @@ $ICON = [
   <p class="sigerr"><?= $h($j['msg'] ?? 'Could not load the documents.') ?></p>
 <?php else: ?>
 <?php if ($j['folder_url'] !== ''): ?>  <div style="text-align:right;margin:0 0 6px"><a href="<?= $h($j['folder_url']) ?>" target="_blank" rel="noopener" style="font-weight:700;color:#036f72">Open the Drive folder</a></div><?php endif; ?>
+<?php if ($j['count']): $ss = sh_kv_get('sellersent:' . $tx); ?>
+  <div class="pdr" style="display:flex"><b>Contract offer to the listing agent</b><small><?= !empty($ss['last']) ? 'Last sent to ' . $h($ss['last']['to']) . ' on ' . $h($fd($ss['last']['at'])) . '. ' : '' ?>The contract is not valid until the seller signs.</small><a href="seller_send.php?tx=<?= urlencode($tx) ?>" target="_blank" rel="noopener" style="font-weight:800">Send To Listing Agent</a></div>
+<?php endif; ?>
 <?php if ($j['needs_upload']): ?>
   <h3 style="color:#b71c1c">Needs a signed copy uploaded</h3>
 <?php foreach ($j['needs_upload'] as $u): ?>

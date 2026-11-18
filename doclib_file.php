@@ -6,10 +6,10 @@ function dcf_ref($ref) {
     if (!preg_match('/^([A-Za-z0-9_-]{6,80})\.(m|\d{1,2})$/', (string)$ref, $m)) return null;
     return [$m[1], $m[2]];
 }
-function dcf_bytes($me, $ref) {
+function dcf_bytes($me, $ref, $skipOwner = false) { // $skipOwner only for a share link the agent created (sharelib.php)
     $p = dcf_ref($ref); if (!$p) return ['ok' => false, 'msg' => 'That document link is not valid.'];
     $rec = sg_load($p[0]);
-    if (!$rec || strtolower((string)($rec['agent'] ?? '')) !== strtolower(trim((string)$me))) return ['ok' => false, 'msg' => 'That document was not found in your business.'];
+    if (!$rec || (!$skipOwner && strtolower((string)($rec['agent'] ?? '')) !== strtolower(trim((string)$me)))) return ['ok' => false, 'msg' => 'That document was not found in your business.'];
     $x = $p[1] === 'm' ? null : (($rec['extra'][(int)$p[1]] ?? null));
     if ($p[1] !== 'm' && !$x) return ['ok' => false, 'msg' => 'That document was not found.'];
     $title = $x ? (string)($x['form'] ?? 'Document') : (string)($rec['form'] ?? 'Document');

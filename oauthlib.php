@@ -128,3 +128,30 @@ function oa_finish($email, $state, $code) {
     flr_audit(flr_akey($email), 'connector_on', $p, 'Connected' . ($acct !== '' ? ' as ' . $acct : ''));
     return [true, $p];
 }
+
+// ---- Gmail: send a plain-text email as the agent (connector "gmail", scope gmail.send). Returns '' on success or a readable error. ----
+function oa_google_access($email, $p = 'gmail') {
+    $r = oa_rows($email)[$p] ?? null; if (!$r || !(int)($r['on_flag'] ?? 0)) return [null, 'Connect Gmail in Settings first (Connectors), then try again.'];
+    $t = oa_dec($r['tokens'] ?? ''); if (!is_array($t) || empty($t['access_token'])) return [null, 'Gmail needs to be reconnected in Settings (Connectors).'];
+    if (time() < (int)($t['obtained'] ?? 0) + (int)($t['expires_in'] ?? 3600) - 120) return [$t['access_token'], ''];
+    $cfg = oa_cfg()['google'] ?? []; if (empty($t['refresh_token']) || empty($cfg['id'])) return [null, 'Gmail needs to be reconnected in Settings (Connectors).'];
+    list($code, $n) = oa_http('POST', 'https://oauth2.googleapis.com/token', ['client_id' => $cfg['id'], 'client_secret' => $cfg['secret'], 'refresh_token' => $t['refresh_token'], 'grant_type' => 'refresh_token']);
+    if (empty($n['access_token'])) return [null, 'Gmail needs to be reconnected in Settings (Connectors).'];
+    $t['access_token'] = $n['access_token']; $t['expires_in'] = (int)($n['expires_in'] ?? 3600); $t['obtained'] = time();
+    oa_set($email, $p, ['tokens' => oa_enc($t)]);
+    return [$t['access_token'], ''];
+}
+function oa_gmail_send($email, $to, $subject, $body, $cc = '') {
+    if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return 'Please check the email address.';
+    list($tok, $err) = oa_google_access($email); if ($tok === null) return $err;
+    $enc = function ($s) { return preg_match('/[^\x20-\x7E]/', $s) ? '=?UTF-8?B?' . base64_encode($s) . '?=' : $s; };
+    $h = ['To: ' . $to]; if ($cc !== '' && filter_var($cc, FILTER_VALIDATE_EMAIL)) $h[] = 'Cc: ' . $cc;
+    $h[] = 'Subject: ' . $enc(str_replace(["\r", "\n"], ' ', $subject)); $h[] = 'MIME-Version: 1.0'; $h[] = 'Content-Type: text/plain; charset=UTF-8'; $h[] = 'Content-Transfer-Encoding: base64';
+    $raw = implode("\r\n", $h) . "\r\n\r\n" . chunk_split(base64_encode($body));
+    $ch = curl_init('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
+    curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $tok, 'Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['raw' => oa_b64url($raw)])]);
+    $b = curl_exec($ch); $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    if ($code >= 200 && $code < 300) return '';
+    $j = json_decode((string)$b, true);
+    return 'Gmail did not send it' . (!empty($j['error']['message']) ? ': ' . $j['error']['message'] : '.') . ($code === 401 || $code === 403 ? ' Reconnect Gmail in Settings and try again.' : '');
+}
