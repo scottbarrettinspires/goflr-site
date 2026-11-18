@@ -392,15 +392,13 @@ btn.addEventListener('click',async function(){
     if(row.todo)warn.push('A form for "'+row.answer+'" has not been added to the rules yet.');
   }
   var want=[];picked.forEach(function(r){r.forms.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});});
-  var REQ=[]; // required by the property information: HOA rider, CDD addendum, condominium rider, lead-based paint (built before 1978)
-  if(ofEl('hoa').value==='yes')REQ.push('Realtor_Res_HOA_Community_Disclosure.pdf');
-  if(ofEl('cdd').value==='yes')REQ.push('Realtor_Res_Community_Development_District_Addendum.pdf');
-  if(ofEl('property_type').value==='Condominium')REQ.push('Realtor_Res_Condominium_Rider.pdf');
-  var ybq=parseInt(ofEl('year_built').value,10);if(ybq>0&&ybq<1978)REQ.push('Realtor_Res_Lead_Based_Paint_Disclosure.pdf');
-  REQ.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});
+  // HOA rider, condominium rider, lead-based paint and CDD addendum come from the seller, already completed, before the buyer signs: they are never merged into the buyer's packet.
+  // They are tracked as required documents (Document Records) from the MLS / agent-entered property data instead (doclib.php dc_required_rules).
+  var SELLER_FORMS=['Realtor_Res_HOA_Community_Disclosure.pdf','Realtor_Res_Community_Development_District_Addendum.pdf','Realtor_Res_Condominium_Rider.pdf','Realtor_Res_Lead_Based_Paint_Disclosure.pdf'];
   [].forEach.call(document.querySelectorAll('#xf .xfc:checked'),function(c){if(c.closest('label').style.display!=='none'&&want.indexOf(c.value)<0)want.push(c.value);}); // extra contingency forms the agent ticked
   (R.order||[]).forEach(function(o){if(o.always&&want.indexOf(o.file)<0)want.push(o.file);}); // forms marked Always in the rules sheet go in every packet
   var pos=function(f){for(var i=0;i<R.order.length;i++){if(R.order[i].file===f)return R.order[i].n;}return 9999;};
+  want=want.filter(function(f){return SELLER_FORMS.indexOf(f)<0;});
   want.sort(function(a,b){return pos(a)-pos(b);});
   var use=[];
   want.forEach(function(f){ if(R.files[f]) use.push(f); else warn.push(/\.pdf$/i.test(f)?'The file '+f+' was not found in the Buyer Forms folder, so it is not in the packet.':'Not in the packet yet: '+f+'.'); });
