@@ -355,6 +355,8 @@ function fail(m){err.textContent=m;err.hidden=false;btn.disabled=false;btn.textC
 function num(v){return String(v||'').replace(/[$,%\s,]/g,'');}
 btn.addEventListener('click',async function(){
   err.hidden=true;res.hidden=true;
+  btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Building... this can take a minute'; // show the spinner the instant the button is pressed, before the saving and checking below
+  await new Promise(function(r){requestAnimationFrame(function(){setTimeout(r,30);});});
   if(!txSel.value)return fail('Please choose the buyer first.');
   ofSync();
   if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim()){mlsShowFields(true);return fail('Please enter the property address (street number, street name, city and zip).');}
