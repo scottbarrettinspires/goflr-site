@@ -15,7 +15,7 @@ $fd = function ($d) { $t = strtotime((string)$d); return $t ? date('M j, Y', $t)
 <?php if (empty($j['ok'])): ?>
   <p class="sigerr"><?= $h($j['msg'] ?? 'Could not load the documents.') ?></p>
 <?php else: ?>
-  <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 0 6px"><strong>Document tracker for <?= $h($j['name']) ?></strong><?php if ($j['folder_url'] !== ''): ?><a href="<?= $h($j['folder_url']) ?>" target="_blank" rel="noopener" style="font-weight:700;color:#036f72">Open the Drive folder</a><?php endif; ?></div>
+<?php if ($j['folder_url'] !== ''): ?>  <div style="text-align:right;margin:0 0 6px"><a href="<?= $h($j['folder_url']) ?>" target="_blank" rel="noopener" style="font-weight:700;color:#036f72">Open the Drive folder</a></div><?php endif; ?>
 <?php if ($j['needs_upload']): ?>
   <h3 style="color:#b45309">Needs a signed copy uploaded</h3>
 <?php foreach ($j['needs_upload'] as $u): ?>
