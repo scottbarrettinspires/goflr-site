@@ -116,6 +116,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s3">County<input type="text" id="of_county" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s3">Property tax ID (parcel)<input type="text" id="of_parcel_id" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s12">Legal description<textarea id="of_legal_desc" rows="3" maxlength="800" autocomplete="nope" data-lpignore="true" data-form-type="other" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:9px 11px;border:1px solid #d7e2e2;border-radius:9px;font:inherit;font-weight:400;font-size:.95rem"></textarea></label>
+        <label class="s12">Other personal property included (for example washer, dryer, microwave)<input type="text" id="of_personal_prop" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s4"><strong>Purchase Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="450,000"></label>
         <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="5,000"><span class="cdq" id="esq"><button type="button" class="btn ghost sm" data-a="1000">$1,000</button><button type="button" class="btn ghost sm" data-a="2000">$2,000</button><button type="button" class="btn ghost sm" data-p="1">1%</button><button type="button" class="btn ghost sm" data-p="2">2%</button></span></label>
         <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="360,000"><span class="cdq" id="fnq"><button type="button" class="btn ghost sm" data-d="3.5">3.5% down</button><button type="button" class="btn ghost sm" data-d="5">5% down</button><button type="button" class="btn ghost sm" data-d="10">10% down</button><button type="button" class="btn ghost sm" data-d="20">20% down</button></span></label>
@@ -154,7 +155,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=25"></script>
+<script src="wizlib.js?v=26"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -226,6 +227,7 @@ function fillMap(){
   (function(){var s=function(k){return String((ofEl(k)||{}).value||'').trim();},la=[s('oa_first'),s('oa_last')].filter(Boolean).join(' ');
     if(la){m.ListingAgent_Name=la;m.ListingAgent_NameLicense=la;} if(s('oa_brokerage'))m.ListingBroker_Name=s('oa_brokerage'); if(s('oa_email'))m.ListingAgent_Email=s('oa_email'); if(s('oa_phone'))m.ListingAgent_Phone=s('oa_phone');})();
   m.Price_AdditionalDeposit='0.00'; m.Price_Other='0.00'; // 2(b) additional deposit and 2(d) other: default $0.00
+  if(String((ofEl('personal_prop')||{}).value||'').trim())m.Property_Included=String(ofEl('personal_prop').value).trim(); // wizlib spreads it over the contract's lines
   m.Rad_Assignability='MayNotAssign'; // contract paragraph 7: default to "may not assign"
   m.Rad_DepositTiming='WithinDays'; m.Term_DepositDays='3'; // contract 2(a): always default to option (ii), deposit due within 3 days after the Effective Date
   var sv=function(k){return String((ofEl(k)||{}).value||'').trim();};
@@ -260,7 +262,7 @@ txSel.addEventListener('change',loadInfo);
 qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')return;var lb=t.closest('label'),tx=lb?lb.textContent:'';if(!/purchase|payment|cash|financ/i.test(tx))return;var xF=document.getElementById('xf_F');if(!xF)return;if(/^\s*cash/i.test(tx))xF.style.display='';else if(/financ/i.test(tx)){xF.style.display='none';var c=xF.querySelector('input');if(c)c.checked=false;}});
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
-var OFK=['seller_names','county','parcel_id','legal_desc','esc_name','esc_address','esc_phone','esc_email','escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+var OFK=['personal_prop','seller_names','county','parcel_id','legal_desc','esc_name','esc_address','esc_phone','esc_email','escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
 var CDH=<?= json_encode((function(){require_once __DIR__.'/dlib.php';$o=[];$y=(int)date('Y');for($i=0;$i<=3;$i++)$o+=dl_holidays($y+$i);return $o;})(), JSON_UNESCAPED_SLASHES) ?>;
 function ofPrice(){return parseFloat(String(document.getElementById('pprice').value).replace(/[^0-9.]/g,''))||0;}
 function ofMoney(n){return (Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -345,7 +347,7 @@ function mlsAnswers(x){if(x)MLSX=x;if(!(ofEl('mls_id').value||'').trim())return;
   if(h&&c){var both=h==='yes'&&c==='yes',onlyH=h==='yes'&&c==='no',onlyC=h==='no'&&c==='yes';
     mlsPick(/(\bhoa\b|homeowner|association).*(\bcdd\b|community development)|(\bcdd\b|community development).*(\bhoa\b|homeowner|association)/i,both?/both|hoa.*cdd|cdd.*hoa/i:onlyH?/^(?!.*cdd).*hoa/i:onlyC?/^(?!.*hoa).*cdd/i:/neither|^none|^no\b/i);}}
 ofEl('property_type').addEventListener('change',function(){mlsAnswers();});
-var MLSF=['street_number','street_name','unit','city','state','zip','year_built','annual_taxes','property_type','seller_names','county','parcel_id','legal_desc'];
+var MLSF=['street_number','street_name','unit','city','state','zip','year_built','annual_taxes','property_type','seller_names','county','parcel_id','legal_desc','personal_prop'];
 // HOA and CDD are answered by the MLS lookup: once it has filled them they are hidden (Edit brings them back); a blank one stays so the agent can answer it.
 function hcVis(){var collapsed=!document.getElementById('mls_card').hidden;['hoa','cdd'].forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=(collapsed&&ofEl(k).value)?'none':'';});}
 function mlsShowFields(on,keepAgent){var oa=['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].some(function(k){return (ofEl(k).value||'').trim();});['oa_head','oa_grid'].forEach(function(i){document.getElementById(i).style.display=(on||!oa)?'':'none';});MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});var offAg=!(on||!oa);MLSF.forEach(function(k){ofEl(k).disabled=!on;});['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].forEach(function(k){ofEl(k).disabled=offAg;}); // hidden address/agent inputs are disabled so Chrome does not treat hiding them as a submitted form and offer to save an address

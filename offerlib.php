@@ -6,7 +6,7 @@
 require_once __DIR__ . '/flrdb.php';
 require_once __DIR__ . '/sigtools.php';
 
-const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type', 'hoa', 'cdd', 'escrow_deposit', 'financed_amount', 'inspection_days', 'esc_name', 'esc_address', 'esc_phone', 'esc_email', 'seller_names', 'county', 'parcel_id', 'legal_desc'];
+const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type', 'hoa', 'cdd', 'escrow_deposit', 'financed_amount', 'inspection_days', 'esc_name', 'esc_address', 'esc_phone', 'esc_email', 'seller_names', 'county', 'parcel_id', 'legal_desc', 'personal_prop'];
 const OF_AGENT = ['oa_first', 'oa_last', 'oa_brokerage', 'oa_email', 'oa_phone'];
 const OF_PROP_TYPES = ['Residential', 'Condominium', 'Vacant Land']; // Residential covers single family, mobile/manufactured, duplex, triplex and townhome
 const OF_PROP_TYPES_OLD = ['Condo / Townhome', 'Mobile / Manufactured', 'Multi-Family', 'Commercial']; // still accepted on offers saved earlier
@@ -54,7 +54,7 @@ function of_get($me, $tx) {
 function of_save($me, $tx, array $in) {
     $own = of_own_buyer($me, $tx); if (!$own) return 'That buyer record was not found in your business.';
     $raw = of_raw($tx); $d = [];
-    foreach (array_merge(OF_PROP, OF_AGENT) as $k) $d[$k] = mb_substr(trim(preg_replace('/\s+/', ' ', (string)($in[$k] ?? ($raw[$k] ?? '')))), 0, $k === 'legal_desc' ? 800 : ($k === 'esc_address' || $k === 'seller_names' ? 200 : 120));
+    foreach (array_merge(OF_PROP, OF_AGENT) as $k) $d[$k] = mb_substr(trim(preg_replace('/\s+/', ' ', (string)($in[$k] ?? ($raw[$k] ?? '')))), 0, ($k === 'legal_desc' ? 800 : ($k === 'personal_prop' ? 300 : ($k === 'esc_address' || $k === 'seller_names' ? 200 : 120))));
     if ($d['state'] !== '' && !preg_match('/^[A-Za-z]{2}$/', $d['state'])) return 'State must be two letters, like FL.';
     $d['state'] = strtoupper($d['state']);
     if ($d['zip'] !== '' && !preg_match('/^\d{5}(-\d{4})?$/', $d['zip'])) return 'Zip code must be 5 digits.';

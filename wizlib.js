@@ -41,6 +41,16 @@
         // forms with only one 'Other' line (Vacant Land) get both items on that line
         var hasO2 = true; try { sf.getTextField('Addenda_Other_2'); } catch (e0) { hasO2 = false; }
         var fillF = fill; if (!hasO2 && fill.Addenda_Other_2) { fillF = Object.assign({}, fill); fillF.Addenda_Other_1 = (fill.Addenda_Other_1 ? fill.Addenda_Other_1 + ', ' : '') + fill.Addenda_Other_2; delete fillF.Addenda_Other_2; }
+        if (fill.Property_Included) { // spread the text over Property_Included_1, _2 ... by each line's width
+          if (fillF === fill) fillF = Object.assign({}, fill); delete fillF.Property_Included;
+          try {
+            var fnt = await out.embedFont(PL.StandardFonts.Helvetica), ws = [];
+            for (var q = 1; q <= 3; q++) { try { var wd = sf.getTextField('Property_Included_' + q).acroField.getWidgets()[0].getRectangle().width - 6; if (wd > 0) ws.push(wd); else break; } catch (eq) { break; } }
+            var words = String(fill.Property_Included).split(/\s+/), cur = '', li = 0;
+            words.forEach(function (wd2) { var t = cur ? cur + ' ' + wd2 : wd2; if (cur && fnt.widthOfTextAtSize(t, 10) > ws[li]) { if (li < ws.length) fillF['Property_Included_' + (li + 1)] = cur; li++; cur = wd2; } else cur = t; });
+            if (cur && li < ws.length) fillF['Property_Included_' + (li + 1)] = cur;
+          } catch (ef) {}
+        }
         Object.keys(fillF).forEach(function (k) { if (!fillF[k] || CUSTOMER_RE.test(k)) return; try { sf.getTextField(k).setText(String(fillF[k])); } catch (e) { try { sf.getRadioGroup(k).select(String(fillF[k])); } catch (e2) { try { sf.getCheckBox(k).check(); } catch (e3) {} } } });
       }
       if (sources[i].isContract && clauses && clauses.length) {

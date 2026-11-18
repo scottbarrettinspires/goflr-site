@@ -107,6 +107,9 @@ function mls_offer_fields(array $l) {
     if (array_key_exists('AssociationYN', $raw)) $hoa = $yn($raw['AssociationYN']);
     if ($hoa === '' && ((float)($raw['AssociationFee'] ?? 0) > 0 || trim((string)($raw['AssociationName'] ?? '')) !== '')) $hoa = 'yes';
     foreach ($raw as $k => $v) { if (preg_match('/cdd/i', (string)$k) && !is_array($v) && $yn($v) !== '') { $cdd = $yn($v); if ($cdd === 'yes') break; } }
+    $apl = $raw['Appliances'] ?? ($raw['AppliancesList'] ?? ''); $apl = strtolower(is_array($apl) ? implode(', ', array_map('strval', $apl)) : (string)$apl); $ppl = [];
+    if (preg_match('/(^|[^a-z])washer/', $apl)) $ppl[] = 'Washer'; if (preg_match('/dryer/', $apl)) $ppl[] = 'Dryer'; if (preg_match('/microwave/', $apl)) $ppl[] = 'Microwave';
+    $pp = implode(', ', $ppl);
     $own = trim((string)($raw['OwnerName'] ?? $raw['SellerName'] ?? ''));
     $esc = ''; foreach ($raw as $k => $v) { if (!is_array($v) && !preg_match('/phone|email|fax|address|url|key|date|amount|fee|yn$/i', (string)$k) && preg_match('/^(title|escrow).*(company|agent|name)|(company|agent|name).*(title|escrow)/i', (string)$k) && trim((string)$v) !== '') { $esc = trim((string)$v); break; } }
     return [
@@ -119,6 +122,7 @@ function mls_offer_fields(array $l) {
         'county' => trim(preg_replace('/\s+county$/i', '', trim((string)($raw['CountyOrParish'] ?? '')))),
         'parcel_id' => trim((string)($raw['ParcelNumber'] ?? $raw['TaxParcelNumber'] ?? $raw['TaxParcelID'] ?? '')),
         'legal_desc' => trim(preg_replace('/\s+/', ' ', (string)($raw['TaxLegalDescription'] ?? $raw['LegalDescription'] ?? ''))),
+        'personal_prop' => $pp, // washer / dryer / microwave when the MLS appliance list has them (the contract already lists the standard appliances)
         'seller_names' => $own, // owner name only if this MLS sends one (RESO OwnerName); most do not
         'esc_name' => $esc, // title company, only if the MLS record carries one in a field whose name mentions title/escrow; most listings do not
     ];
