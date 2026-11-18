@@ -177,7 +177,7 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
     $cur = ps_get($tx, $side, $driveStage);
     if ($side === 'buyer' && $cur === 'agreement' && ps_advance_after_agreement(strtolower((string)($_SESSION['email'] ?? '')), $tx, $side, $driveStage)) $cur = 'shopping';
     $o = '<div class="panel sigbox" style="margin-bottom:14px">';
-    $docBtn = '<button type="button" id="psdocbtn" class="btn ghost sm" aria-expanded="false" style="white-space:nowrap">&#128196; Documents</button>';
+    $docBtn = '<a id="psdocbtn" class="btn ghost sm" href="docs_view.php?tx=' . urlencode($tx) . '&amp;embed=1" target="pscontent" style="white-space:nowrap;text-decoration:none">&#128196; Documents</a>';
     $o .= $contact ? ps_contact_bar($side, $tx, $info) . '<div style="display:flex;justify-content:flex-end;margin:0 0 8px">' . $docBtn . '</div>'
         : '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px"><h2 style="margin:0;font-size:1.15rem">Progress To A Closed Sale</h2>' . $docBtn . '</div>';
     $o .= '<style>.psrow{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}.psrow>*{flex:1 1 0;min-width:min-content;scroll-snap-align:start}.psrow>*{font-size:.8rem!important;gap:4px!important}.psrow a,.psrow button{line-height:1.25}.psrow a{padding:3px 6px 3px 4px!important}.psrow>div>button{padding:3px 0 3px 7px!important}.psrow>button{padding:5px 10px!important}.psrow span[title]{min-width:18px!important;height:18px!important}@media(max-width:700px){.psrow>*{flex:0 0 150px}}</style>';
@@ -219,19 +219,6 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
         }
     }
     $o .= '</div></form></div>';
-    // "Documents": every executed document for this client with its Google Drive link, shown right under the stage buttons.
-    $o .= '<div id="psdocs" hidden style="border:1px solid #cfe3e2;background:#f6fbfb;border-radius:12px;padding:14px 16px"><p class="note" style="margin:0">Loading documents...</p></div>';
-    $o .= '<style>.pdg h3{margin:12px 0 6px;font-size:.95rem;color:#036f72}.pdg h3:first-child{margin-top:0}.pdr{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:8px 10px;background:#fff;border:1px solid #dfe9e9;border-radius:10px;margin:0 0 6px}.pdr b{flex:1 1 240px}.pdr small{color:#5a6a6c}.pdr a{font-weight:700;color:#036f72;text-decoration:none}.pdr a:hover{text-decoration:underline}</style>';
-    $o .= '<script>(function(){var b=document.getElementById("psdocbtn"),p=document.getElementById("psdocs"),done=false;if(!b||!p)return;
-function esc(x){return String(x==null?"":x).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",\'"\':"&quot;"}[c];});}
-function fd(d){if(!d)return"";var m=/^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(d);if(!m)return d;return["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m[2]-1]+" "+(+m[3])+", "+m[1];}
-function draw(j){if(!j.ok){p.innerHTML=\'<p class="sigerr" style="margin:0">\'+esc(j.msg||"Could not load the documents.")+"</p>";return;}
-var h=\'<div class="pdg"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 0 8px"><strong>Executed documents</strong>\'+(j.folder_url?\'<a href="\'+esc(j.folder_url)+\'" target="_blank" rel="noopener" style="font-weight:700;color:#036f72">Open the Drive folder</a>\':"")+"</div>";
-if(!j.count)h+=\'<p class="note" style="margin:0">No signed documents yet. Signed buyer agreements, contracts, addenda and disclosures appear here as soon as they are executed.</p>\';
-j.groups.forEach(function(g){h+="<h3>"+esc(g.label)+"</h3>";g.items.forEach(function(i){h+=\'<div class="pdr"><b>\'+esc(i.title)+"</b><small>"+(i.source==="upload"?"Uploaded signed copy":"Signed by e-signature")+(i.signed_on?" &middot; "+esc(fd(i.signed_on)):"")+"</small>"+(i.drive_url?\'<a href="\'+esc(i.drive_url)+\'" target="_blank" rel="noopener">Open in Google Drive</a>\':"")+(i.download_url?\'<a href="\'+esc(i.download_url)+\'">Download</a>\':"")+(i.folder?"<small>Filed in "+esc(i.folder)+"</small>":"")+(i.note?"<small>"+esc(i.note)+"</small>":"")+"</div>";});});
-if(j.waiting)h+=\'<p class="note" style="margin:8px 0 0">\'+j.waiting+" more out for signature. They appear here once everyone has signed.</p>";
-p.innerHTML=h+"</div>";}
-b.onclick=function(){var open=p.hidden;p.hidden=!open;b.setAttribute("aria-expanded",open?"true":"false");b.classList.toggle("on",open);if(open&&!done){done=true;fetch("docs_api.php?tx="+encodeURIComponent("' . $h($tx) . '"),{credentials:"same-origin"}).then(function(r){return r.json();}).then(draw).catch(function(){done=false;p.innerHTML=\'<p class="sigerr" style="margin:0">Could not load the documents. Please try again.</p>\';});}};})();</script>';
     // On a narrow screen the row scrolls sideways: start it at the current stage.
     $o .= '<script>(function(){var r=document.querySelectorAll(".psrow"),i;for(i=0;i<r.length;i++){var c=r[i].querySelector("[data-cur]");if(c&&r[i].scrollWidth>r[i].clientWidth)r[i].scrollLeft=Math.max(0,c.offsetLeft-r[i].offsetLeft-24);}})();</script>';
     // Below: the content panel. Every buyer stage (but Make An Offer) opens here; sellers' stages have no screens yet,
