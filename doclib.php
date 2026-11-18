@@ -16,11 +16,12 @@ require_once __DIR__ . '/doclib_file.php';
 // Documents the property information makes required: [label, title regex, reason]. Needs the property saved on the offer (Make A Contract Offer).
 // Flood Disclosure: every transaction. HOA rider: the property has an HOA. Lead-Based Paint: built before 1978. Condominium Rider: a condominium. CDD Disclosure: the property has a CDD.
 function dc_required_rules(array $of) {
+    // The purchase contract is never matched automatically: the agent assigns its exact pages from the contract packet (Assign). '/(?!)/' never matches.
     // [label, title regex (used only for documents whose contents were not recorded), reason, content keys that satisfy it]
     $pt = (string)($of['property_type'] ?? '');
-    if ($pt === 'Vacant Land') $r = [['Purchase Contract (Vacant Land)', '/vacant land|contract packet|contract documents|purchase contract/i', 'Required on every purchase: vacant land', ['contract_land']]];
-    elseif ($pt !== '') $r = [['Purchase Contract (As-Is Residential)', '/\bas.?is\b|residential contract|contract packet|contract documents|purchase contract/i', 'Required on every purchase: property with a dwelling or structure', ['contract_res']]];
-    else $r = [['Purchase Contract (As-Is Residential or Vacant Land)', '/contract packet|contract documents|purchase contract/i', 'Required on every purchase', ['contract_res', 'contract_land']]];
+    if ($pt === 'Vacant Land') $r = [['Purchase Contract (Vacant Land)', '/(?!)/', 'Required on every purchase: vacant land', ['contract_land']]];
+    elseif ($pt !== '') $r = [['Purchase Contract (As-Is Residential)', '/(?!)/', 'Required on every purchase: property with a dwelling or structure', ['contract_res']]];
+    else $r = [['Purchase Contract (As-Is Residential or Vacant Land)', '/(?!)/', 'Required on every purchase', ['contract_res', 'contract_land']]];
     $r[] = ['Flood Disclosure', '/flood/i', 'Required on every transaction (provided by the seller)', ['flood']];
     if (($of['hoa'] ?? '') === 'yes') $r[] = ['HOA / Community Disclosure (HOA Rider)', '/hoa|community disclosure/i', 'Required: the property has an HOA', ['hoa']];
     $yb = (int)($of['year_built'] ?? 0); if ($yb > 0 && $yb < 1978) $r[] = ['Lead-Based Paint Disclosure', '/lead.?based|lead paint/i', 'Required: built in ' . $yb . ' (before 1978)', ['lead']];

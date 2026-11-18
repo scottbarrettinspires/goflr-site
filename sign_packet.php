@@ -264,8 +264,7 @@ async function refresh(){
     else{a=await roles(pk&&pk.value);b=await roles(dk&&dk.value);}
     if(my!==seq)return;
     want.pk=a;want.dk=b;
-    try{var cs=[],pb=DRAFT?(dd.flat||dd.completed||dd.packet):await packetBytes(pk&&pk.value);
-      if(pb){var det=FLRDetect.contract(await FLRDetect.texts(pb));Object.keys(det).forEach(function(k){cs.push({doc:"Contract Packet",key:k,page:det[k]});});}
+    try{var cs=[];
       if(window.__sd){window.__sd.docs.forEach(function(d){(d.tags||[]).forEach(function(t){cs.push({doc:"Seller Disclosures",key:t.key,file:t.file,page:t.page,end:t.end});});});}
       document.getElementById("contents").value=JSON.stringify(cs);}catch(e2){document.getElementById("contents").value="[]";}
     Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
