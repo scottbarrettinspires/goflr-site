@@ -9,6 +9,8 @@ $tx = (string)($_GET['tx'] ?? '');
 $all = sg_folders($me, $tx) ?: [];
 $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $buyers[] = $f; }
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
+if (!$buyer && $tx !== '') $buyer = sg_buyer_pick($me, $tx);
+if ($buyer && !$buyers) $buyers[] = $buyer;
 $bi = []; $addr = '';
 if ($buyer) {
     $r = sg_buyer_info($me, $buyer['id']); $bi = (!empty($r['ok']) && is_array($r['info'] ?? null)) ? $r['info'] : [];

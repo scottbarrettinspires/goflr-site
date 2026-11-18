@@ -13,6 +13,7 @@ $me = $_SESSION['email'];
 $tx = (string)($j['tx'] ?? '');
 $all = preg_match('/^[A-Za-z0-9_-]{10,80}$/', $tx) ? (sg_folders($me, $tx) ?: []) : [];
 $buyer = null; foreach ($all as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') $buyer = $f; }
+if (!$buyer) $buyer = sg_buyer_pick($me, $tx);
 if (!$buyer) out(['ok' => false, 'msg' => 'Please open this from one of your buyer folders.']);
 $_SESSION['sig_n'] = array_filter($_SESSION['sig_n'] ?? [], function ($t) { return $t > time() - 3600; });
 if (count($_SESSION['sig_n']) >= 20) out(['ok' => false, 'msg' => 'Too many requests this hour. Please try again later.']);
