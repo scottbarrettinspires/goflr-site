@@ -115,13 +115,13 @@ function rv_css() {
 .rvep{flex:0 0 100%;margin:4px 0 0;padding:10px 0 0;border-top:1px solid var(--line,#dfe7e7)}.rvep iframe{display:block}
 .rvtab{font:inherit;font-weight:700;font-size:.92rem;color:var(--teal,#036f72);background:none;border:0;padding:0;cursor:pointer}.rvtab.on{text-decoration:underline}.rvtab .rvn{font-size:.72rem;background:#eef3f3;border-radius:99px;padding:1px 7px}.rvtab .rvcar{font-size:.75rem}
 .rvpanes{margin:10px 0 0;padding-top:10px;border-top:1px solid var(--line,#dfe7e7)}
-.rvh{background:var(--white,#fff);border:1px solid var(--line,#dfe7e7);border-radius:14px;padding:16px;margin:0 0 14px}
+.rvh{background:linear-gradient(135deg,#c7e6e6,#e3f2f1);border:1px solid #9ccaca;border-left:6px solid var(--teal,#036f72);border-radius:14px;padding:16px;margin:0 0 14px;box-shadow:0 4px 14px rgba(3,111,114,.14)}
 .rvtop{display:flex;gap:12px;align-items:center}.rvh .dot{width:14px;height:14px;border-radius:50%;flex:0 0 14px;border:1px solid rgba(0,0,0,.15)}
 .rvwho{flex:1;min-width:0}.rvnm{font-weight:800;font-size:1.35rem;line-height:1.2}.rvmeta{font-size:.88rem;color:#5a6a6c;margin-top:2px}
 .rvh .due{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
 .due.over{background:#fde2e1;color:#b71c1c}.due.today{background:#fff1d6;color:#8a5a00}.due.later{background:#eef3f3;color:#4b5b5d}
 .rvppl{margin:12px 0 0;display:flex;flex-direction:column;gap:8px}
-.rvp{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line,#dfe7e7);border-radius:12px}
+.rvp{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:10px 12px;border:1px solid #b9d9d9;border-radius:12px;background:#fff}
 .rvpi{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}.rvpi span{color:#4b5b5d;font-size:.9rem}
 .rvh .qa{display:flex;flex:0 0 auto}.rvh .qa a{display:inline-flex;width:32px;height:32px;border-radius:9px;align-items:center;justify-content:center;background:var(--teal-soft,#e1f3f2);color:var(--teal,#036f72);text-decoration:none;font-size:.9rem;margin-left:4px}
 .rvnone{color:#8a9a9c}
