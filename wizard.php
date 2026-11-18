@@ -113,7 +113,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"><span class="cdq" id="esq"><button type="button" class="btn ghost sm" data-a="1000">$1,000</button><button type="button" class="btn ghost sm" data-a="2000">$2,000</button><button type="button" class="btn ghost sm" data-p="1">1%</button><button type="button" class="btn ghost sm" data-p="2">2%</button></span></label>
         <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"><span class="cdq" id="fnq"><button type="button" class="btn ghost sm" data-d="3.5">3.5% down</button><button type="button" class="btn ghost sm" data-d="5">5% down</button><button type="button" class="btn ghost sm" data-d="10">10% down</button><button type="button" class="btn ghost sm" data-d="20">20% down</button></span></label>
         <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
-        <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"></label>
+        <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"><span class="cdq" id="idq"><button type="button" class="btn ghost sm" data-n="5">5 Days</button><button type="button" class="btn ghost sm" data-n="7">7 Days</button><button type="button" class="btn ghost sm" data-n="10">10 Days</button><button type="button" class="btn ghost sm" data-n="15">15 Days</button></span></label>
       </div>
       <input type="hidden" id="paddr">
       <h3 id="oa_head">Other agent</h3>
@@ -213,6 +213,8 @@ function ofMoney(n){return '$ '+Math.round(n).toLocaleString('en-US');}
 function ofQuick(){var pr=ofPrice();
 [].forEach.call(document.querySelectorAll('#esq .btn'),function(b){b.onclick=function(){var v=b.dataset.a?+b.dataset.a:(pr=ofPrice())?pr*(+b.dataset.p)/100:0;if(!v){alert('Enter the offer price first.');return;}ofEl('escrow_deposit').value=ofMoney(v);};});
 [].forEach.call(document.querySelectorAll('#fnq .btn'),function(b){b.onclick=function(){var p=ofPrice();if(!p){alert('Enter the offer price first.');return;}ofEl('financed_amount').value=ofMoney(p*(1-(+b.dataset.d)/100));};});}
+function idMark(){var v=ofEl('inspection_days').value.trim();[].forEach.call(document.querySelectorAll('#idq .btn'),function(b){b.classList.toggle('on',b.dataset.n===v);});}
+[].forEach.call(document.querySelectorAll('#idq .btn'),function(b){b.onclick=function(){ofEl('inspection_days').value=b.dataset.n;idMark();};});ofEl('inspection_days').addEventListener('input',idMark);
 ofQuick();
 function cdIso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
 function cdOff(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]),w=d.getDay();if(w===6)return 'a Saturday';if(w===0)return 'a Sunday';return CDH[s]?CDH[s]:'';}
@@ -230,7 +232,7 @@ function ofLoad(){var id=txSel.value;if(!id)return;
   fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
     if(!j||!j.ok||txSel.value!==id)return;
     OFK.forEach(function(k){if(!mlsLast||!ofEl(k).value)ofEl(k).value=j.offer[k]||'';}); // a lookup that started first keeps what it filled
-    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();
+    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();if(!ofEl('inspection_days').value)ofEl('inspection_days').value='10';idMark();
     var ppEl=document.getElementById('pprice');if(!mlsLast||!ppEl.value)ppEl.value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'';
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
     var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
