@@ -61,7 +61,8 @@ function rv_header($me, $side, $tx, array $rec, array $info) {
     if (!$d['people']) $o .= '<div class="rvp"><span class="rvnone">No phone or email saved yet.</span></div>';
     foreach ($d['people'] as $pp) {
         $dig = preg_replace('/[^0-9+]/', '', $pp['phone']);
-        $o .= '<div class="rvp"><div class="rvpi"><b>' . $h($pp['name'] ?: ucfirst($w)) . '</b>'
+        $dupName = count($d['people']) === 1 && trim((string)$pp['name']) !== '' && mb_strtolower(trim((string)$pp['name'])) === mb_strtolower(trim((string)$d['title'])); // the name is already the card's heading
+        $o .= '<div class="rvp"><div class="rvpi">' . ($dupName ? '' : '<b>' . $h($pp['name'] ?: ucfirst($w)) . '</b>')
             . ($pp['phone'] !== '' ? '<span>' . $h($pp['phone']) . '</span>' : '') . ($pp['email'] !== '' ? '<span>' . $h($pp['email']) . '</span>' : '') . '<button type="button" class="rvedit" data-n="' . (int)$pp['n'] . '" aria-expanded="false" title="Edit contact info"><span class="rvpen">&#9998;</span> Edit</button>'
             . ($pp['phone'] === '' && $pp['email'] === '' ? '<span class="rvnone">No phone or email saved.</span>' : '') . '</div><span class="qa">'
             . ($dig !== '' ? '<a href="tel:' . $h($dig) . '" title="Call">&#9742;</a><a href="sms:' . $h($dig) . '" title="Text"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg></a>' : '')
