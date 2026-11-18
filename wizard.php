@@ -116,6 +116,14 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
         <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"><span class="cdq" id="idq"><button type="button" class="btn ghost sm" data-n="5">5 Days</button><button type="button" class="btn ghost sm" data-n="7">7 Days</button><button type="button" class="btn ghost sm" data-n="10">10 Days</button><button type="button" class="btn ghost sm" data-n="15">15 Days</button></span></label>
       </div>
+      <h3 id="sp_head">Seller and property record</h3>
+      <p class="note" style="margin:0 0 6px">Filled from the MLS when it has them; saved with this client's record and put on the contract.</p>
+      <div class="odg" id="sp_grid">
+        <label class="s6">Seller name(s)<input type="text" id="of_seller_names" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s3">County<input type="text" id="of_county" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s3">Property tax ID (parcel)<input type="text" id="of_parcel_id" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s12" style="grid-column:1/-1">Legal description<textarea id="of_legal_desc" rows="3" maxlength="800" autocomplete="nope" data-lpignore="true" data-form-type="other" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:9px 11px;border:1px solid #d7e2e2;border-radius:9px;font:inherit;font-weight:400;font-size:.95rem"></textarea></label>
+      </div>
       <h3 id="esc_head">Escrow deposit holder (title company)</h3>
       <div class="odg" id="esc_grid">
         <label class="s6">Title company name<input type="text" id="of_esc_name" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
@@ -148,7 +156,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=15"></script>
+<script src="wizlib.js?v=16"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -199,6 +207,9 @@ function fillMap(){
     if(pl&&parseFloat(pl)>0){m.Rad_FF_Credit='PercentPlusAmount';m.FF_Credit_PercentPlus=pl;if(money(fl))m.FF_Credit_PlusAmount=money(fl);}
     else if(pc&&parseFloat(pc)>0){m.Rad_FF_Credit='Percent';m.FF_Credit_Percent=pc;}
     else if(money(am)){m.Rad_FF_Credit='Amount';m.FF_Credit_Amount=money(am);}})();
+  var sv=function(k){return String((ofEl(k)||{}).value||'').trim();};
+  if(sv('seller_names'))m.Seller_Names=sv('seller_names'); if(sv('county'))m.Property_County=sv('county').replace(/\s+county$/i,''); if(sv('parcel_id'))m.Property_ParcelID=sv('parcel_id');
+  if(sv('legal_desc')){var lw=sv('legal_desc').split(/\s+/),caps=[55,90,90,90,90],li=0,cur='';lw.forEach(function(x){while(li<5&&(cur?cur+' '+x:x).length>caps[li]&&cur){m['Property_LegalDescription_'+(li+1)]=cur;li++;cur='';}cur=cur?cur+' '+x:x;});if(li<5&&cur)m['Property_LegalDescription_'+(li+1)]=cur;} // one contract line per field: 55 characters on the first line, 90 on the rest
   if(INFO){var names=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and '); if(names)m.Buyer_Names=names; if(INFO.b1_name)m.Buyer1_Name=INFO.b1_name; if(INFO.b2_name)m.Buyer2_Name=INFO.b2_name;} // buyer contact details are never written onto the forms
   return m;
 }
@@ -228,7 +239,7 @@ txSel.addEventListener('change',loadInfo);
 qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')return;var lb=t.closest('label'),tx=lb?lb.textContent:'';if(!/purchase|payment|cash|financ/i.test(tx))return;var xF=document.getElementById('xf_F');if(!xF)return;if(/^\s*cash/i.test(tx))xF.style.display='';else if(/financ/i.test(tx)){xF.style.display='none';var c=xF.querySelector('input');if(c)c.checked=false;}});
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
-var OFK=['esc_name','esc_address','esc_phone','esc_email','escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+var OFK=['seller_names','county','parcel_id','legal_desc','esc_name','esc_address','esc_phone','esc_email','escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
 var CDH=<?= json_encode((function(){require_once __DIR__.'/dlib.php';$o=[];$y=(int)date('Y');for($i=0;$i<=3;$i++)$o+=dl_holidays($y+$i);return $o;})(), JSON_UNESCAPED_SLASHES) ?>;
 function ofPrice(){return parseFloat(String(document.getElementById('pprice').value).replace(/[^0-9.]/g,''))||0;}
 function ofMoney(n){return (Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -394,10 +405,12 @@ btn.addEventListener('click',async function(){
   var want=[];picked.forEach(function(r){r.forms.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});});
   // HOA rider, condominium rider, lead-based paint and CDD addendum come from the seller, already completed, before the buyer signs: they are never merged into the buyer's packet.
   // They are tracked as required documents (Document Records) from the MLS / agent-entered property data instead (doclib.php dc_required_rules).
+  var sv2=function(k){return String((ofEl(k)||{}).value||'').trim();};
   var SELLER_FORMS=['Realtor_Res_HOA_Community_Disclosure.pdf','Realtor_Res_Community_Development_District_Addendum.pdf','Realtor_Res_Condominium_Rider.pdf','Realtor_Res_Lead_Based_Paint_Disclosure.pdf'];
   [].forEach.call(document.querySelectorAll('#xf .xfc:checked'),function(c){if(c.closest('label').style.display!=='none'&&want.indexOf(c.value)<0)want.push(c.value);}); // extra contingency forms the agent ticked
   (R.order||[]).forEach(function(o){if(o.always&&want.indexOf(o.file)<0)want.push(o.file);}); // forms marked Always in the rules sheet go in every packet
   var pos=function(f){for(var i=0;i<R.order.length;i++){if(R.order[i].file===f)return R.order[i].n;}return 9999;};
+  if(sv2('legal_desc').length>235)warn.push('The legal description is long; the As Is contract has room for about 235 characters. Please check it fits.');
   want=want.filter(function(f){return SELLER_FORMS.indexOf(f)<0;});
   want.sort(function(a,b){return pos(a)-pos(b);});
   var use=[];
