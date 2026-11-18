@@ -28,12 +28,15 @@
   }
 
   // sources: [{bytes, isContract}], clauses: [text]. Returns merged PDFDocument.
+  var MONEY_RE = /^(Price_|Deposit|Comp_.*(Amount|FlatFee)|.*_Amount$|Escrow.*(Amount|Deposit)|.*Financ.*Amount|.*Purchase_Price)/i; // verify against the form PDFs' field names
   async function buildPacket(PL, sources, clauses, fill) {
     var out = await PL.PDFDocument.create(), ctx = out.context, roots = new Set(), fontNames = {}, notes = [];
     for (var i = 0; i < sources.length; i++) {
       var src = await PL.PDFDocument.load(sources[i].bytes, { ignoreEncryption: true, updateMetadata: false });
       if (fill) {
         var sf = src.getForm();
+        // money fields read right-justified on the contract (set before filling so the appearance is drawn right-aligned)
+        sf.getFields().forEach(function (f) { try { if (f instanceof PL.PDFTextField && MONEY_RE.test(f.getName())) f.setAlignment(PL.TextAlignment.Right); } catch (e) {} });
         Object.keys(fill).forEach(function (k) { if (!fill[k]) return; try { sf.getTextField(k).setText(String(fill[k])); } catch (e) {} });
       }
       if (sources[i].isContract && clauses && clauses.length) {
