@@ -154,7 +154,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=22"></script>
+<script src="wizlib.js?v=23"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -211,6 +211,17 @@ function fillMap(){
   else if(INFO&&(INFO.payment==='conventional'||INFO.payment==='fhava')){m.Chk_Fin_Contingent='Yes';m.Rad_LoanRate='FixedOrAdjustable';m.Loan_TermYears='30';m.Term_LoanApplicationDays='5';if(INFO.loan_type)m.Rad_LoanType=INFO.loan_type;}
   m.Rad_ClosingAgent='SellerDesignates'; m.Rad_HomeWarranty='NA'; // contract paragraph 9(c)(i): Seller designates Closing Agent and pays for owner's policy; 9(e): no home warranty
   m.Rad_SpecialAssessment='OptionB'; // contract special assessment installments: (b) Seller pays in full at or before Closing
+  // paragraph 19 ADDENDA: check the boxes for the riders that apply (As Is contract letters; the Vacant Land contract has its own few boxes)
+  (function(){var chk=function(k){m['Chk_Addenda_'+k]='Yes';},ev2=function(k){return String((ofEl(k)||{}).value||'').trim();};
+    if(ev2('property_type')==='Condominium')chk('A'); if(ev2('hoa')==='yes'){chk('B');chk('HOAAddendum');}
+    if(INFO&&(INFO.payment==='fhava'||INFO.loan_type==='FHA'||INFO.loan_type==='VA'))chk('E');
+    var yb=parseInt(ev2('year_built'),10);if(yb>0&&yb<1978)chk('P');
+    var MAP=[[/Sale_of_Buyers_Property/i,'V'],[/Housing_for_Older/i,'Q'],[/Licensee_Personal/i,'AA'],[/Appraisal_Contingency/i,'F'],[/Credit_Related|Buyers_Broker_Compensation/i,'FF'],[/Sellers?_Agreement.*Compensation/i,'GG'],
+      [/Seller_Financing/i,'C'],[/Mortgage_Assumption/i,'D'],[/Short_Sale/i,'G'],[/Flood_Ins/i,'H'],[/Interest.?Bearing/i,'J'],[/Defective_Drywall/i,'M'],[/Coastal_Construction/i,'N'],[/Insulation/i,'O'],[/Rezoning/i,'R'],[/Lease_(Purchase|Option)/i,'S'],
+      [/Pre.?Closing_Occupancy/i,'T'],[/Post.?Closing_Occupancy/i,'U'],[/Back.?up/i,'W','BackUpContract'],[/Kick.?out/i,'X','KickOutClause'],[/Seller.*Attorney/i,'Y'],[/Buyer.*Attorney/i,'Z'],[/Binding_Arbitration/i,'BB'],[/Miami.?Dade.*Special/i,'CC'],[/Seasonal|Vacation_Rental/i,'DD'],[/Qualifying_Improvements/i,'EE']];
+    (typeof LASTWANT!=='undefined'?LASTWANT:[]).forEach(function(f){MAP.forEach(function(r){if(r[0].test(f)){chk(r[1]);if(r[2])chk(r[2]);}});});
+    m.Chk_Addenda_Other='Yes';m.Addenda_Other_1='Flood Disclosure';if(ev2('cdd')==='yes')m.Addenda_Other_2='CDD Disclosure'; // Other: Flood Disclosure on every contract, plus the CDD Disclosure when the property has a CDD
+  })();
   m.Rad_Assignability='MayNotAssign'; // contract paragraph 7: default to "may not assign"
   m.Rad_DepositTiming='WithinDays'; m.Term_DepositDays='3'; // contract 2(a): always default to option (ii), deposit due within 3 days after the Effective Date
   var sv=function(k){return String((ofEl(k)||{}).value||'').trim();};
@@ -287,7 +298,7 @@ function escCheck(k,fix){var el=ofEl(k),v=el.value.trim(),n=el.parentNode.queryS
 function escAll(){var ok=true;['esc_phone','esc_email','esc_address'].forEach(function(k){if(!escCheck(k,true))ok=false;});return ok;}
 ['esc_phone','esc_email','esc_address'].forEach(function(k){ofEl(k).addEventListener('blur',function(){escCheck(k,true);});ofEl(k).addEventListener('input',function(){if(ofEl(k).parentNode.querySelector('.escerr')&&ofEl(k).parentNode.querySelector('.escerr').textContent)escCheck(k,false);});});
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
-var OFCOMP={};
+var OFCOMP={},LASTWANT=[];
 function ofCompText(c){if(!c||!c.agreement)return '';var p=[];function f(k){return c[k]||'';}
   if(f('Comp_Purchase_Percent'))p.push(f('Comp_Purchase_Percent')+'% of the purchase price');if(f('Comp_PurchasePlus_Percent'))p.push(f('Comp_PurchasePlus_Percent')+'% of the purchase price');if(f('Comp_Purchase_Amount'))p.push('$'+f('Comp_Purchase_Amount'));if(f('Comp_PurchasePlus_FlatFee'))p.push(f('Comp_PurchasePlus_FlatFee'));
   return '<b>Your commission (from the '+(c.agreement==='showing'?'Showing':'Exclusive Buyer')+' Agreement):</b> '+(p.length?esc(p.join(' + ')):'on file')+'<div class="m">Used for the transaction record. Change it on the Buyer Agreement if it differs.</div>';}
@@ -430,6 +441,7 @@ btn.addEventListener('click',async function(){
   if(sv2('legal_desc').length>235)warn.push('The legal description is long; the As Is contract has room for about 235 characters. Please check it fits.');
   want=want.filter(function(f){return SELLER_FORMS.indexOf(f)<0;});
   want.sort(function(a,b){return pos(a)-pos(b);});
+  LASTWANT=want.slice();
   var use=[];
   want.forEach(function(f){ if(R.files[f]) use.push(f); else warn.push(/\.pdf$/i.test(f)?'The file '+f+' was not found in the Buyer Forms folder, so it is not in the packet.':'Not in the packet yet: '+f+'.'); });
   if(!use.length)return fail('No forms were selected for those answers.');
