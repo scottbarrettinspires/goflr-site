@@ -91,6 +91,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
     .cdq{display:flex;gap:6px;margin-top:5px}.cdq .btn.sm{padding:1px 10px!important;font-size:.76rem!important;width:auto}.cdq .btn.on{background:#036f72!important;color:#fff!important;border-color:#036f72!important}
     .odb{background:#f0f8f8;border:1px solid #cfe5e5;border-radius:10px;padding:10px 14px;font-size:.92rem}.odb b{font-weight:700}.odb .m{color:#5a6a6c;font-size:.84rem;margin-top:2px}
     @media(max-width:640px){.odg .s2,.odg .s3,.odg .s4{grid-column:span 6}.odg .s6{grid-column:span 12}}
+    @media(max-width:640px){.odg .sn1{grid-column:span 4}.odg .sn2{grid-column:span 8}}
     </style>
     <div class="od" id="od">
       <h3>Property</h3>
@@ -100,8 +101,8 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <div class="s6 odb" id="mls_note" style="align-self:end" hidden></div>
         <div class="s12" id="mls_miss" hidden style="color:#9a2b2b;font-size:.85rem;font-weight:600"></div>
         <div class="s12 odb" id="mls_card" hidden style="display:none;justify-content:space-between;align-items:center;gap:12px"><div id="mls_card_txt"></div><button type="button" class="btn" id="mls_edit" style="width:auto;padding:8px 18px;margin:0">Edit</button></div>
-        <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
-        <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s3 sn1">Street number<input type="text" id="of_street_number" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6 sn2">Street name<input type="text" id="of_street_name" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s3">Unit #<input type="text" id="of_unit" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s6">City<input type="text" id="of_city" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
