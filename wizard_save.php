@@ -13,6 +13,11 @@ $b64d = (string)($j['b64d'] ?? '');
 if ((empty($j['offerOnly']) && $b64 === '' && $b64d === '') || strlen($b64) > 60000000 || strlen($b64d) > 60000000) out(['ok' => false, 'msg' => 'The packet is empty or too large.']);
 $pick = sg_buyer_pick($_SESSION['email'], (string)($j['tx'] ?? ''));
 if (!$pick) out(['ok' => false, 'msg' => 'Please choose one of your buyer folders (1 BUYERS / 1 Buyers).']);
+if (!empty($j['forms']) && is_array($j['forms'])) { // remember which forms the offer packet contains (drives the required documents, e.g. the FF credit addendum)
+    require_once __DIR__ . '/offerlib.php';
+    $pf = []; foreach (array_slice($j['forms'], 0, 40) as $f) { $f = (string)$f; if (preg_match('/^[A-Za-z0-9_.() -]{3,120}$/', $f)) $pf[] = $f; }
+    $raw = of_raw($pick['id']); $raw['packet_forms'] = $pf; of_put($pick['id'], $raw);
+}
 $r = ['name' => '', 'url' => '']; $d = ['name' => '', 'url' => ''];
 if ($b64 !== '' && empty($j['offerOnly'])) {
     $r = sg_script_post(['op' => 'save', 'email' => $_SESSION['email'], 'folderId' => $pick['id'], 'name' => 'Contract Packet - ' . gmdate('Y-m-d') . '.pdf', 'b64' => $b64]);

@@ -76,6 +76,7 @@ function of_save($me, $tx, array $in) {
     if (preg_match('/[\\\\\/:*?"<>|]/', of_address($d))) return 'Please check the property address (no slashes or special characters).';
     if (mb_strlen(of_address($d)) > 120) return 'That address is too long.';
     if ($raw && isset($raw['comp'])) $d['comp'] = $raw['comp'];
+    if ($raw && isset($raw['packet_forms'])) $d['packet_forms'] = $raw['packet_forms'];
     of_put($tx, $d);
     $addr = of_address($d);
     if ($addr !== '' || $d['price'] !== '') { sg_buyer_info_merge($me, $tx, ['property' => $addr, 'price' => $d['price']]); } // existing screens read these two from the buyer's info

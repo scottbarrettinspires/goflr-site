@@ -15,6 +15,20 @@ require_once __DIR__ . '/doclib_file.php';
 
 // Documents the property information makes required: [label, title regex, reason]. Needs the property saved on the offer (Make A Contract Offer).
 // Flood Disclosure: every transaction. HOA rider: the property has an HOA. Lead-Based Paint: built before 1978. Condominium Rider: a condominium. CDD Disclosure: the property has a CDD.
+// The forms the offer packet was built with: saved with the offer; for offers built before that was saved, read from the build log.
+function dc_packet_forms($me, $tx, $name, array $of) {
+    if (isset($of['packet_forms']) && is_array($of['packet_forms'])) return $of['packet_forms'];
+    $f = __DIR__ . '/logs/signature-requests.log'; if (!is_file($f)) return [];
+    $sz = filesize($f); $h = @fopen($f, 'r'); if (!$h) return []; if ($sz > 3000000) fseek($h, $sz - 3000000); $txt = (string)stream_get_contents($h); fclose($h);
+    $lines = array_reverse(explode("\n", $txt));
+    foreach ($lines as $ln) {
+        $j = json_decode($ln, true); if (!is_array($j) || empty($j['forms']) || !is_array($j['forms'])) continue;
+        if (strtolower((string)($j['agent'] ?? '')) !== strtolower($me)) continue;
+        if ($name !== '' && substr((string)($j['folder'] ?? ''), -strlen($name)) !== $name) continue;
+        return array_map('strval', $j['forms']);
+    }
+    return [];
+}
 function dc_required_rules(array $of) {
     // The purchase contract is never matched automatically: the agent assigns its exact pages from the contract packet (Assign). '/(?!)/' never matches.
     // [label, title regex (used only for documents whose contents were not recorded), reason, content keys that satisfy it]
@@ -27,6 +41,7 @@ function dc_required_rules(array $of) {
     elseif ($pt === 'Condominium' || $pt === 'Condo / Townhome') $r[] = ['Condominium Disclosure', '/condominium disclosure/i', 'Required on every purchase: condominium (provided by the seller)', ['spd_condo']];
     elseif ($pt !== '') $r[] = ["Seller's Property Disclosure", '/property disclosure/i', 'Required on every purchase: property with a dwelling (provided by the seller)', ['spd_res']];
     else $r[] = ["Seller's Property Disclosure (Residential, Condominium or Vacant Land)", '/property disclosure|condominium disclosure|vacant land disclosure/i', 'Required on every purchase (provided by the seller)', ['spd_res', 'spd_condo', 'spd_land']];
+    foreach ((array)($of['packet_forms'] ?? []) as $pf) { if (preg_match('/credit_related|buyers?_broker_compensation/i', (string)$pf)) { $r[] = ["Credit Related to Buyer's Broker Compensation (FF Addendum)", '/(?!)/', 'Required: the FF addendum is part of this offer', ['ff_credit']]; break; } }
     $r[] = ['Flood Disclosure', '/flood/i', 'Required on every transaction (provided by the seller)', ['flood']];
     if (($of['hoa'] ?? '') === 'yes') $r[] = ['HOA / Community Disclosure (HOA Rider)', '/hoa|community disclosure/i', 'Required: the property has an HOA', ['hoa']];
     $yb = (int)($of['year_built'] ?? 0); if ($yb > 0 && $yb < 1978) $r[] = ['Lead-Based Paint Disclosure', '/lead.?based|lead paint/i', 'Required: built in ' . $yb . ' (before 1978)', ['lead']];
@@ -93,7 +108,7 @@ function dc_list($me, $tx) {
     $plain = []; foreach ($recs as $r) { if (empty($r['completed']) || !empty($r['contents'])) continue; foreach (($recItems[(string)$r['id']] ?? []) as $it) $plain[] = $it; } // signed before contents were recorded
     $pendTitles = []; foreach ($recs as $r) { if (!empty($r['completed']) || !empty($r['contents'])) continue; $pendTitles[] = (string)($r['form'] ?? ''); foreach ((array)($r['extra'] ?? []) as $x) $pendTitles[] = (string)($x['name'] ?? ($x['form'] ?? '')); }
     $missing = []; $required = [];
-    $of = of_raw($tx);
+    $of = of_raw($tx); $of['packet_forms'] = dc_packet_forms($me, $tx, (string)$own['name'], $of);
     if (trim((string)($of['street_name'] ?? '')) !== '' || trim((string)($of['mls_id'] ?? '')) !== '') {
         foreach (dc_required_rules($of) as $q) {
             $row = ['label' => $q[0], 'key' => $q[3][0], 'reason' => $q[2], 'status' => 'missing', 'item' => null, 'page' => 0, 'pages' => [], 'in' => '', 'view_url' => '', 'download_url' => '', 'note' => ''];
