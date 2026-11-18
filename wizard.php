@@ -94,36 +94,36 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
     <div class="od" id="od">
       <h3>Property</h3>
       <div class="odg">
-        <label class="s4"><strong>MLS number</strong><input type="text" id="of_mls_id" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. T3512345" style="text-transform:uppercase"></label>
+        <label class="s4"><strong>MLS number</strong><input type="text" id="of_mls_id" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. T3512345" style="text-transform:uppercase"></label>
         <div class="s2" style="align-self:end"><button type="button" class="btn" id="mls_go" style="width:100%;padding:9px 6px;margin-bottom:0">Look up</button></div>
         <div class="s6 odb" id="mls_note" style="align-self:end" hidden></div>
         <div class="s12 odb" id="mls_card" hidden style="display:none;justify-content:space-between;align-items:center;gap:12px"><div id="mls_card_txt"></div><button type="button" class="btn" id="mls_edit" style="width:auto;padding:8px 18px;margin:0">Edit</button></div>
-        <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s3">Unit #<input type="text" id="of_unit" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s6">City<input type="text" id="of_city" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s4">Zip code<input type="text" id="of_zip" inputmode="numeric" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s3">Unit #<input type="text" id="of_unit" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">City<input type="text" id="of_city" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Zip code<input type="text" id="of_zip" inputmode="numeric" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">HOA / community association?<select id="of_hoa"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select></label>
         <label class="s4">CDD (Community Development District)?<select id="of_cdd"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select></label>
-        <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
-        <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
-        <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"><span class="cdq" id="esq"><button type="button" class="btn ghost sm" data-a="1000">$1,000</button><button type="button" class="btn ghost sm" data-a="2000">$2,000</button><button type="button" class="btn ghost sm" data-p="1">1%</button><button type="button" class="btn ghost sm" data-p="2">2%</button></span></label>
-        <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"><span class="cdq" id="fnq"><button type="button" class="btn ghost sm" data-d="3.5">3.5% down</button><button type="button" class="btn ghost sm" data-d="5">5% down</button><button type="button" class="btn ghost sm" data-d="10">10% down</button><button type="button" class="btn ghost sm" data-d="20">20% down</button></span></label>
+        <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
+        <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"><span class="cdq" id="esq"><button type="button" class="btn ghost sm" data-a="1000">$1,000</button><button type="button" class="btn ghost sm" data-a="2000">$2,000</button><button type="button" class="btn ghost sm" data-p="1">1%</button><button type="button" class="btn ghost sm" data-p="2">2%</button></span></label>
+        <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"><span class="cdq" id="fnq"><button type="button" class="btn ghost sm" data-d="3.5">3.5% down</button><button type="button" class="btn ghost sm" data-d="5">5% down</button><button type="button" class="btn ghost sm" data-d="10">10% down</button><button type="button" class="btn ghost sm" data-d="20">20% down</button></span></label>
         <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
-        <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"></label>
+        <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"></label>
       </div>
       <input type="hidden" id="paddr">
       <h3 id="oa_head">Other agent</h3>
       <div class="odg" id="oa_grid">
         <label class="s12" style="font-weight:700;color:#036f72">Other agent (listing side, if known)</label>
-        <label class="s4">First name<input type="text" id="of_oa_first" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s4">Last name<input type="text" id="of_oa_last" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s4">Brokerage<input type="text" id="of_oa_brokerage" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s6">Email<input type="text" id="of_oa_email" inputmode="email" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
-        <label class="s6">Phone<input type="text" id="of_oa_phone" inputmode="tel" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">First name<input type="text" id="of_oa_first" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Last name<input type="text" id="of_oa_last" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">Brokerage<input type="text" id="of_oa_brokerage" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Email<input type="text" id="of_oa_email" inputmode="email" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Phone<input type="text" id="of_oa_phone" inputmode="tel" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
       </div>
       <div class="odb" id="of_comp" style="margin-top:10px" hidden></div>
     </div>
