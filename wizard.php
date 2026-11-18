@@ -198,6 +198,8 @@ function loadInfo(){
   }).catch(function(){});
 }
 txSel.addEventListener('change',loadInfo);
+// A cash buyer (from the record, or chosen in the Method of purchase question) gets the Appraisal Contingency choice under Add Other Contingency Forms.
+qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')return;var lb=t.closest('label'),tx=lb?lb.textContent:'';if(!/purchase|payment|cash|financ/i.test(tx))return;var xF=document.getElementById('xf_F');if(!xF)return;if(/^\s*cash/i.test(tx))xF.style.display='';else if(/financ/i.test(tx)){xF.style.display='none';var c=xF.querySelector('input');if(c)c.checked=false;}});
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
 var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
