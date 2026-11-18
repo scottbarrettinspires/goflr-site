@@ -154,7 +154,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=16"></script>
+<script src="wizlib.js?v=17"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -205,6 +205,7 @@ function fillMap(){
     if(pl&&parseFloat(pl)>0){m.Rad_FF_Credit='PercentPlusAmount';m.FF_Credit_PercentPlus=pl;if(money(fl))m.FF_Credit_PlusAmount=money(fl);}
     else if(pc&&parseFloat(pc)>0){m.Rad_FF_Credit='Percent';m.FF_Credit_Percent=pc;}
     else if(money(am)){m.Rad_FF_Credit='Amount';m.FF_Credit_Amount=money(am);}})();
+  m.Rad_DepositTiming='WithinDays'; m.Term_DepositDays='3'; // contract 2(a): always default to option (ii), deposit due within 3 days after the Effective Date
   var sv=function(k){return String((ofEl(k)||{}).value||'').trim();};
   if(sv('seller_names'))m.Seller_Names=sv('seller_names'); if(sv('county'))m.Property_County=sv('county').replace(/\s+county$/i,''); if(sv('parcel_id'))m.Property_ParcelID=sv('parcel_id');
   if(sv('legal_desc')){var lw=sv('legal_desc').split(/\s+/),caps=[55,90,90,90,90],li=0,cur='';lw.forEach(function(x){while(li<5&&(cur?cur+' '+x:x).length>caps[li]&&cur){m['Property_LegalDescription_'+(li+1)]=cur;li++;cur='';}cur=cur?cur+' '+x:x;});if(li<5&&cur)m['Property_LegalDescription_'+(li+1)]=cur;} // one contract line per field: 55 characters on the first line, 90 on the rest
