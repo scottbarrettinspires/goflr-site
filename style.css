@@ -140,6 +140,7 @@ body.login{min-height:100vh;display:flex;align-items:center;justify-content:cent
 .epage{position:relative;width:100%;max-width:900px;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.18)}
 .epage canvas{width:100%;height:100%;display:block}
 .efield{position:absolute}
+.efield .etx,.efield .ecb{display:block}
 .efield .etx{width:100%;height:100%;box-sizing:border-box;border:0;background:rgba(3,111,114,.10);color:#111;padding:0 2px;font-family:Helvetica,Arial,sans-serif;resize:none;outline:none;line-height:1.1}
 .efield .etx:focus{background:rgba(255,235,120,.55);box-shadow:0 0 0 1px var(--teal)}
 .efield .ecb{width:100%;height:100%;margin:0;accent-color:var(--teal);cursor:pointer}
