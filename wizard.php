@@ -154,7 +154,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=23"></script>
+<script src="wizlib.js?v=24"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -222,6 +222,9 @@ function fillMap(){
     (typeof LASTWANT!=='undefined'?LASTWANT:[]).forEach(function(f){MAP.forEach(function(r){if(r[0].test(f)){chk(r[1]);if(r[2])chk(r[2]);}});});
     m.Chk_Addenda_Other='Yes';m.Addenda_Other_1='Flood Disclosure';if(ev2('cdd')==='yes')m.Addenda_Other_2='CDD Disclosure'; // Other: Flood Disclosure on every contract, plus the CDD Disclosure when the property has a CDD
   })();
+  // paragraph 20 signature block: the listing agent and listing brokerage from the MLS / agent entry (never the customers' notice addresses, phones or emails)
+  (function(){var s=function(k){return String((ofEl(k)||{}).value||'').trim();},la=[s('oa_first'),s('oa_last')].filter(Boolean).join(' ');
+    if(la){m.ListingAgent_Name=la;m.ListingAgent_NameLicense=la;} if(s('oa_brokerage'))m.ListingBroker_Name=s('oa_brokerage'); if(s('oa_email'))m.ListingAgent_Email=s('oa_email'); if(s('oa_phone'))m.ListingAgent_Phone=s('oa_phone');})();
   m.Rad_Assignability='MayNotAssign'; // contract paragraph 7: default to "may not assign"
   m.Rad_DepositTiming='WithinDays'; m.Term_DepositDays='3'; // contract 2(a): always default to option (ii), deposit due within 3 days after the Effective Date
   var sv=function(k){return String((ofEl(k)||{}).value||'').trim();};

@@ -28,6 +28,7 @@
   }
 
   // sources: [{bytes, isContract}], clauses: [text]. Returns merged PDFDocument.
+  var CUSTOMER_RE = /(^|_)(Buyer|Seller)\d?_(NoticeAddress|Phone|Email|Address)/i; // the customers' own contact and notice lines are never auto-filled
   var MONEY_RE = /^(Price_|Deposit|Comp_.*(Amount|FlatFee)|.*Amount$|Escrow.*(Amount|Deposit)|.*Financ.*Amount|.*Purchase_Price)/i; // Price_* covers every dollar field on the As Is and Vacant Land contracts
   async function buildPacket(PL, sources, clauses, fill) {
     var out = await PL.PDFDocument.create(), ctx = out.context, roots = new Set(), fontNames = {}, notes = [];
@@ -40,7 +41,7 @@
         // forms with only one 'Other' line (Vacant Land) get both items on that line
         var hasO2 = true; try { sf.getTextField('Addenda_Other_2'); } catch (e0) { hasO2 = false; }
         var fillF = fill; if (!hasO2 && fill.Addenda_Other_2) { fillF = Object.assign({}, fill); fillF.Addenda_Other_1 = (fill.Addenda_Other_1 ? fill.Addenda_Other_1 + ', ' : '') + fill.Addenda_Other_2; delete fillF.Addenda_Other_2; }
-        Object.keys(fillF).forEach(function (k) { if (!fillF[k]) return; try { sf.getTextField(k).setText(String(fillF[k])); } catch (e) { try { sf.getRadioGroup(k).select(String(fillF[k])); } catch (e2) { try { sf.getCheckBox(k).check(); } catch (e3) {} } } });
+        Object.keys(fillF).forEach(function (k) { if (!fillF[k] || CUSTOMER_RE.test(k)) return; try { sf.getTextField(k).setText(String(fillF[k])); } catch (e) { try { sf.getRadioGroup(k).select(String(fillF[k])); } catch (e2) { try { sf.getCheckBox(k).check(); } catch (e3) {} } } });
       }
       if (sources[i].isContract && clauses && clauses.length) {
         var r = await fillAdditionalTerms(PL, src, clauses);
