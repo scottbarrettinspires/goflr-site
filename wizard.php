@@ -148,7 +148,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=13"></script>
+<script src="wizlib.js?v=14"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -185,6 +185,14 @@ qs.addEventListener('change',function(){ [].forEach.call(qs.querySelectorAll('.w
 var INFO=null, bsum=document.getElementById('bsum');
 function fillMap(){
   var m={BuyerAgent_Name:AGENT,BuyerBroker_Name:BROKERAGE,Agent_Name:AGENT};if(LICENSE)m.Agent_License=LICENSE;var pa=(document.getElementById('paddr')||{}).value; if(pa&&pa.trim())m.Property_Address=pa.trim(); var pp=String((document.getElementById('pprice')||{}).value||'').replace(/[^0-9.]/g,''); if(pp&&!isNaN(Number(pp)))m.Price_Purchase=Number(pp).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); // the agent and brokerage are the cooperating agent and broker on the forms
+  // Make An Offer answers onto the contract (As Is and Vacant Land use the same field names)
+  var nz=function(id){return parseFloat(String(((document.getElementById(id)||{}).value)||'').replace(/[^0-9.]/g,''))||0;},mo=function(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+  var pr=nz('pprice'),dep=nz('of_escrow_deposit'),loan=ofEl('financed_amount')&&document.getElementById('of_fin_wrap')&&document.getElementById('of_fin_wrap').style.display!=='none'?nz('of_financed_amount'):0;
+  if(dep>0)m.Price_Deposit=mo(dep); if(loan>0)m.Price_LoanAmount=mo(loan); if(pr>0&&(dep>0||loan>0))m.Price_BalanceToClose=mo(Math.max(0,pr-dep-loan));
+  var ev=function(k){return String((ofEl(k)||{}).value||'').trim();};
+  if(ev('esc_name'))m.Escrow_Agent=ev('esc_name'); if(ev('esc_address'))m.Escrow_Address=ev('esc_address'); if(ev('esc_phone'))m.Escrow_Phone=ev('esc_phone'); if(ev('esc_email'))m.Escrow_Email=ev('esc_email');
+  var cd=/^(\d{4})-(\d{2})-(\d{2})$/.exec(ev('closing_date')); if(cd)m.Date_Closing=cd[2]+'/'+cd[3]+'/'+cd[1];
+  if(/^\d+$/.test(ev('inspection_days')))m.Term_InspectionDays=ev('inspection_days');
   if(INFO){var names=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and '); if(names)m.Buyer_Names=names; if(INFO.b1_name)m.Buyer1_Name=INFO.b1_name; if(INFO.b2_name)m.Buyer2_Name=INFO.b2_name;} // buyer contact details are never written onto the forms
   return m;
 }

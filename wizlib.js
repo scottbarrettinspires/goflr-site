@@ -28,7 +28,7 @@
   }
 
   // sources: [{bytes, isContract}], clauses: [text]. Returns merged PDFDocument.
-  var MONEY_RE = /^(Price_|Deposit|Comp_.*(Amount|FlatFee)|.*_Amount$|Escrow.*(Amount|Deposit)|.*Financ.*Amount|.*Purchase_Price)/i; // verify against the form PDFs' field names
+  var MONEY_RE = /^(Price_|Deposit|Comp_.*(Amount|FlatFee)|.*_Amount$|Escrow.*(Amount|Deposit)|.*Financ.*Amount|.*Purchase_Price)/i; // Price_* covers every dollar field on the As Is and Vacant Land contracts
   async function buildPacket(PL, sources, clauses, fill) {
     var out = await PL.PDFDocument.create(), ctx = out.context, roots = new Set(), fontNames = {}, notes = [];
     for (var i = 0; i < sources.length; i++) {
