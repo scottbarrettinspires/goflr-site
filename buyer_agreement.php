@@ -59,7 +59,7 @@ sp_head('Buyer Agreement', $tx);
 .bagqg{display:flex;flex-wrap:wrap;gap:10px 16px}.bagqg>div{display:flex;flex-direction:column;font-size:.82rem;font-weight:600}.bagqg>.full{flex-basis:100%}.bagqg label small{font-weight:400;color:#5a6a6c}
 .bagq input[type=text],.bagq input[type=date],.bagq textarea{font:inherit;font-size:.9rem;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .bagch{display:flex;flex-wrap:wrap;gap:6px}.bagq .chip{display:inline-flex;gap:5px;align-items:center;font-weight:600;font-size:.84rem;border:1px solid #cfe5e5;border-radius:99px;padding:4px 10px;background:#fff;cursor:pointer}
-.bagqq{display:flex;gap:6px;margin-top:5px}.bagqq .btn.sm{padding:1px 10px!important;font-size:.76rem!important}
+.bagqq{display:flex;gap:6px;margin-top:5px}.bagqq .btn.sm{padding:1px 10px!important;font-size:.76rem!important}.bagqq .btn.on{background:var(--teal,#036f72)!important;color:#fff!important;border-color:var(--teal,#036f72)!important}
 @media(max-width:640px){.bagview{max-height:600px;padding:6px}}
 </style>
 <div class="bag">
@@ -145,7 +145,8 @@ sp_head('Buyer Agreement', $tx);
   <p style="margin:12px 0 0"><a href="https://drive.google.com/drive/folders/<?= urlencode($tx) ?>" target="_blank" rel="noopener">Open the transaction folder</a></p>
 </div>
 <script>(function(){var a=document.getElementById("bq_apply");if(!a)return;var $=function(i){return document.getElementById(i);};
-document.querySelectorAll(".bagqq .btn").forEach(function(x){x.onclick=function(){$("bq_exp").value=x.dataset.d;};});
+function qqMark(){if(!$("bq_exp"))return;var v=$("bq_exp").value;document.querySelectorAll(".bagqq .btn").forEach(function(x){x.classList.toggle("on",x.dataset.d===v);});} // highlight the quick button that matches the date in the box (6 months is the default)
+document.querySelectorAll(".bagqq .btn").forEach(function(x){x.onclick=function(){$("bq_exp").value=x.dataset.d;qqMark();};});if($("bq_exp")){$("bq_exp").addEventListener("input",qqMark);$("bq_exp").addEventListener("change",qqMark);}qqMark();
 a.onclick=async function(){var m=$("bq_msg");m.style.color="";m.textContent="Saving...";a.disabled=true;
   var o={csrf:<?= json_encode($_SESSION['csrf']) ?>,tx:<?= json_encode($tx) ?>,kind:<?= json_encode($k) ?>,comm:$("bq_comm").value,admin:$("bq_admin").value,admin_ok:$("bq_adminok").checked,special:$("bq_special").value};
   if($("bq_areas")){o.areas=$("bq_areas").value;o.expires=$("bq_exp").value;o.types=[].map.call(document.querySelectorAll('input[name=types]:checked'),function(c){return c.value;});}else{o.homes=$("bq_homes").value;}
