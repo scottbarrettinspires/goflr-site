@@ -101,7 +101,9 @@
       return await pdf.save();
     }
     var lastBytes = null;
-    var onSave = async function () {
+    var fromBottom = false;
+    var onSave = async function (ev) {
+      fromBottom = !!(ev && ev.currentTarget && ev.currentTarget === saveBtn2);
       var btns = [saveBtn, saveBtn2].filter(Boolean);
       saveBtn.disabled = true; if (saveBtn2) saveBtn2.disabled = true; res.hidden = true; status.textContent = 'Preparing...'; saveBtn.dataset.t = saveBtn.textContent; btns.forEach(function (b) { b.innerHTML = '<span class="bspin"></span>Preparing...'; });
       try {
@@ -122,18 +124,22 @@
             var dsr = await fetch('draft_save.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf: cfg.csrf, tx: cfg.tx, property: paddr, b64: enc(bytes), b64d: draft.disc ? enc(draft.disc) : '', b64f: enc(draft.flat), b64fd: draft.flatDisc ? enc(draft.flatDisc) : '' }) });
             var dj = await dsr.json(); if (dj && dj.ok) { draft.dr = dj.addr; }
           } catch (e7) {}
-          res.innerHTML = '';
-          var pd = el('p', '', res);
-          var dlb = el('button', 'btn', pd); dlb.type = 'button'; dlb.textContent = 'Download Documents';
-          dlb.addEventListener('click', function () {
-            function dl1(u8, name) { var a1 = document.createElement('a'); a1.href = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' })); a1.download = name; document.body.appendChild(a1); a1.click(); a1.remove(); }
-            dl1(bytes, 'Contract Packet.pdf'); if (draft.disc) { setTimeout(function () { dl1(new Uint8Array(draft.disc), 'Buyer Disclosures.pdf'); }, 600); }
-          });
-          var em = el('a', 'btn ghost', pd); em.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx) + (draft.dr ? '&dr=' + encodeURIComponent(draft.dr) : '&draft=1'); em.textContent = 'Email To Buyers For Signing'; em.style.marginLeft = '8px';
-          em.addEventListener('click', function () { em.innerHTML = '<span class="bspin"></span>Opening...'; em.style.pointerEvents = 'none'; });
+          // The options appear in both bars: at the top and at the bottom (where the agent is after scrolling through the forms).
+          var botBar = saveBtn2 ? saveBtn2.closest('.ebar') : null, resB = null;
+          if (botBar) { resB = botBar.querySelector('.eresb'); if (!resB) { resB = el('div', 'eresb', botBar); } resB.innerHTML = ''; }
+          var mkOpts = function (box) {
+            var pd = el('p', '', box);
+            var dlb = el('button', 'btn', pd); dlb.type = 'button'; dlb.textContent = 'Download Documents';
+            dlb.addEventListener('click', function () {
+              function dl1(u8, name) { var a1 = document.createElement('a'); a1.href = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' })); a1.download = name; document.body.appendChild(a1); a1.click(); a1.remove(); }
+              dl1(bytes, 'Contract Packet.pdf'); if (draft.disc) { setTimeout(function () { dl1(new Uint8Array(draft.disc), 'Buyer Disclosures.pdf'); }, 600); }
+            });
+            var em = el('a', 'btn ghost', pd); em.href = 'sign_packet.php?tx=' + encodeURIComponent(cfg.tx) + (draft.dr ? '&dr=' + encodeURIComponent(draft.dr) : '&draft=1'); em.textContent = 'Email To Buyers For Signing'; em.style.marginLeft = '8px';
+            em.addEventListener('click', function () { em.innerHTML = '<span class="bspin"></span>Opening...'; em.style.pointerEvents = 'none'; });
+          };
+          res.innerHTML = ''; mkOpts(res); if (resB) mkOpts(resB);
           res.hidden = false; status.hidden = true; document.querySelectorAll('#esave, #esave2').forEach(function (b) { b.closest('p').hidden = true; });
-          var bot = document.getElementById('esave2'); if (bot) { bot.closest('.ebar').hidden = true; }
-          try { res.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e6) {}
+          try { (fromBottom && resB ? resB : res).scrollIntoView({ behavior: 'smooth', block: fromBottom ? 'center' : 'start' }); } catch (e6) {}
           return;
         }
         var bin = ''; for (var o = 0; o < bytes.length; o += 32768) { bin += String.fromCharCode.apply(null, bytes.subarray(o, o + 32768)); }
