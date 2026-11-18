@@ -110,7 +110,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s4">CDD (Community Development District)?<select id="of_cdd"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select></label>
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
-        <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="450,000"></label>
+        <label class="s4"><strong>Purchase Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="450,000"></label>
         <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="5,000"><span class="cdq" id="esq"><button type="button" class="btn ghost sm" data-a="1000">$1,000</button><button type="button" class="btn ghost sm" data-a="2000">$2,000</button><button type="button" class="btn ghost sm" data-p="1">1%</button><button type="button" class="btn ghost sm" data-p="2">2%</button></span></label>
         <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="360,000"><span class="cdq" id="fnq"><button type="button" class="btn ghost sm" data-d="3.5">3.5% down</button><button type="button" class="btn ghost sm" data-d="5">5% down</button><button type="button" class="btn ghost sm" data-d="10">10% down</button><button type="button" class="btn ghost sm" data-d="20">20% down</button></span></label>
         <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
@@ -161,10 +161,10 @@ Q.forEach(function(x){
   // Buyer broker compensation: amount fields (default 0) plus who pays, instead of three Yes / No answers.
   x.comp=/buyer broker compensation/i.test(x.question)&&x.rows.filter(function(r){return !r.skip&&/^yes/i.test(r.answer);}).length>=1;
   if(x.comp){var ys=x.rows.filter(function(r){return !r.skip&&/^yes/i.test(r.answer);});
-    h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cp'+x.q+'">Percent of Offer Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0">';
+    h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cp'+x.q+'">Percent of Purchase Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0">';
     ys.forEach(function(r,i){h+='<label class="wr"><input type="radio" name="cpw'+x.q+'" value="'+x.rows.indexOf(r)+'"'+(i===0?' checked':'')+'> '+esc(r.answer.replace(/^yes\s*[-\u2013\u2014:]?\s*/i,''))+'</label>';});
     h+='</div></fieldset>';return;}
-  if(x.conc){h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cq'+x.q+'">Percent of Offer Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0"></div></fieldset>';return;}
+  if(x.conc){h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend><div id="cq'+x.q+'">Percent of Purchase Price <input type="text" inputmode="decimal" size="4" class="wp" value="0"> % &nbsp;<strong>OR</strong>&nbsp; Flat Amount $ <input type="text" inputmode="decimal" size="8" class="wa" value="0"></div></fieldset>';return;}
   h+='<fieldset class="wq"><legend>'+esc(x.question)+'</legend>';
   x.rows.forEach(function(r,i){
     if(r.skip)return;
@@ -214,8 +214,8 @@ function ofMoney(n){return Math.round(n).toLocaleString('en-US');}
 ['pprice','of_escrow_deposit','of_financed_amount','of_annual_taxes'].forEach(function(id){var i=document.getElementById(id);if(!i||i.parentNode.className==='mw')return;var s=document.createElement('span');s.className='mw';i.parentNode.insertBefore(s,i);s.appendChild(i);var m=document.createElement('span');m.className='msym';m.textContent='$';s.insertBefore(m,i);});
 if(!document.getElementById('pprice').value)document.getElementById('pprice').value='0';
 function ofQuick(){var pr=ofPrice();
-[].forEach.call(document.querySelectorAll('#esq .btn'),function(b){b.onclick=function(){var v=b.dataset.a?+b.dataset.a:(pr=ofPrice())?pr*(+b.dataset.p)/100:0;if(!v){alert('Enter the offer price first.');return;}ofEl('escrow_deposit').value=ofMoney(v);};});
-[].forEach.call(document.querySelectorAll('#fnq .btn'),function(b){b.onclick=function(){var p=ofPrice();if(!p){alert('Enter the offer price first.');return;}ofEl('financed_amount').value=ofMoney(p*(1-(+b.dataset.d)/100));};});}
+[].forEach.call(document.querySelectorAll('#esq .btn'),function(b){b.onclick=function(){var v=b.dataset.a?+b.dataset.a:(pr=ofPrice())?pr*(+b.dataset.p)/100:0;if(!v){alert('Enter the purchase price first.');return;}ofEl('escrow_deposit').value=ofMoney(v);};});
+[].forEach.call(document.querySelectorAll('#fnq .btn'),function(b){b.onclick=function(){var p=ofPrice();if(!p){alert('Enter the purchase price first.');return;}ofEl('financed_amount').value=ofMoney(p*(1-(+b.dataset.d)/100));};});}
 function idMark(){var v=ofEl('inspection_days').value.trim();[].forEach.call(document.querySelectorAll('#idq .btn'),function(b){b.classList.toggle('on',b.dataset.n===v);});}
 [].forEach.call(document.querySelectorAll('#idq .btn'),function(b){b.onclick=function(){ofEl('inspection_days').value=b.dataset.n;idMark();};});ofEl('inspection_days').addEventListener('input',idMark);
 function ofNum(id){return parseFloat(String(ofEl(id).value).replace(/[^0-9.]/g,''))||0;}
@@ -302,7 +302,7 @@ btn.addEventListener('click',async function(){
   if(!txSel.value)return fail('Please choose the buyer first.');
   ofSync();
   if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim()){mlsShowFields(true);return fail('Please enter the property address (street number, street name, city and zip).');}
-  if(!(parseFloat(String(document.getElementById('pprice').value||'').replace(/[^0-9.]/g,''))>0))return fail('Please enter the offer price.');
+  if(!(parseFloat(String(document.getElementById('pprice').value||'').replace(/[^0-9.]/g,''))>0))return fail('Please enter the purchase price.');
   if(ofEl('property_type').value!=='Vacant Land'&&(!ofEl('hoa').value||!ofEl('cdd').value))return fail('Please tell me whether the property has an HOA and whether it has a CDD.');
   var oe=await ofSave();if(oe)return fail(oe);
   var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
