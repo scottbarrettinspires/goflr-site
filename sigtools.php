@@ -418,14 +418,20 @@ function sg_refresh_many(&$recs, $max = 8) {
 // required documents can be matched to the signed forms that contain them. doc = which document of the request holds it.
 const SG_KEYS = ['contract_res' => 'Residential Purchase Contract (As-Is)', 'contract_land' => 'Vacant Land Purchase Contract', 'ff_credit' => "Credit Related to Buyer's Broker Compensation",
     'flood' => 'Flood Disclosure', 'hoa' => 'HOA / Community Disclosure', 'lead' => 'Lead-Based Paint Disclosure', 'cdd' => 'CDD Disclosure', 'condo' => 'Condominium Rider'];
-const SG_DOCS = ['Contract Packet', 'Buyer Disclosures', 'Seller Disclosures'];
+const SG_DOCS = ['Contract Packet', 'Buyer Disclosures', 'Seller Disclosures', 'Other'];
+function sg_clean_label($t) { return trim(mb_substr(preg_replace('/\s+/', ' ', preg_replace('/[^A-Za-z0-9 ._()&,\'\/-]/', ' ', (string)$t)), 0, 80)); }
 function sg_clean_contents($raw) {
     $j = is_string($raw) ? json_decode($raw, true) : $raw; if (!is_array($j)) return [];
     $out = [];
-    foreach (array_slice($j, 0, 40) as $c) {
+    foreach (array_slice($j, 0, 80) as $c) {
         if (!is_array($c)) continue; $k = (string)($c['key'] ?? ''); $d = (string)($c['doc'] ?? '');
-        if (!isset(SG_KEYS[$k]) || !in_array($d, SG_DOCS, true)) continue;
-        $out[] = ['doc' => $d, 'key' => $k, 'name' => SG_KEYS[$k], 'file' => mb_substr(trim((string)($c['file'] ?? '')), 0, 120), 'page' => max(1, min(999, (int)($c['page'] ?? 1))), 'end' => max(0, min(999, (int)($c['end'] ?? 0))), 'ref' => preg_match('/^[A-Za-z0-9_-]{6,80}\.(m|\d{1,2})$/', (string)($c['ref'] ?? '')) ? (string)$c['ref'] : ''];
+        $custom = $k === 'custom'; if (!$custom && !isset(SG_KEYS[$k])) continue;
+        if (!in_array($d, SG_DOCS, true)) $d = 'Other';
+        $label = $custom ? sg_clean_label($c['label'] ?? ($c['name'] ?? '')) : ''; if ($custom && $label === '') continue;
+        $pg = []; foreach ((array)($c['pages'] ?? []) as $n) { $n = (int)$n; if ($n >= 1 && $n <= 999) $pg[$n] = $n; } $pg = array_slice(array_values($pg), 0, 300); sort($pg);
+        $out[] = ['doc' => $d, 'key' => $k, 'name' => $custom ? $label : SG_KEYS[$k], 'label' => $label, 'file' => mb_substr(trim((string)($c['file'] ?? '')), 0, 120),
+            'page' => $pg ? $pg[0] : max(1, min(999, (int)($c['page'] ?? 1))), 'end' => max(0, min(999, (int)($c['end'] ?? 0))), 'pages' => $pg,
+            'ref' => preg_match('/^[A-Za-z0-9_-]{6,80}\.(m|\d{1,2})$/', (string)($c['ref'] ?? '')) ? (string)$c['ref'] : ''];
     }
     return $out;
 }

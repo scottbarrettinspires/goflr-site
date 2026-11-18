@@ -58,7 +58,7 @@ function dc_list($me, $tx) {
             if (!empty($f['folder_url']) && $folderUrl === '') $folderUrl = (string)$f['folder_url'];
             $g = dc_group($title); $n++;
             $ref = (string)$r['id'] . '.' . ($isMain ? 'm' : (int)$xi);
-            $item = ['id' => (string)$r['id'], 'ref' => $ref, 'title' => (string)$title, 'signed_on' => $when, 'source' => !empty($r['uploaded']) ? 'upload' : 'esign',
+            $item = ['id' => (string)$r['id'], 'ref' => $ref, 'title' => (string)$title, 'signed_on' => $when, 'source' => !empty($r['uploaded']) ? 'upload' : 'esign', 'assign_url' => 'doc_assign.php?ref=' . urlencode($ref) . '&tx=' . urlencode($tx),
                 'drive_url' => (string)($f['url'] ?? ''), 'folder' => (string)($f['folder'] ?? ''),
                 'view_url' => 'doc_open.php?ref=' . urlencode($ref) . '&tx=' . urlencode($tx) . '&t=' . urlencode((string)$title), 'download_url' => 'doc_file.php?ref=' . urlencode($ref),
                 'note' => ($f && empty($f['url'])) ? 'Saved on the site only. It has not been filed in Google Drive.' : (!$f ? 'Filing in Google Drive...' : '')];
@@ -73,14 +73,15 @@ function dc_list($me, $tx) {
             if (!$back) $needUp[] = ['title' => 'Buyer agreement', 'downloaded_on' => $dlDay, 'upload_url' => 'buyer_agreement.php?tx=' . urlencode($tx) . '&embed=1&bare=1']; }
     }
     // Required documents: matched to the signed forms by what each signed document CONTAINS (recorded when it was sent), falling back to its title.
-    $keyFound = []; // content key => ['item' => item, 'page' => n, 'file' => name]
+    $customs = []; $keyFound = []; // content key => ['item' => item, 'page' => n, 'file' => name]
     foreach ($recs as $r) {
         if (empty($r['completed'])) continue; $its = $recItems[(string)$r['id']] ?? [];
         foreach ((array)($r['contents'] ?? []) as $c) {
             $k = (string)($c['key'] ?? ''); $doc = (string)($c['doc'] ?? ''); $item = $its[0] ?? null;
+            if ($k === 'custom') { if (!empty($c['ref'])) { foreach ($its as $it) { if ($it['ref'] === $c['ref']) $customs[] = ['label' => (string)($c['label'] ?? ''), 'item' => $it, 'page' => (int)($c['page'] ?? 1), 'pages' => (array)($c['pages'] ?? [])]; } } continue; }
             if (!empty($c['ref'])) { foreach ($its as $it) { if ($it['ref'] === $c['ref']) $item = $it; } }
             else foreach ($its as $it) { if ($doc !== '' && stripos($it['title'], $doc === 'Contract Packet' ? 'Contract' : $doc) !== false) { $item = $it; break; } }
-            if ($item && (!isset($keyFound[$k]) || strcmp($item['signed_on'], $keyFound[$k]['item']['signed_on']) >= 0)) $keyFound[$k] = ['item' => $item, 'page' => (int)($c['page'] ?? 1), 'file' => (string)($c['file'] ?? '')];
+            if ($item && (!isset($keyFound[$k]) || strcmp($item['signed_on'], $keyFound[$k]['item']['signed_on']) >= 0)) $keyFound[$k] = ['item' => $item, 'page' => (int)($c['page'] ?? 1), 'pages' => (array)($c['pages'] ?? []), 'file' => (string)($c['file'] ?? '')];
         }
     }
     $plain = []; foreach ($recs as $r) { if (empty($r['completed']) || !empty($r['contents'])) continue; foreach (($recItems[(string)$r['id']] ?? []) as $it) $plain[] = $it; } // signed before contents were recorded
@@ -89,10 +90,10 @@ function dc_list($me, $tx) {
     $of = of_raw($tx);
     if (trim((string)($of['street_name'] ?? '')) !== '' || trim((string)($of['mls_id'] ?? '')) !== '') {
         foreach (dc_required_rules($of) as $q) {
-            $row = ['label' => $q[0], 'key' => $q[3][0], 'reason' => $q[2], 'status' => 'missing', 'item' => null, 'page' => 0, 'in' => '', 'view_url' => '', 'download_url' => '', 'note' => ''];
+            $row = ['label' => $q[0], 'key' => $q[3][0], 'reason' => $q[2], 'status' => 'missing', 'item' => null, 'page' => 0, 'pages' => [], 'in' => '', 'view_url' => '', 'download_url' => '', 'note' => ''];
             $hit = null; foreach ($q[3] as $k) { if (isset($keyFound[$k])) { $hit = $keyFound[$k]; break; } }
             if ($hit) { $it = $hit['item']; $row['status'] = 'ok'; $row['item'] = $it; $row['page'] = $hit['page']; $row['in'] = $it['title'] . ($hit['file'] !== '' && $hit['file'] !== $it['title'] ? ' (' . $hit['file'] . ')' : '');
-                $row['view_url'] = $it['view_url'] . '&p=' . $hit['page']; $row['download_url'] = $it['download_url']; }
+                $row['pages'] = $hit['pages']; $row['view_url'] = $it['view_url'] . '&p=' . $hit['page'] . ($hit['pages'] ? '&only=' . implode(',', $hit['pages']) : ''); $row['download_url'] = $it['download_url']; }
             else { foreach ($plain as $it) { if (preg_match($q[1], $it['title'])) { $row['status'] = 'ok'; $row['item'] = $it; $row['in'] = $it['title']; $row['view_url'] = $it['view_url']; $row['download_url'] = $it['download_url']; break; } } }
             if ($row['status'] === 'missing') {
                 $w = false; foreach ($q[3] as $k) { if (!empty($keyWait[$k])) $w = true; } foreach ($pendTitles as $t) { if (preg_match($q[1], $t)) $w = true; }
@@ -106,27 +107,73 @@ function dc_list($me, $tx) {
             $required[] = $row;
         }
     }
+    $others = []; foreach ($customs as $c) { $it = $c['item']; $others[] = ['label' => $c['label'], 'in' => $it['title'], 'pages' => $c['pages'], 'ref' => $it['ref'], 'view_url' => $it['view_url'] . '&p=' . $c['page'] . ($c['pages'] ? '&only=' . implode(',', $c['pages']) : ''), 'download_url' => $it['download_url']]; }
     $out = []; foreach ($groups as $g) { usort($g['items'], function ($a, $b) { return strcmp($b['signed_on'], $a['signed_on']); }); if ($g['items']) $out[] = $g; }
-    return ['ok' => true, 'tx' => $tx, 'name' => (string)$own['name'], 'groups' => $out, 'waiting' => $waiting, 'pending' => $pending, 'needs_upload' => $needUp, 'required' => $required, 'required_missing' => $missing, 'folder_url' => $folderUrl, 'count' => $n];
+    return ['ok' => true, 'tx' => $tx, 'name' => (string)$own['name'], 'groups' => $out, 'waiting' => $waiting, 'pending' => $pending, 'needs_upload' => $needUp, 'required' => $required, 'other_records' => $others, 'required_missing' => $missing, 'folder_url' => $folderUrl, 'count' => $n];
 }
 
-// Link a document that is already signed and on file to a required document (e.g. the Flood Disclosure that is inside the Seller Disclosures).
-// $ref = the signed document's ref (from dc_list items), $page = the page it starts on. Returns '' on success or a readable error.
-function dc_link($me, $tx, $key, $ref, $page) {
-    $me = strtolower(trim((string)$me));
-    if (!isset(SG_KEYS[$key])) return 'Choose which required document this is.';
-    $p = dcf_ref($ref); if (!$p) return 'Choose the signed document that contains it.';
-    $own = false; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === (string)$tx) $own = true; }
-    if (!$own) return 'That record was not found in your business.';
+// Which signed document, on this client record, does $ref point to? Returns [rec, error, ref parts].
+function dc_rec_for($me, $tx, $ref) {
+    $me = strtolower(trim((string)$me)); $p = dcf_ref($ref); if (!$p) return [null, 'Choose the signed document.', null];
+    $own = null; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === (string)$tx) $own = $t; }
+    if (!$own) return [null, 'That record was not found in your business.', null];
     $rec = sg_load($p[0]);
-    if (!$rec || strtolower((string)($rec['agent'] ?? '')) !== $me || empty($rec['completed'])) return 'That signed document was not found.';
-    if (!empty($rec['hint']) && (string)$rec['hint'] !== (string)$tx && !in_array((string)$tx, [(string)($rec['hint'] ?? '')], true)) return 'That document belongs to a different client record.';
-    $x = $p[1] === 'm' ? null : ($rec['extra'][(int)$p[1]] ?? null);
-    $title = $x ? (string)($x['form'] ?? '') : (string)($rec['form'] ?? '');
-    $doc = stripos($title, 'seller') !== false ? 'Seller Disclosures' : (stripos($title, 'buyer disclosure') !== false ? 'Buyer Disclosures' : 'Contract Packet');
-    $list = array_values(array_filter((array)($rec['contents'] ?? []), function ($c) use ($key, $ref) { return !($c['key'] === $key && ($c['ref'] ?? '') === $ref); }));
-    $list[] = ['doc' => $doc, 'key' => $key, 'file' => '', 'page' => max(1, (int)$page), 'end' => 0, 'ref' => $ref];
+    if (!$rec || strtolower((string)($rec['agent'] ?? '')) !== $me || empty($rec['completed']) || !sg_belongs($rec, (string)$tx, (string)$own['name'])) return [null, 'That signed document was not found on this record.', null];
+    return [$rec, '', $p];
+}
+function dc_docname($rec, $p) {
+    $x = $p[1] === 'm' ? null : ($rec['extra'][(int)$p[1]] ?? null); $title = $x ? (string)($x['form'] ?? '') : (string)($rec['form'] ?? '');
+    return stripos($title, 'seller') !== false ? 'Seller Disclosures' : (stripos($title, 'buyer disclosure') !== false ? 'Buyer Disclosures' : (stripos($title, 'contract') !== false ? 'Contract Packet' : 'Other'));
+}
+// $target = "key:flood" (one of SG_KEYS) or "custom" with $custom = the name the agent gives it. Returns [key, label, error].
+function dc_target($target, $custom) {
+    $target = (string)$target;
+    if (strpos($target, 'key:') === 0) { $k = substr($target, 4); return isset(SG_KEYS[$k]) ? [$k, '', ''] : ['', '', 'Choose which required document these pages are.']; }
+    if ($target === 'custom') { $l = sg_clean_label($custom); return $l === '' ? ['', '', 'Type a name for what this document is.'] : ['custom', $l, '']; }
+    return ['', '', 'Choose a required document, or Other and type a name.'];
+}
+// Assign pages of a signed document to a required document (or a named record). Replaces an earlier assignment of the same thing from the same document.
+// $pages = list of 1-based page numbers; [] = the whole document. Returns '' on success or a readable error.
+function dc_assign($me, $tx, $ref, array $pages, $target, $custom = '') {
+    list($rec, $err, $p) = dc_rec_for($me, $tx, $ref); if (!$rec) return $err;
+    list($key, $label, $err) = dc_target($target, $custom); if ($err !== '') return $err;
+    $pg = []; foreach ($pages as $n) { $n = (int)$n; if ($n >= 1 && $n <= 999) $pg[$n] = $n; } $pg = array_values($pg); sort($pg);
+    $list = array_values(array_filter((array)($rec['contents'] ?? []), function ($c) use ($key, $label, $ref) { return !($c['key'] === $key && ($c['label'] ?? '') === $label && ($c['ref'] ?? '') === $ref); }));
+    $list[] = ['doc' => dc_docname($rec, $p), 'key' => $key, 'label' => $label, 'file' => '', 'page' => $pg ? $pg[0] : 1, 'end' => 0, 'pages' => $pg, 'ref' => $ref];
     $rec['contents'] = sg_clean_contents($list); sg_save($rec['id'], $rec);
-    flr_audit(flr_akey($me), 'doc_linked', $rec['id'], SG_KEYS[$key] . ' -> ' . $ref . ' p' . (int)$page);
+    flr_audit(flr_akey(strtolower(trim((string)$me))), 'doc_assigned', $rec['id'], ($label !== '' ? $label : SG_KEYS[$key]) . ' <- ' . $ref . ($pg ? ' pages ' . implode(',', $pg) : ' all pages'));
     return '';
+}
+function dc_unassign($me, $tx, $ref, $key, $label = '') {
+    list($rec, $err, $p) = dc_rec_for($me, $tx, $ref); if (!$rec) return $err;
+    $rec['contents'] = array_values(array_filter((array)($rec['contents'] ?? []), function ($c) use ($key, $label, $ref) { return !($c['key'] === $key && ($c['label'] ?? '') === (string)$label && ($c['ref'] ?? '') === $ref); }));
+    sg_save($rec['id'], $rec);
+    flr_audit(flr_akey(strtolower(trim((string)$me))), 'doc_unassigned', $rec['id'], $key . ($label !== '' ? ' ' . $label : '') . ' <- ' . $ref);
+    return '';
+}
+// Older single-page link kept for assistants: same as assigning one page.
+function dc_link($me, $tx, $key, $ref, $page) { return dc_assign($me, $tx, $ref, [(int)$page], 'key:' . $key); }
+// Upload another document to this client record and assign it. $file = one $_FILES entry. Returns [record id, ''] or ['', error].
+function dc_upload($me, $tx, array $file, $target, $custom = '') {
+    $me = strtolower(trim((string)$me));
+    $own = null; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === (string)$tx) $own = $t; }
+    if (!$own) return ['', 'That record was not found in your business.'];
+    list($key, $label, $err) = dc_target($target, $custom); if ($err !== '') return ['', $err];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) return ['', 'Choose the PDF to upload.'];
+    if (($file['error'] ?? 1) !== UPLOAD_ERR_OK) return ['', 'The upload did not finish. Please try again with a smaller file.'];
+    if ((int)($file['size'] ?? 0) > 25 * 1024 * 1024) return ['', 'That file is larger than 25 MB. Please upload a smaller PDF.'];
+    $pdf = (string)@file_get_contents((string)$file['tmp_name']);
+    if (strlen($pdf) < 500 || substr($pdf, 0, 4) !== '%PDF') return ['', 'Please upload the document as a PDF.'];
+    $title = $label !== '' ? $label : SG_KEYS[$key];
+    $id = 'UP' . bin2hex(random_bytes(8));
+    if (!@file_put_contents(bag_updir() . '/' . $id . '.pdf', $pdf, LOCK_EX)) return ['', 'The document could not be saved. Please try again.'];
+    $at = date('c');
+    $rec = ['id' => $id, 'agent' => $me, 'form' => $title, 'form_id' => '', 'doc' => '', 'created' => $at, 'completed' => true, 'completed_at' => $at, 'uploaded' => true, 'local' => $id . '.pdf', 'signers' => [], 'seen' => true,
+        'folder' => ['id' => (string)$tx, 'label' => trim((string)$own['grp'] . ' / ' . (string)$own['name'], ' /')],
+        'contents' => sg_clean_contents([['doc' => 'Other', 'key' => $key, 'label' => $label, 'pages' => [], 'ref' => $id . '.m']])];
+    list($ok, $r) = sg_save_bytes($rec, $pdf, $title . ' - ' . date('Y-m-d') . '.pdf');
+    $rec['filed'] = $ok ? $r : ['name' => $title . '.pdf', 'url' => '', 'at' => gmdate('c'), 'folder' => 'Saved here only'];
+    sg_save($id, $rec);
+    flr_audit(flr_akey($me), 'doc_uploaded', $tx, 'Uploaded ' . $title . ($ok ? ' (filed to Drive)' : ' (not filed to Drive)'));
+    return [$id, ''];
 }

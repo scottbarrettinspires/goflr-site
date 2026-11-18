@@ -33,20 +33,29 @@ $ICON = [
   <h3>Required documents</h3>
 <?php foreach ($j['required'] as $m): $st = $m['status']; $cls = $st === 'ok' ? 'pdgreen' : ($st === 'waiting' ? 'pdgold' : 'pdred'); $ic = $st === 'ok' ? 'done' : ($st === 'waiting' ? 'wait' : 'miss'); ?>
   <div class="pdr <?= $cls ?>"><?= $ICON[$ic] ?><b><?= $h($m['label']) ?></b>
-<?php if ($st === 'ok'): ?><small>On file in <?= $h($m['in']) ?><?= $m['page'] > 1 ? ', page ' . (int)$m['page'] : '' ?></small>
+<?php if ($st === 'ok'): ?><small>On file in <?= $h($m['in']) ?><?= $m['pages'] ? ', page' . (count($m['pages']) === 1 ? ' ' : 's ') . $h(implode(', ', $m['pages'])) : ($m['page'] > 1 ? ', page ' . (int)$m['page'] : '') ?></small>
 <?php elseif ($st === 'waiting'): ?><small>Sent for signature. Waiting for the signers.</small>
 <?php elseif ($st === 'review'): ?><small style="color:#b71c1c;font-weight:700">Needs review: <?= $h($m['note']) ?></small>
 <?php else: ?><small><?= $h($m['reason']) ?>. Not on file yet.</small><?php endif; ?>
 <?php if ($m['view_url'] !== ''): ?><a href="<?= $h($m['view_url']) ?>" target="_blank" rel="noopener">View</a><a href="<?= $h($m['download_url']) ?>" target="_top">Download</a><?php endif; ?></div>
 <?php endforeach; endif; ?>
 <?php if (!empty($_GET['err'])): ?><p class="sigerr"><?= $h($_GET['err']) ?></p><?php endif; ?>
-<?php if ($j['required'] && $j['count']): $opts = []; foreach ($j['groups'] as $g) foreach ($g['items'] as $it) $opts[] = $it; $need = array_filter($j['required'], function ($m) { return $m['status'] === 'missing' || $m['status'] === 'review'; }); if ($need && $opts): ?>
-  <details class="pdr" style="display:block"><summary style="cursor:pointer;font-weight:700;color:#036f72">A required document is inside a signed document? Link it</summary>
-  <form method="post" action="docs_link_api.php" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center"><input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tx" value="<?= $h($tx) ?>"><input type="hidden" name="back" value="1">
-    <select name="key" required><?php foreach ($need as $m): ?><option value="<?= $h($m['key']) ?>"><?= $h($m['label']) ?></option><?php endforeach; ?></select>
-    <span>is in</span><select name="ref" required><?php foreach ($opts as $it): ?><option value="<?= $h($it['ref']) ?>"><?= $h($it['title']) ?></option><?php endforeach; ?></select>
-    <label>starting on page <input type="number" name="page" value="1" min="1" max="999" style="width:70px"></label><button class="btn" type="submit">Link</button></form></details>
-<?php endif; endif; ?>
+<?php if (!empty($_GET['added'])): ?><p class="note">Document added.</p><?php endif; ?>
+<details class="pdr" style="display:block"><summary style="cursor:pointer;font-weight:700;color:#036f72">Add a document to this record</summary>
+  <form method="post" action="docs_upload_api.php" enctype="multipart/form-data" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center"><input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tx" value="<?= $h($tx) ?>"><input type="hidden" name="back" value="1">
+    <input type="file" name="file" accept="application/pdf,.pdf" required>
+    <select name="target" id="uptg" required><option value="">This document is...</option>
+<?php foreach ($j['required'] as $m): ?><option value="key:<?= $h($m['key']) ?>"><?= $h($m['label']) ?></option><?php endforeach; ?>
+      <option value="custom">Other (type a name)...</option></select>
+    <input type="text" name="custom" id="upcu" maxlength="80" placeholder="What is this document?" hidden>
+    <button class="btn" type="submit">Add document</button></form>
+  <script>document.getElementById("uptg").addEventListener("change",function(){var c=document.getElementById("upcu");c.hidden=this.value!=="custom";c.required=!c.hidden;});</script></details>
+<?php if ($j['other_records']): ?>
+  <h3>Other records</h3>
+<?php foreach ($j['other_records'] as $o): ?>
+  <div class="pdr pdgreen"><?= $ICON['done'] ?><b><?= $h($o['label']) ?></b><small>In <?= $h($o['in']) ?><?= $o['pages'] ? ', page' . (count($o['pages']) === 1 ? ' ' : 's ') . $h(implode(', ', $o['pages'])) : '' ?></small>
+<a href="<?= $h($o['view_url']) ?>" target="_blank" rel="noopener">View</a><a href="<?= $h($o['download_url']) ?>" target="_top">Download</a></div>
+<?php endforeach; endif; ?>
 <?php if ($j['pending']): ?>
   <h3 style="color:#8a5a00">Waiting for signatures</h3>
 <?php foreach ($j['pending'] as $p): ?>
@@ -58,9 +67,10 @@ $ICON = [
 <?php endif; foreach ($j['groups'] as $g): ?>
   <h4 style="margin:12px 0 6px;font-size:.92rem;color:#036f72"><?= $h($g['label']) ?></h4>
 <?php foreach ($g['items'] as $i): ?>
-  <div class="pdr pdgreen"><?= $ICON['done'] ?><b><?= $h($i['title']) ?></b><small><?= $i['source'] === 'upload' ? 'Uploaded signed copy' : 'Signed by e-signature' ?><?= $i['signed_on'] !== '' ? ' &middot; ' . $h($fd($i['signed_on'])) : '' ?></small>
+  <div class="pdr pdgreen"><?= $ICON['done'] ?><b><?= $h($i['title']) ?></b><small><?= $i['source'] === 'upload' ? 'Uploaded document' : 'Signed by e-signature' ?><?= $i['signed_on'] !== '' ? ' &middot; ' . $h($fd($i['signed_on'])) : '' ?></small>
 <?php if ($i['view_url'] !== ''): ?><a href="<?= $h($i['view_url']) ?>" target="_blank" rel="noopener">View</a><?php endif; ?>
 <?php if ($i['download_url'] !== ''): ?><a href="<?= $h($i['download_url']) ?>" target="_top">Download</a><?php endif; ?>
+<?php if (!empty($i['assign_url'])): ?><a href="<?= $h($i['assign_url']) ?>" target="_blank" rel="noopener">Assign</a><?php endif; ?>
 <?php if ($i['folder'] !== ''): ?><small>Filed in <?= $h($i['folder']) ?></small><?php endif; ?>
 <?php if ($i['note'] !== ''): ?><small><?= $h($i['note']) ?></small><?php endif; ?></div>
 <?php endforeach; endforeach; ?>
