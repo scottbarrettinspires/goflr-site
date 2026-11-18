@@ -6,7 +6,7 @@
 require_once __DIR__ . '/flrdb.php';
 require_once __DIR__ . '/sigtools.php';
 
-const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type', 'hoa', 'cdd', 'escrow_deposit', 'financed_amount', 'inspection_days'];
+const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type', 'hoa', 'cdd', 'escrow_deposit', 'financed_amount', 'inspection_days', 'esc_name', 'esc_address', 'esc_phone', 'esc_email'];
 const OF_AGENT = ['oa_first', 'oa_last', 'oa_brokerage', 'oa_email', 'oa_phone'];
 const OF_PROP_TYPES = ['Residential', 'Condominium', 'Vacant Land']; // Residential covers single family, mobile/manufactured, duplex, triplex and townhome
 const OF_PROP_TYPES_OLD = ['Condo / Townhome', 'Mobile / Manufactured', 'Multi-Family', 'Commercial']; // still accepted on offers saved earlier
@@ -54,7 +54,7 @@ function of_get($me, $tx) {
 function of_save($me, $tx, array $in) {
     $own = of_own_buyer($me, $tx); if (!$own) return 'That buyer record was not found in your business.';
     $raw = of_raw($tx); $d = [];
-    foreach (array_merge(OF_PROP, OF_AGENT) as $k) $d[$k] = mb_substr(trim(preg_replace('/\s+/', ' ', (string)($in[$k] ?? ($raw[$k] ?? '')))), 0, 120);
+    foreach (array_merge(OF_PROP, OF_AGENT) as $k) $d[$k] = mb_substr(trim(preg_replace('/\s+/', ' ', (string)($in[$k] ?? ($raw[$k] ?? '')))), 0, $k === 'esc_address' ? 200 : 120);
     if ($d['state'] !== '' && !preg_match('/^[A-Za-z]{2}$/', $d['state'])) return 'State must be two letters, like FL.';
     $d['state'] = strtoupper($d['state']);
     if ($d['zip'] !== '' && !preg_match('/^\d{5}(-\d{4})?$/', $d['zip'])) return 'Zip code must be 5 digits.';
@@ -68,6 +68,8 @@ function of_save($me, $tx, array $in) {
     if ($d['year_built'] !== '' && (!preg_match('/^\d{4}$/', $d['year_built']) || (int)$d['year_built'] < 1700 || (int)$d['year_built'] > (int)date('Y') + 2)) return 'Year built must be a four-digit year.';
     if ($d['closing_date'] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['closing_date'])) return 'Closing date must be a date (YYYY-MM-DD).';
     if ($d['closing_date'] !== '') { require_once __DIR__ . '/dlib.php'; if (!dl_valid_date($d['closing_date'])) return 'Closing date is not a real calendar date.'; $why = dl_offday($d['closing_date']); if ($why !== '') return 'The closing date ' . $d['closing_date'] . ' falls on ' . ($why === 'Saturday' || $why === 'Sunday' ? 'a ' . $why : $why) . '. A closing cannot be on a weekend or holiday; use the next business day, ' . dl_next_business($d['closing_date']) . '.'; }
+    if ($d['esc_email'] !== '' && !filter_var($d['esc_email'], FILTER_VALIDATE_EMAIL)) return 'The title company\'s email address does not look right.';
+    if ($d['esc_phone'] !== '' && strlen(preg_replace('/\D/', '', $d['esc_phone'])) < 10) return 'The title company\'s phone number needs 10 digits, like 727-555-1234.';
     if ($d['oa_email'] !== '' && !filter_var($d['oa_email'], FILTER_VALIDATE_EMAIL)) return 'The other agent\'s email address does not look right.';
     if ($d['property_type'] !== '' && !in_array($d['property_type'], array_merge(OF_PROP_TYPES, OF_PROP_TYPES_OLD), true)) return 'Choose a property type from the list.';
     if (preg_match('/[\\\\\/:*?"<>|]/', of_address($d))) return 'Please check the property address (no slashes or special characters).';

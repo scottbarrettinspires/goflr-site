@@ -116,6 +116,13 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
         <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"><span class="cdq" id="idq"><button type="button" class="btn ghost sm" data-n="5">5 Days</button><button type="button" class="btn ghost sm" data-n="7">7 Days</button><button type="button" class="btn ghost sm" data-n="10">10 Days</button><button type="button" class="btn ghost sm" data-n="15">15 Days</button></span></label>
       </div>
+      <h3 id="esc_head">Escrow deposit holder (title company)</h3>
+      <div class="odg" id="esc_grid">
+        <label class="s6">Title company name<input type="text" id="of_esc_name" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Phone<input type="text" id="of_esc_phone" inputmode="tel" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+        <label class="s6">Address<input type="text" id="of_esc_address" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="Street, city, state zip"></label>
+        <label class="s6">Email<input type="text" id="of_esc_email" inputmode="email" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
+      </div>
       <input type="hidden" id="paddr">
       <h3 id="oa_head">Other agent</h3>
       <div class="odg" id="oa_grid">
@@ -207,7 +214,7 @@ txSel.addEventListener('change',loadInfo);
 qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')return;var lb=t.closest('label'),tx=lb?lb.textContent:'';if(!/purchase|payment|cash|financ/i.test(tx))return;var xF=document.getElementById('xf_F');if(!xF)return;if(/^\s*cash/i.test(tx))xF.style.display='';else if(/financ/i.test(tx)){xF.style.display='none';var c=xF.querySelector('input');if(c)c.checked=false;}});
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
-var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+var OFK=['esc_name','esc_address','esc_phone','esc_email','escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
 var CDH=<?= json_encode((function(){require_once __DIR__.'/dlib.php';$o=[];$y=(int)date('Y');for($i=0;$i<=3;$i++)$o+=dl_holidays($y+$i);return $o;})(), JSON_UNESCAPED_SLASHES) ?>;
 function ofPrice(){return parseFloat(String(document.getElementById('pprice').value).replace(/[^0-9.]/g,''))||0;}
 function ofMoney(n){return Math.round(n).toLocaleString('en-US');}

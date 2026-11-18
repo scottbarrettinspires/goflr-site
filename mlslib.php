@@ -107,6 +107,7 @@ function mls_offer_fields(array $l) {
     if (array_key_exists('AssociationYN', $raw)) $hoa = $yn($raw['AssociationYN']);
     if ($hoa === '' && ((float)($raw['AssociationFee'] ?? 0) > 0 || trim((string)($raw['AssociationName'] ?? '')) !== '')) $hoa = 'yes';
     foreach ($raw as $k => $v) { if (preg_match('/cdd/i', (string)$k) && !is_array($v) && $yn($v) !== '') { $cdd = $yn($v); if ($cdd === 'yes') break; } }
+    $esc = ''; foreach ($raw as $k => $v) { if (!is_array($v) && !preg_match('/phone|email|fax|address|url|key|date|amount|fee|yn$/i', (string)$k) && preg_match('/^(title|escrow).*(company|agent|name)|(company|agent|name).*(title|escrow)/i', (string)$k) && trim((string)$v) !== '') { $esc = trim((string)$v); break; } }
     return [
         'street_number' => (string)($l['street_number'] ?? ''), 'street_name' => (string)($l['street_name'] ?? ''), 'unit' => (string)($l['unit'] ?? ''),
         'city' => (string)($l['city'] ?? ''), 'state' => strtoupper((string)($l['state'] ?? '')), 'zip' => substr((string)($l['zip'] ?? ''), 0, 5),
@@ -114,6 +115,7 @@ function mls_offer_fields(array $l) {
         'property_type' => $type, 'hoa' => $hoa, 'cdd' => $cdd,
         'oa_first' => $oaf, 'oa_last' => $oal, 'oa_brokerage' => (string)($l['office'] ?? ''),
         'oa_email' => (string)($l['list_agent_email'] ?? ''), 'oa_phone' => (string)($l['list_agent_phone'] ?? ''),
+        'esc_name' => $esc, // title company, only if the MLS record carries one in a field whose name mentions title/escrow; most listings do not
     ];
 }
 // Three fake listings in the RESO Web API shape, used only to prove the parse/cache/display pipeline before live data exists.
