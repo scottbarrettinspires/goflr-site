@@ -117,7 +117,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"><span class="cdq" id="idq"><button type="button" class="btn ghost sm" data-n="5">5 Days</button><button type="button" class="btn ghost sm" data-n="7">7 Days</button><button type="button" class="btn ghost sm" data-n="10">10 Days</button><button type="button" class="btn ghost sm" data-n="15">15 Days</button></span></label>
       </div>
       <h3 id="sp_head">Seller and property record</h3>
-      <p class="note" style="margin:0 0 6px">Filled from the MLS when it has them; saved with this client's record and put on the contract.</p>
+      <p class="note" id="sp_note" style="margin:0 0 6px">Filled from the MLS when it has them; saved with this client's record and put on the contract.</p>
       <div class="odg" id="sp_grid">
         <label class="s6">Seller name(s)<input type="text" id="of_seller_names" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s3">County<input type="text" id="of_county" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
@@ -328,13 +328,18 @@ var MLSF=['street_number','street_name','unit','city','state','zip','year_built'
 // HOA and CDD are answered by the MLS lookup: once it has filled them they are hidden (Edit brings them back); a blank one stays so the agent can answer it.
 function hcVis(){var collapsed=!document.getElementById('mls_card').hidden;['hoa','cdd'].forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=(collapsed&&ofEl(k).value)?'none':'';});}
 function mlsShowFields(on,keepAgent){var oa=['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].some(function(k){return (ofEl(k).value||'').trim();});['oa_head','oa_grid'].forEach(function(i){document.getElementById(i).style.display=(on||!oa)?'':'none';});MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});var offAg=!(on||!oa);MLSF.forEach(function(k){ofEl(k).disabled=!on;});['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].forEach(function(k){ofEl(k).disabled=offAg;}); // hidden address/agent inputs are disabled so Chrome does not treat hiding them as a submitted form and offer to save an address
+var SPF=['seller_names','county','parcel_id','legal_desc'];['sp_head','sp_note','sp_grid'].forEach(function(i){var e=document.getElementById(i);if(e)e.style.display=on?'':'none';});SPF.forEach(function(k){ofEl(k).disabled=!on;});
 document.getElementById('mls_card').hidden=on;hcVis();document.getElementById('mls_card').style.display=on?'none':'flex';}
 function yn(v){return v==='yes'?'Yes':v==='no'?'No':'not in MLS data';}
+function spCard(){var g=function(k){return (ofEl(k).value||'').trim();},nf='<span style="color:#9a6a00">not in MLS data: click Edit to add</span>';
+  var t=function(l,v,opt){return '<div class="m"><b>'+l+':</b> '+(v?esc(v):nf)+'</div>';};
+  var cp=[g('county')?g('county')+' County':'',g('parcel_id')?'Tax ID '+g('parcel_id'):''].filter(Boolean).join(' · ');
+  return '<div style="margin-top:6px">'+t('Seller(s)',g('seller_names'))+'<div class="m"><b>County / parcel:</b> '+(cp?esc(cp):nf)+'</div>'+t('Legal description',g('legal_desc'))+'</div>';}
 function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;
   var addr=[[g('street_number'),g('street_name')].filter(Boolean).join(' ')+(g('unit')?' #'+g('unit'):''),g('city'),[g('state'),g('zip')].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   var tx=g('annual_taxes'),sub=[g('year_built')?'Year built '+g('year_built'):'',tx?'Annual taxes $'+tx:'',g('property_type'),'HOA: '+yn(MLSX.hoa),'CDD: '+yn(MLSX.cdd)].filter(Boolean).join(' · ');
   var ag=[[g('oa_first'),g('oa_last')].filter(Boolean).join(' '),g('oa_brokerage'),g('oa_phone'),g('oa_email')].filter(Boolean).join(' · ');
-  document.getElementById('mls_card_txt').innerHTML='<b>'+esc(addr)+'</b>'+(sub?'<div class="m">'+esc(sub)+'</div>':'')+(ag?'<div class="m" style="margin-top:6px"><b>Listing agent:</b> '+esc(ag)+'</div>':'');mlsShowFields(false);}
+  document.getElementById('mls_card_txt').innerHTML='<b>'+esc(addr)+'</b>'+(sub?'<div class="m">'+esc(sub)+'</div>':'')+(ag?'<div class="m" style="margin-top:6px"><b>Listing agent:</b> '+esc(ag)+'</div>':'')+spCard();mlsShowFields(false);}
 document.getElementById('mls_edit').addEventListener('click',function(){mlsShowFields(true);});
 mlsGo.addEventListener('click',function(){mlsLookup(true);});
 ofEl('mls_id').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();mlsLookup(true);}});
