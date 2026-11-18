@@ -160,18 +160,21 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($draft || $dr !== ''): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});FLRDraft.del(<?= json_encode($buyer['id'] . '|seller') ?>).catch(function(){});</script><?php endif; ?>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
+<?php if (!$buyer): ?>
   <form method="get" class="panel sigbox"><p><label for="tx"><strong>Which buyer?</strong></label><br>
     <select name="tx" id="tx" class="txsel" onchange="this.form.submit()"><option value="">Choose a buyer...</option>
 <?php foreach ($buyers as $f): ?>
       <option value="<?= htmlspecialchars($f['id']) ?>"<?= $tx === $f['id'] ? ' selected' : '' ?>><?= htmlspecialchars($f['name']) ?></option>
 <?php endforeach; ?>
     </select></p></form>
-<?php if ($buyer): ?>
+<?php else: ?>
   <form method="post" class="panel sigbox" id="sf">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="tx" value="<?= htmlspecialchars($buyer['id']) ?>">
     <?php if ($drRes): ?><input type="hidden" name="dr" value="<?= htmlspecialchars($dr) ?>"><?php endif; ?>
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
+    <p><strong>Buyer</strong><br><span style="font-size:1.1em"><?= htmlspecialchars($buyer['name']) ?></span></p>
+    <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
     <?php if (!$draft && !$packets && !$discs): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
     <?php else: ?>
 <?php if ($draft): ?>
@@ -193,7 +196,6 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     </select></p>
 <?php endif; ?>
     <p id="sdrow" hidden><strong>Seller Disclosures</strong> (sent in the same email and signed together with the other documents)<br><span class="txsel" id="sdnames" style="display:inline-block;padding:12px 16px"></span> <a href="#" id="sdrm">Remove</a></p>
-    <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
     <div id="whosigns" hidden>
     <p><strong>Who signs?</strong></p>
     <div id="signers">
