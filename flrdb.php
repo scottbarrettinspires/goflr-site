@@ -151,10 +151,12 @@ function flr_outcome_columns() {
 }
 // Live records only (not marked cancelled or expired).
 function flr_tx_live($email) { flr_outcome_columns(); return array_values(array_filter(flr_tx_list($email), function ($t) { return (string)($t['outcome'] ?? '') === ''; })); }
+// Buyer folders in Drive stage 2 (1 BUYERS / 2 Contract Offers / [property address]) are where a buyer's offer documents are kept, not client records:
+// the client stays listed under the buyer's own name, so Active Clients (listedOnly) leaves them out. flr_tx_list($email, false) still returns them.
 function flr_tx_list($email, $listedOnly = true) {
     // A buyer who has had a consultation but no signed agreement yet is still a lead: hidden from Active Business (kv prep_<folder>)
     $pdo0 = flr_db(); $pdo0->exec('CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)');
-    $q = flr_db()->prepare('SELECT * FROM transactions WHERE akey = ?' . ($listedOnly ? " AND listed = 1 AND folder NOT IN (SELECT substr(k, 6) FROM kv WHERE k LIKE 'prep\\_%' ESCAPE '\\')" : '') . ' ORDER BY side, stage, name'); $q->execute([flr_akey($email)]); return $q->fetchAll();
+    $q = flr_db()->prepare('SELECT * FROM transactions WHERE akey = ?' . ($listedOnly ? " AND listed = 1 AND NOT (side = 'buyer' AND stage = 2) AND folder NOT IN (SELECT substr(k, 6) FROM kv WHERE k LIKE 'prep\\_%' ESCAPE '\\')" : '') . ' ORDER BY side, stage, name'); $q->execute([flr_akey($email)]); return $q->fetchAll();
 }
 function flr_tx_set($folder, array $set) {
     if (!$set) return; $cols = []; $vals = [];

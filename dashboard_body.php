@@ -9,9 +9,9 @@ $pdo = flr_db();
 // One row per agent we've seen (populated as each agent's data is first touched), with live counts.
 $agents = $pdo->query("SELECT akey, email, meta, updated FROM agents ORDER BY email")->fetchAll();
 $leadCounts = $pdo->query("SELECT akey, COUNT(*) n FROM leads GROUP BY akey")->fetchAll(PDO::FETCH_KEY_PAIR);
-$txRows = $pdo->query("SELECT akey, side, stage_name, listed FROM transactions")->fetchAll();
+$txRows = $pdo->query("SELECT akey, side, stage, stage_name, listed FROM transactions")->fetchAll();
 $txByAgent = [];
-foreach ($txRows as $t) { if (!(int)($t['listed'] ?? 1)) continue; $txByAgent[$t['akey']]['total'] = ($txByAgent[$t['akey']]['total'] ?? 0) + 1;
+foreach ($txRows as $t) { if (!(int)($t['listed'] ?? 1) || ($t['side'] === 'buyer' && (int)$t['stage'] === 2)) continue; $txByAgent[$t['akey']]['total'] = ($txByAgent[$t['akey']]['total'] ?? 0) + 1;
     if ($t['side'] === 'buyer') $txByAgent[$t['akey']]['buyers'] = ($txByAgent[$t['akey']]['buyers'] ?? 0) + 1;
     if ($t['side'] === 'seller') $txByAgent[$t['akey']]['sellers'] = ($txByAgent[$t['akey']]['sellers'] ?? 0) + 1;
     $sn = strtolower((string)($t['stage_name'] ?? ''));
