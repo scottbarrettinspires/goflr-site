@@ -241,7 +241,7 @@ var MLSX={};
 function mlsAnswers(x){if(x)MLSX=x;if(!(ofEl('mls_id').value||'').trim())return;var pt=ofEl('property_type').value,yb=parseInt(ofEl('year_built').value,10);
   var pm={'Residential':/residential|single|house|home/i,'Condominium':/condo/i,'Vacant Land':/vacant|land/i}[pt];
   if(pm)mlsPick(/property type/i,pm);
-  if(MLSX.hoa&&!ofEl('hoa').value)ofEl('hoa').value=MLSX.hoa;if(MLSX.cdd&&!ofEl('cdd').value)ofEl('cdd').value=MLSX.cdd;
+  if(MLSX.hoa&&!ofEl('hoa').value)ofEl('hoa').value=MLSX.hoa;if(MLSX.cdd&&!ofEl('cdd').value)ofEl('cdd').value=MLSX.cdd;hcVis();
   if(yb>0)mlsPick(/1978|lead/i,yb<1978?/^yes/i:/^no/i);
   // HOA / CDD from the MLS record; stays blank when the MLS does not say.
   var h=MLSX.hoa,c=MLSX.cdd,yes=/^yes/i,no=/^no/i;
@@ -251,7 +251,9 @@ function mlsAnswers(x){if(x)MLSX=x;if(!(ofEl('mls_id').value||'').trim())return;
     mlsPick(/(\bhoa\b|homeowner|association).*(\bcdd\b|community development)|(\bcdd\b|community development).*(\bhoa\b|homeowner|association)/i,both?/both|hoa.*cdd|cdd.*hoa/i:onlyH?/^(?!.*cdd).*hoa/i:onlyC?/^(?!.*hoa).*cdd/i:/neither|^none|^no\b/i);}}
 ofEl('property_type').addEventListener('change',function(){mlsAnswers();});
 var MLSF=['street_number','street_name','unit','city','state','zip','year_built','annual_taxes','property_type'];
-function mlsShowFields(on,keepAgent){var oa=['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].some(function(k){return (ofEl(k).value||'').trim();});['oa_head','oa_grid'].forEach(function(i){document.getElementById(i).style.display=(on||!oa)?'':'none';});MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});document.getElementById('mls_card').hidden=on;document.getElementById('mls_card').style.display=on?'none':'flex';}
+// HOA and CDD are answered by the MLS lookup: once it has filled them they are hidden (Edit brings them back); a blank one stays so the agent can answer it.
+function hcVis(){var collapsed=!document.getElementById('mls_card').hidden;['hoa','cdd'].forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=(collapsed&&ofEl(k).value)?'none':'';});}
+function mlsShowFields(on,keepAgent){var oa=['oa_first','oa_last','oa_brokerage','oa_email','oa_phone'].some(function(k){return (ofEl(k).value||'').trim();});['oa_head','oa_grid'].forEach(function(i){document.getElementById(i).style.display=(on||!oa)?'':'none';});MLSF.forEach(function(k){var l=ofEl(k).closest('label');if(l)l.style.display=on?'':'none';});document.getElementById('mls_card').hidden=on;hcVis();document.getElementById('mls_card').style.display=on?'none':'flex';}
 function yn(v){return v==='yes'?'Yes':v==='no'?'No':'not in MLS data';}
 function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;
   var addr=[[g('street_number'),g('street_name')].filter(Boolean).join(' ')+(g('unit')?' #'+g('unit'):''),g('city'),[g('state'),g('zip')].filter(Boolean).join(' ')].filter(Boolean).join(', ');
