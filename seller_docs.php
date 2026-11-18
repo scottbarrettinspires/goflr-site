@@ -11,10 +11,11 @@ $buyers = []; foreach ($all as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') 
 $buyer = null; foreach ($buyers as $f) { if ($f['id'] === $tx) $buyer = $f; }
 if (!$buyer && $tx !== '') $buyer = sg_buyer_pick($me, $tx);
 if ($buyer && !$buyers) $buyers[] = $buyer;
-$bi = []; $addr = '';
+$bi = []; $addr = sg_addr_ok($_GET['addr'] ?? '');
 if ($buyer) {
     $r = sg_buyer_info($me, $buyer['id']); $bi = (!empty($r['ok']) && is_array($r['info'] ?? null)) ? $r['info'] : [];
-    $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
+    $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa) && $addr === '') $addr = $pa;
+    if ($addr === '') $addr = sg_offer_addr($me, $buyer['id']);
     $mine = strtolower(trim((string)($_SESSION['name'] ?? '')));
     foreach (['b1', 'b2'] as $k) { if ($mine !== '' && strtolower(trim((string)($bi[$k . '_name'] ?? ''))) === $mine) { $bi[$k . '_name'] = ''; } }
 }
@@ -77,7 +78,9 @@ if ($buyer) {
 <?php else: ?>
   <div class="panel sigbox" id="setup">
     <p><strong><?= htmlspecialchars($buyer['name']) ?></strong></p>
-    <p><label for="addr"><strong>Property address</strong></label><br><input type="text" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
+    <?php if ($addr !== ''): ?><p><strong>Property</strong><br><span style="font-size:1.1em"><?= htmlspecialchars($addr) ?></span><input type="hidden" id="addr" value="<?= htmlspecialchars($addr) ?>"></p>
+    <?php else: ?><p><label for="addr"><strong>Property address</strong></label><br><input type="text" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
+    <?php endif; ?>
     <p><strong>Who signs?</strong></p>
 <?php foreach ($B as $b): ?>
     <div style="margin:0 0 12px"><div style="font-weight:600;margin-bottom:4px"><?= htmlspecialchars(($b['name'] !== '' ? $b['name'] . ' (' : '(') . $b['label'] . ')') ?></div>

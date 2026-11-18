@@ -414,6 +414,10 @@ function sg_refresh_many(&$recs, $max = 8) {
 
 // The buyer folder record for $tx (stage-1 'Buyers' group): from the office script, or, for buyer records the site holds itself (sample and not-yet-filed
 // buyers), from the local transaction list. Returns the folder array {id,name,group} or null.
+// A property address that is safe to use as a folder name, or ''.
+function sg_addr_ok($a) { $a = trim(preg_replace('/\s+/', ' ', (string)$a)); return ($a !== '' && strlen($a) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $a)) ? $a : ''; }
+// The property address entered in Make A Contract Offer for this buyer record, or ''.
+function sg_offer_addr($me, $tx) { try { require_once __DIR__ . '/offerlib.php'; $o = of_get($me, $tx); return !empty($o['ok']) ? sg_addr_ok($o['address'] ?? '') : ''; } catch (Throwable $e) { return ''; } }
 function sg_buyer_pick($me, $tx) {
     if (!preg_match('/^[A-Za-z0-9_-]{10,80}$/', (string)$tx)) return null;
     foreach ((sg_folders($me, $tx) ?: []) as $f) { if ($f['id'] === $tx && $f['group'] === '1 BUYERS / 1 Buyers') return $f; }

@@ -30,6 +30,7 @@ $result = null; $rows = [['', 'buyer1', '']]; $addr = $drRes ? $dr : '';
 if ($buyer && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $bi = sg_buyer_info($me, $buyer['id']); $bi = (!empty($bi['ok']) && is_array($bi['info'] ?? null)) ? $bi['info'] : [];
     $pa = trim(preg_replace('/\s+/', ' ', (string)($bi['property'] ?? ''))); if ($addr === '' && $pa !== '' && strlen($pa) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $pa)) $addr = $pa;
+    if ($addr === '') $addr = sg_offer_addr($me, $buyer['id']);
     $mine = strtolower(trim((string)($_SESSION['name'] ?? ''))); $pre = [];
     $n1 = trim((string)($bi['b1_name'] ?? '')); $n2 = trim((string)($bi['b2_name'] ?? ''));
     if ($mine !== '' && strtolower($n1) === $mine) $n1 = ''; if ($mine !== '' && strtolower($n2) === $mine) $n2 = '';
@@ -174,7 +175,9 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($drRes): ?><input type="hidden" name="dr" value="<?= htmlspecialchars($dr) ?>"><?php endif; ?>
     <?php if ($result): ?><p class="sigerr"><?= $result['msg'] ?></p><?php endif; ?>
     <p><strong>Buyer</strong><br><span style="font-size:1.1em"><?= htmlspecialchars($buyer['name']) ?></span></p>
-    <p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
+    <?php if ($addr !== ''): ?><p><strong>Property</strong><br><span style="font-size:1.1em"><?= htmlspecialchars($addr) ?></span><input type="hidden" name="addr" id="addr" value="<?= htmlspecialchars($addr) ?>"></p>
+    <?php else: ?><p><label for="addr"><strong>Property address</strong></label><br><input type="text" name="addr" id="addr" class="txsel" size="40" maxlength="120" value="<?= htmlspecialchars($addr) ?>" placeholder="e.g. 123 Palm Ave"></p>
+    <?php endif; ?>
     <?php if (!$draft && !$packets && !$discs): ?><p class="note">No PDF packets in this buyer's folder yet. Build one with the <a href="wizard.php?tx=<?= urlencode($buyer['id']) ?>">Contract Forms Wizard</a>, fill it in, and save it in this folder.</p>
     <?php else: ?>
 <?php if ($draft): ?>
@@ -212,7 +215,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <input type="hidden" name="needs" id="needs" value=""><textarea name="sdjson" id="sdjson" hidden></textarea>
     <div id="choice">
       <p><strong>Did the seller provide any disclosures the buyers need to sign?</strong></p>
-      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>" id="upl">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
+      <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;addr=<?= urlencode($addr) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>" id="upl">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
     </div>
     <p id="actions" hidden><button type="submit" class="btn" id="go">Email To Buyers For Signing</button> <a class="btn ghost" href="forms.php">Cancel</a></p>
     <?php endif; ?>
