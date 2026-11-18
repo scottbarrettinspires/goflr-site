@@ -109,7 +109,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$s['ok']) { $fail = $s; }
             else {
                 if (!empty($s['merged'])) { $meta = [['form' => 'Contract Documents - ' . $addr, 'form_id' => $meta[0]['form_id'], 'what' => 'documents', 'file' => 'Contract Documents.pdf']]; } // DigiSigner returns one combined signed PDF
-                $rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => $meta[0]['form_id'], 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null];
+                $rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => $meta[0]['form_id'], 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => $signers, 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null, 'contents' => sg_clean_contents($_POST['contents'] ?? '')];
                 for ($mi = 1; $mi < count($meta); $mi++) { $rec['extra'][] = ['form' => $meta[$mi]['form'], 'form_id' => $meta[$mi]['form_id'], 'doc' => $s['docs'][$mi], 'filed' => null]; }
                 sg_save($s['id'], $rec);
                 sg_draft_mark($me, $addr, $buyer['id'], true);
@@ -213,7 +213,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div id="xsign"></div>
     </div>
-    <input type="hidden" name="needs" id="needs" value=""><textarea name="sdjson" id="sdjson" hidden></textarea>
+    <input type="hidden" name="needs" id="needs" value=""><input type="hidden" name="contents" id="contents" value=""><textarea name="sdjson" id="sdjson" hidden></textarea>
     <div id="choice">
       <p><strong>Did the seller provide any disclosures the buyers need to sign?</strong></p>
       <p><a class="btn" href="seller_docs.php?tx=<?= urlencode($buyer['id']) ?>&amp;addr=<?= urlencode($addr) ?>&amp;ret=<?= urlencode($drRes ? 'dr=' . rawurlencode($dr) : 'draft=1') ?>" id="upl">Upload Seller Disclosures</a> <button type="button" class="btn ghost" id="noadd">No Additional Documents</button></p>
@@ -223,6 +223,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
   </form>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
+<script src="flrdetect.js?v=1"></script>
 <script>
 (function(){
 var f=document.getElementById("sf");if(!f)return;
@@ -249,6 +250,11 @@ async function roles(id){
   }
   return out;
 }
+async function packetBytes(id){
+  if(!id)return null;
+  var r=await fetch("editor_pdf.php?tx="+encodeURIComponent(TX)+"&id="+encodeURIComponent(id)+(DR?"&dr="+encodeURIComponent(DR):""),{credentials:"same-origin"});
+  return r.ok?new Uint8Array(await r.arrayBuffer()):null;
+}
 async function refresh(){
   var my=++seq;go.disabled=true;actions.hidden=true;xs.innerHTML='<p class="note" style="display:flex;align-items:center;gap:10px"><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Confirming if any additional signers such as agent or broker...</p>';
   var want={pk:{},dk:{}},all={};
@@ -258,6 +264,10 @@ async function refresh(){
     else{a=await roles(pk&&pk.value);b=await roles(dk&&dk.value);}
     if(my!==seq)return;
     want.pk=a;want.dk=b;
+    try{var cs=[],pb=DRAFT?(dd.flat||dd.completed||dd.packet):await packetBytes(pk&&pk.value);
+      if(pb){var det=FLRDetect.contract(await FLRDetect.texts(pb));Object.keys(det).forEach(function(k){cs.push({doc:"Contract Packet",key:k,page:det[k]});});}
+      if(window.__sd){window.__sd.docs.forEach(function(d){(d.tags||[]).forEach(function(t){cs.push({doc:"Seller Disclosures",key:t.key,file:t.file,page:t.page,end:t.end});});});}
+      document.getElementById("contents").value=JSON.stringify(cs);}catch(e2){document.getElementById("contents").value="[]";}
     Object.keys(a).forEach(function(k){all[k]=a[k];});Object.keys(b).forEach(function(k){if(!all[k]||b[k]==="broker")all[k]=b[k];});
   }catch(e){if(my!==seq)return;xs.innerHTML='<p class="sgerr">'+esc(e.message)+'. The buyers can still be sent the documents, but check whether the agent or broker must sign.</p>';go.disabled=false;needs.value="{}";actions.hidden=false;return;}
   if(window.__sd){window.__sd.docs.forEach(function(d){d.fields.forEach(function(f){if(f.role==="broker")all.broker="broker";else if(f.role==="agent"&&!all.agent)all.agent="agent";});});}

@@ -4,6 +4,7 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/doclib.php";
 require_once __DIR__ . "/subpage.php";
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? ''); $tx = (string)($_GET['tx'] ?? '');
 sp_head('Documents', $tx);
 $j = dc_list($me, $tx);
@@ -28,11 +29,24 @@ $ICON = [
 <?php foreach ($j['needs_upload'] as $u): ?>
   <div class="pdr pdred"><?= $ICON['miss'] ?><b><?= $h($u['title']) ?></b><small>Downloaded for signing on <?= $h($fd($u['downloaded_on'])) ?>. The signed copy has not been uploaded yet.</small><a href="<?= $h($u['upload_url']) ?>">Upload signed copy</a></div>
 <?php endforeach; endif; ?>
-<?php if ($j['required_missing']): ?>
-  <h3 style="color:#b71c1c">Required documents not on file</h3>
-<?php foreach ($j['required_missing'] as $m): ?>
-  <div class="pdr pdred"><?= $ICON['miss'] ?><b><?= $h($m['label']) ?></b><small><?= $h($m['reason']) ?>. No executed copy yet.</small></div>
+<?php if ($j['required']): ?>
+  <h3>Required documents</h3>
+<?php foreach ($j['required'] as $m): $st = $m['status']; $cls = $st === 'ok' ? 'pdgreen' : ($st === 'waiting' ? 'pdgold' : 'pdred'); $ic = $st === 'ok' ? 'done' : ($st === 'waiting' ? 'wait' : 'miss'); ?>
+  <div class="pdr <?= $cls ?>"><?= $ICON[$ic] ?><b><?= $h($m['label']) ?></b>
+<?php if ($st === 'ok'): ?><small>On file in <?= $h($m['in']) ?><?= $m['page'] > 1 ? ', page ' . (int)$m['page'] : '' ?></small>
+<?php elseif ($st === 'waiting'): ?><small>Sent for signature. Waiting for the signers.</small>
+<?php elseif ($st === 'review'): ?><small style="color:#b71c1c;font-weight:700">Needs review: <?= $h($m['note']) ?></small>
+<?php else: ?><small><?= $h($m['reason']) ?>. Not on file yet.</small><?php endif; ?>
+<?php if ($m['view_url'] !== ''): ?><a href="<?= $h($m['view_url']) ?>" target="_blank" rel="noopener">View</a><a href="<?= $h($m['download_url']) ?>" target="_top">Download</a><?php endif; ?></div>
 <?php endforeach; endif; ?>
+<?php if (!empty($_GET['err'])): ?><p class="sigerr"><?= $h($_GET['err']) ?></p><?php endif; ?>
+<?php if ($j['required'] && $j['count']): $opts = []; foreach ($j['groups'] as $g) foreach ($g['items'] as $it) $opts[] = $it; $need = array_filter($j['required'], function ($m) { return $m['status'] === 'missing' || $m['status'] === 'review'; }); if ($need && $opts): ?>
+  <details class="pdr" style="display:block"><summary style="cursor:pointer;font-weight:700;color:#036f72">A required document is inside a signed document? Link it</summary>
+  <form method="post" action="docs_link_api.php" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center"><input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tx" value="<?= $h($tx) ?>"><input type="hidden" name="back" value="1">
+    <select name="key" required><?php foreach ($need as $m): ?><option value="<?= $h($m['key']) ?>"><?= $h($m['label']) ?></option><?php endforeach; ?></select>
+    <span>is in</span><select name="ref" required><?php foreach ($opts as $it): ?><option value="<?= $h($it['ref']) ?>"><?= $h($it['title']) ?></option><?php endforeach; ?></select>
+    <label>starting on page <input type="number" name="page" value="1" min="1" max="999" style="width:70px"></label><button class="btn" type="submit">Link</button></form></details>
+<?php endif; endif; ?>
 <?php if ($j['pending']): ?>
   <h3 style="color:#8a5a00">Waiting for signatures</h3>
 <?php foreach ($j['pending'] as $p): ?>
@@ -46,6 +60,7 @@ $ICON = [
 <?php foreach ($g['items'] as $i): ?>
   <div class="pdr pdgreen"><?= $ICON['done'] ?><b><?= $h($i['title']) ?></b><small><?= $i['source'] === 'upload' ? 'Uploaded signed copy' : 'Signed by e-signature' ?><?= $i['signed_on'] !== '' ? ' &middot; ' . $h($fd($i['signed_on'])) : '' ?></small>
 <?php if ($i['drive_url'] !== ''): ?><a href="<?= $h($i['drive_url']) ?>" target="_blank" rel="noopener">Open in Google Drive</a><?php endif; ?>
+<?php if ($i['view_url'] !== ''): ?><a href="<?= $h($i['view_url']) ?>" target="_blank" rel="noopener">View</a><?php endif; ?>
 <?php if ($i['download_url'] !== ''): ?><a href="<?= $h($i['download_url']) ?>" target="_top">Download</a><?php endif; ?>
 <?php if ($i['folder'] !== ''): ?><small>Filed in <?= $h($i['folder']) ?></small><?php endif; ?>
 <?php if ($i['note'] !== ''): ?><small><?= $h($i['note']) ?></small><?php endif; ?></div>

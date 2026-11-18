@@ -26,7 +26,7 @@ $items = $si['items']; $meta = $si['meta'];
 $_SESSION['sig_n'][] = time();
 $s = sg_send_multi($items, [], ['subject' => 'Florida Luxury Realty: please sign your documents for ' . $addr, 'message' => $name . ' (Florida Luxury Realty) has sent you documents for ' . $addr . ' to review and sign. If you have questions, reply to ' . $me . '.']);
 if (!$s['ok']) out($s);
-$rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => '', 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => [], 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null];
+$rec = ['id' => $s['id'], 'agent' => $me, 'form' => $meta[0]['form'], 'form_id' => '', 'doc' => $s['docs'][0], 'created' => gmdate('c'), 'signers' => [], 'folder' => null, 'offer_address' => $addr, 'hint' => $buyer['id'], 'completed' => false, 'filed' => null, 'contents' => sg_clean_contents($j['contents'] ?? [])];
 for ($i = 1; $i < count($meta); $i++) { $rec['extra'][] = ['form' => $meta[$i]['form'], 'form_id' => '', 'doc' => $s['docs'][$i], 'filed' => null]; }
 sg_save($s['id'], $rec);
 sg_dir();

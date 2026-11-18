@@ -106,6 +106,7 @@ if ($buyer) {
       <span class="note" id="hint" style="flex-basis:100%;margin:0;padding:4px 10px;text-align:left">Pick who signs (a buyer, you as the agent, or the broker) and a field, then click on the page. Use Agent or Broker where the form needs your signature or date. Use Text (or a quick-fill button such as Buyer 1 name) to type information onto the document: click where it goes, then type. Click a box to remove it.</span>
     </div>
     <p id="busy" class="note" style="display:flex;align-items:center;gap:10px" hidden><i class="bspin" style="border-color:rgba(0,107,104,.3);border-top-color:#006b68"></i>Preparing the documents... large files can take a minute.</p>
+    <div class="panel sigbox" id="tagbox" hidden style="max-width:765px;margin-left:auto;margin-right:auto"><p><strong>What is in each file?</strong> <span class="note" style="padding:2px 8px">Checked items are matched to the transaction's required documents (Flood Disclosure, HOA, and so on). Correct them if needed.</span></p><div id="tags"></div></div>
     <div id="docs"></div>
     <div class="panel sigbox" style="max-width:765px;margin-left:auto;margin-right:auto;text-align:center">
       <p id="msg" class="note" hidden></p>
@@ -116,6 +117,7 @@ if ($buyer) {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
+<script src="flrdetect.js?v=1"></script>
 <script>
 (function(){
 var CSRF=<?= json_encode($_SESSION['csrf']) ?>, TX=<?= json_encode($buyer['id']) ?>, BUY=<?= json_encode($B) ?>, SIGN=<?= json_encode($SIG) ?>, SCALE=1.25;
@@ -143,6 +145,13 @@ function place(d,pi,cx,cy){if(type==="TEXT"){placeText(d,pi,cx,cy);return;}var s
   var x=Math.max(0,Math.min(pg.w-sz[0],cx-sz[0]/2)),y=Math.max(0,Math.min(pg.h-sz[1],cy-sz[1]/2));
   (every?d.pages.map(function(_,i){return i;}):[pi]).forEach(function(i){var p=d.pages[i];d.fields.push({page:i,x:x,y:Math.min(y,p.h-sz[1]),w:sz[0],h:sz[1],type:type,role:role});});
   redrawAll(d);}
+function renderTags(){
+  var box=document.getElementById("tagbox"),el=document.getElementById("tags");el.innerHTML="";box.hidden=!parts.length;
+  parts.forEach(function(p){var row=document.createElement("div");row.style.cssText="margin:0 0 8px";row.innerHTML="<div style='font-weight:600'>"+esc(p.name)+"</div>";
+    Object.keys(FLRDetect.SELLER_LABELS).forEach(function(k){var l=document.createElement("label");l.style.cssText="display:inline-flex;gap:5px;align-items:center;margin:2px 14px 2px 0;font-weight:400";var c=document.createElement("input");c.type="checkbox";c.checked=!!p.on[k];c.addEventListener("change",function(){if(c.checked)p.on[k]=true;else delete p.on[k];});l.appendChild(c);l.appendChild(document.createTextNode(FLRDetect.SELLER_LABELS[k]));row.appendChild(l);});
+    el.appendChild(row);});
+}
+function contentsList(){var out=[];parts.forEach(function(p,i){var end=p.start+p.count;Object.keys(p.on).forEach(function(k){out.push({doc:"Seller Disclosures",key:k,file:p.name,page:p.start+(p.det[k]||1),end:end});});});return out;}
 var parts=[]; // each uploaded PDF {name, start page}; all of them are combined into ONE continuous document
 async function addFiles(list){
   var PL=window.PDFLib,out=await PL.PDFDocument.create(),old=docs[0]?docs[0].bytes:null,startNew=0;
@@ -151,7 +160,8 @@ async function addFiles(list){
   for(var i=0;i<list.length;i++){
     var f=list[i];if(!/\.pdf$/i.test(f.name)){continue;}if(f.size>20*1024*1024)throw new Error(f.name+" is larger than 20 MB.");
     var src=await PL.PDFDocument.load(new Uint8Array(await f.arrayBuffer()),{ignoreEncryption:true});
-    parts.push({name:f.name,start:out.getPageCount()});
+    var det={};try{det=FLRDetect.seller(await FLRDetect.texts(await f.arrayBuffer()));}catch(e3){}
+    parts.push({name:f.name,start:out.getPageCount(),det:det,on:Object.assign({},det),count:src.getPageCount()});
     (await out.copyPages(src,src.getPageIndices())).forEach(function(p){out.addPage(p);});
   }
   if(out.getPageCount()===startNew)return;
@@ -159,7 +169,7 @@ async function addFiles(list){
   if(bytes.length>30*1024*1024)throw new Error("The combined documents are larger than 30 MB.");
   var keep=docs[0]?docs[0].fields:[],keepT=docs[0]?docs[0].texts:[];
   var d={name:parts.length===1?parts[0].name:"Seller Disclosures.pdf",bytes:bytes,fields:keep,texts:keepT,pages:[]};docs=[d];
-  docsEl.innerHTML="";
+  docsEl.innerHTML="";renderTags();
   var pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
   var sec=document.createElement("div");sec.className="sddoc";sec.innerHTML="<h3>"+(parts.length>1?"Seller Disclosures (all pages in one document)":esc(parts[0].name))+"</h3>";docsEl.appendChild(sec);
   for(var n=1;n<=pdf.numPages;n++){
@@ -199,7 +209,7 @@ document.getElementById("send").addEventListener("click",async function(){
   for(var i=0;i<docs.length;i++){if(!docs[i].fields.length){msg.textContent="Place at least one signature box on "+docs[i].name+".";msg.className="note sigerr";msg.hidden=false;return;}}
   if(RET){ // came from the send page: hand the documents back so everything goes in ONE email
     btn.disabled=true;btn.innerHTML='<span class="bspin"></span>Adding...';
-    try{var baked=[];for(var bi=0;bi<docs.length;bi++)baked.push(await bake(docs[bi]));await FLRDraft.put(TX+"|seller",{docs:docs.map(function(d,di){return {name:d.name,bytes:baked[di],fields:d.fields.map(function(f){return {page:f.page,x:f.x,y:f.y,w:f.w,h:f.h,type:f.type,role:f.role,ph:d.pages[f.page].h};})};})});
+    try{var baked=[];for(var bi=0;bi<docs.length;bi++)baked.push(await bake(docs[bi]));await FLRDraft.put(TX+"|seller",{docs:docs.map(function(d,di){return {name:d.name,bytes:baked[di],tags:contentsList(),fields:d.fields.map(function(f){return {page:f.page,x:f.x,y:f.y,w:f.w,h:f.h,type:f.type,role:f.role,ph:d.pages[f.page].h};})};})});
       location.href="sign_packet.php?tx="+encodeURIComponent(TX)+"&sd=1&"+RET;return;}
     catch(err){msg.textContent="This browser could not hold the documents: "+err.message;msg.className="note sigerr";msg.hidden=false;btn.disabled=false;btn.textContent="Add To Email For Signing";return;}
   }
@@ -207,7 +217,7 @@ document.getElementById("send").addEventListener("click",async function(){
   await new Promise(function(r){requestAnimationFrame(function(){setTimeout(r,50);});});
   try{
     var baked=[];for(var bi=0;bi<docs.length;bi++)baked.push(await bake(docs[bi]));
-    var payload={csrf:CSRF,tx:TX,addr:document.getElementById("addr").value.trim(),emails:emails,docs:docs.map(function(d,di){return {name:d.name,b64:b64(baked[di]),fields:d.fields.map(function(f){return {page:f.page,x:f.x,y:f.y,w:f.w,h:f.h,type:f.type,role:f.role,ph:d.pages[f.page].h};})};})};
+    var payload={csrf:CSRF,tx:TX,addr:document.getElementById("addr").value.trim(),emails:emails,contents:contentsList(),docs:docs.map(function(d,di){return {name:d.name,b64:b64(baked[di]),fields:d.fields.map(function(f){return {page:f.page,x:f.x,y:f.y,w:f.w,h:f.h,type:f.type,role:f.role,ph:d.pages[f.page].h};})};})};
     var r=await fetch("seller_docs_send.php",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     var j=await r.json();
     if(!j.ok){msg.textContent=j.msg||"Could not send.";msg.className="note sigerr";msg.hidden=false;btn.disabled=false;btn.textContent="Send for signature";return;}

@@ -11,15 +11,21 @@ require_once __DIR__ . '/sigtools.php';
 require_once __DIR__ . '/signed_panel.php';
 require_once __DIR__ . '/baglib.php';
 require_once __DIR__ . '/offerlib.php';
+require_once __DIR__ . '/doclib_file.php';
 
 // Documents the property information makes required: [label, title regex, reason]. Needs the property saved on the offer (Make A Contract Offer).
 // Flood Disclosure: every transaction. HOA rider: the property has an HOA. Lead-Based Paint: built before 1978. Condominium Rider: a condominium. CDD Disclosure: the property has a CDD.
 function dc_required_rules(array $of) {
-    $r = [['Flood Disclosure', '/flood/i', 'Required on every transaction']];
-    if (($of['hoa'] ?? '') === 'yes') $r[] = ['HOA / Community Disclosure (HOA Rider)', '/hoa|community disclosure/i', 'Required: the property has an HOA'];
-    $yb = (int)($of['year_built'] ?? 0); if ($yb > 0 && $yb < 1978) $r[] = ['Lead-Based Paint Disclosure', '/lead.?based|lead paint/i', 'Required: built in ' . $yb . ' (before 1978)'];
-    if (($of['property_type'] ?? '') === 'Condominium') $r[] = ['Condominium Rider', '/condominium rider|condo rider/i', 'Required: the property is a condominium'];
-    if (($of['cdd'] ?? '') === 'yes') $r[] = ['CDD Disclosure (CDD Addendum)', '/\bcdd\b|community development/i', 'Required: the property has a CDD'];
+    // [label, title regex (used only for documents whose contents were not recorded), reason, content keys that satisfy it]
+    $pt = (string)($of['property_type'] ?? '');
+    if ($pt === 'Vacant Land') $r = [['Purchase Contract (Vacant Land)', '/vacant land|contract packet|contract documents|purchase contract/i', 'Required on every purchase: vacant land', ['contract_land']]];
+    elseif ($pt !== '') $r = [['Purchase Contract (As-Is Residential)', '/\bas.?is\b|residential contract|contract packet|contract documents|purchase contract/i', 'Required on every purchase: property with a dwelling or structure', ['contract_res']]];
+    else $r = [['Purchase Contract (As-Is Residential or Vacant Land)', '/contract packet|contract documents|purchase contract/i', 'Required on every purchase', ['contract_res', 'contract_land']]];
+    $r[] = ['Flood Disclosure', '/flood/i', 'Required on every transaction (provided by the seller)', ['flood']];
+    if (($of['hoa'] ?? '') === 'yes') $r[] = ['HOA / Community Disclosure (HOA Rider)', '/hoa|community disclosure/i', 'Required: the property has an HOA', ['hoa']];
+    $yb = (int)($of['year_built'] ?? 0); if ($yb > 0 && $yb < 1978) $r[] = ['Lead-Based Paint Disclosure', '/lead.?based|lead paint/i', 'Required: built in ' . $yb . ' (before 1978)', ['lead']];
+    if ($pt === 'Condominium') $r[] = ['Condominium Rider', '/condominium rider|condo rider/i', 'Required: the property is a condominium', ['condo']];
+    if (($of['cdd'] ?? '') === 'yes') $r[] = ['CDD Disclosure (CDD Addendum)', '/\bcdd\b|community development/i', 'Required: the property has a CDD', ['cdd']];
     return $r;
 }
 const DC_GROUPS = ['agreement' => 'Buyer agreements', 'contract' => 'Contract', 'addendum' => 'Addenda and amendments', 'disclosure' => 'Disclosures', 'other' => 'Other signed documents'];
@@ -37,38 +43,90 @@ function dc_list($me, $tx) {
     if (!$own) return ['ok' => false, 'msg' => 'That record was not found in your business.'];
     $recs = sg_record_docs($me, $tx, (string)$own['name']);
     $groups = []; foreach (DC_GROUPS as $k => $l) $groups[$k] = ['key' => $k, 'label' => $l, 'items' => []];
-    $waiting = 0; $folderUrl = ''; $n = 0; $pending = []; $needUp = [];
+    $waiting = 0; $folderUrl = ''; $n = 0; $pending = []; $needUp = []; $recItems = []; $keyWait = [];
     foreach ($recs as $r) {
         if (empty($r['completed'])) {
-            $waiting++; $ss = (array)($r['signers_status'] ?? []); $sg = [];
+            $waiting++; foreach ((array)($r['contents'] ?? []) as $c) $keyWait[(string)($c['key'] ?? '')] = true;
+            $ss = (array)($r['signers_status'] ?? []); $sg = [];
             foreach ((array)($r['signers'] ?? []) as $s) $sg[] = ['email' => (string)($s['email'] ?? ''), 'name' => (string)($s['name'] ?? ''), 'signed' => !empty($ss[$s['email'] ?? ''])];
             $pending[] = ['id' => (string)$r['id'], 'title' => (string)($r['form'] ?? 'Document'), 'sent' => substr((string)($r['created'] ?? ''), 0, 10), 'signers' => $sg];
             continue;
         }
         $when = substr((string)($r['completed_at'] ?? $r['created'] ?? ''), 0, 10);
-        $add = function ($title, $filed, $isMain) use (&$groups, &$folderUrl, &$n, $r, $when) {
+        $add = function ($title, $filed, $isMain, $xi = null) use (&$groups, &$folderUrl, &$n, &$recItems, $r, $when, $tx) {
             $f = is_array($filed) ? $filed : [];
             if (!empty($f['folder_url']) && $folderUrl === '') $folderUrl = (string)$f['folder_url'];
             $g = dc_group($title); $n++;
-            $groups[$g]['items'][] = ['id' => (string)$r['id'], 'title' => (string)$title, 'signed_on' => $when, 'source' => !empty($r['uploaded']) ? 'upload' : 'esign',
-                'drive_url' => (string)($f['url'] ?? ''), 'folder' => (string)($f['folder'] ?? ''), 'download_url' => $isMain ? 'signed.php?dl=' . urlencode((string)$r['id']) : '',
+            $ref = (string)$r['id'] . '.' . ($isMain ? 'm' : (int)$xi);
+            $item = ['id' => (string)$r['id'], 'ref' => $ref, 'title' => (string)$title, 'signed_on' => $when, 'source' => !empty($r['uploaded']) ? 'upload' : 'esign',
+                'drive_url' => (string)($f['url'] ?? ''), 'folder' => (string)($f['folder'] ?? ''),
+                'view_url' => 'doc_open.php?ref=' . urlencode($ref) . '&tx=' . urlencode($tx) . '&t=' . urlencode((string)$title), 'download_url' => 'doc_file.php?ref=' . urlencode($ref),
                 'note' => ($f && empty($f['url'])) ? 'Saved on the site only. It has not been filed in Google Drive.' : (!$f ? 'Filing in Google Drive...' : '')];
+            $groups[$g]['items'][] = $item; $recItems[(string)$r['id']][] = $item;
         };
         $add((string)($r['form'] ?? 'Document'), $r['filed'] ?? null, true);
-        foreach ((array)($r['extra'] ?? []) as $x) $add((string)($x['filed']['name'] ?? $x['name'] ?? 'Document'), $x['filed'] ?? null, false);
+        foreach ((array)($r['extra'] ?? []) as $xi => $x) $add((string)($x['filed']['name'] ?? $x['name'] ?? 'Document'), $x['filed'] ?? null, false, $xi);
     }
     if ($own['side'] === 'buyer') { // downloaded for signing in person, nothing signed or out for e-signature since
         $dl = ag_kv('bag_dl_' . $tx); $dlDay = $dl !== null ? substr((string)$dl, 0, 10) : '';
         if ($dlDay !== '' && !$pending) { $back = false; foreach (ag_list($me, $tx, $recs) as $a) { if ($a['signed_on'] >= $dlDay) $back = true; }
             if (!$back) $needUp[] = ['title' => 'Buyer agreement', 'downloaded_on' => $dlDay, 'upload_url' => 'buyer_agreement.php?tx=' . urlencode($tx) . '&embed=1&bare=1']; }
     }
-    $missing = []; // required documents with no executed or pending copy yet
+    // Required documents: matched to the signed forms by what each signed document CONTAINS (recorded when it was sent), falling back to its title.
+    $keyFound = []; // content key => ['item' => item, 'page' => n, 'file' => name]
+    foreach ($recs as $r) {
+        if (empty($r['completed'])) continue; $its = $recItems[(string)$r['id']] ?? [];
+        foreach ((array)($r['contents'] ?? []) as $c) {
+            $k = (string)($c['key'] ?? ''); $doc = (string)($c['doc'] ?? ''); $item = $its[0] ?? null;
+            if (!empty($c['ref'])) { foreach ($its as $it) { if ($it['ref'] === $c['ref']) $item = $it; } }
+            else foreach ($its as $it) { if ($doc !== '' && stripos($it['title'], $doc === 'Contract Packet' ? 'Contract' : $doc) !== false) { $item = $it; break; } }
+            if ($item && (!isset($keyFound[$k]) || strcmp($item['signed_on'], $keyFound[$k]['item']['signed_on']) >= 0)) $keyFound[$k] = ['item' => $item, 'page' => (int)($c['page'] ?? 1), 'file' => (string)($c['file'] ?? '')];
+        }
+    }
+    $plain = []; foreach ($recs as $r) { if (empty($r['completed']) || !empty($r['contents'])) continue; foreach (($recItems[(string)$r['id']] ?? []) as $it) $plain[] = $it; } // signed before contents were recorded
+    $pendTitles = []; foreach ($recs as $r) { if (!empty($r['completed']) || !empty($r['contents'])) continue; $pendTitles[] = (string)($r['form'] ?? ''); foreach ((array)($r['extra'] ?? []) as $x) $pendTitles[] = (string)($x['name'] ?? ($x['form'] ?? '')); }
+    $missing = []; $required = [];
     $of = of_raw($tx);
     if (trim((string)($of['street_name'] ?? '')) !== '' || trim((string)($of['mls_id'] ?? '')) !== '') {
-        $have = []; foreach ($groups as $g) foreach ($g['items'] as $i) $have[] = $i['title'];
-        foreach ($recs as $r) { if (!empty($r['completed'])) continue; $have[] = (string)($r['form'] ?? ''); foreach ((array)($r['extra'] ?? []) as $x) $have[] = (string)($x['name'] ?? ($x['filed']['name'] ?? '')); }
-        foreach (dc_required_rules($of) as $q) { $found = false; foreach ($have as $t) { if (preg_match($q[1], $t)) { $found = true; break; } } if (!$found) $missing[] = ['label' => $q[0], 'reason' => $q[2]]; }
+        foreach (dc_required_rules($of) as $q) {
+            $row = ['label' => $q[0], 'key' => $q[3][0], 'reason' => $q[2], 'status' => 'missing', 'item' => null, 'page' => 0, 'in' => '', 'view_url' => '', 'download_url' => '', 'note' => ''];
+            $hit = null; foreach ($q[3] as $k) { if (isset($keyFound[$k])) { $hit = $keyFound[$k]; break; } }
+            if ($hit) { $it = $hit['item']; $row['status'] = 'ok'; $row['item'] = $it; $row['page'] = $hit['page']; $row['in'] = $it['title'] . ($hit['file'] !== '' && $hit['file'] !== $it['title'] ? ' (' . $hit['file'] . ')' : '');
+                $row['view_url'] = $it['view_url'] . '&p=' . $hit['page']; $row['download_url'] = $it['download_url']; }
+            else { foreach ($plain as $it) { if (preg_match($q[1], $it['title'])) { $row['status'] = 'ok'; $row['item'] = $it; $row['in'] = $it['title']; $row['view_url'] = $it['view_url']; $row['download_url'] = $it['download_url']; break; } } }
+            if ($row['status'] === 'missing') {
+                $w = false; foreach ($q[3] as $k) { if (!empty($keyWait[$k])) $w = true; } foreach ($pendTitles as $t) { if (preg_match($q[1], $t)) $w = true; }
+                if ($w) $row['status'] = 'waiting';
+                elseif ($q[3][0] === 'contract_res' || $q[3][0] === 'contract_land') { // the other kind of purchase contract is on file instead of the one this property needs
+                    $other = $q[3][0] === 'contract_land' ? 'contract_res' : 'contract_land';
+                    if (count($q[3]) === 1 && isset($keyFound[$other])) { $row['status'] = 'review'; $row['note'] = 'A ' . SG_KEYS[$other] . ' is on file, but this property is ' . ($q[3][0] === 'contract_land' ? 'vacant land' : 'not vacant land') . '. Check the property type or the contract.'; $row['item'] = $keyFound[$other]['item']; $row['view_url'] = $keyFound[$other]['item']['view_url'] . '&p=' . $keyFound[$other]['page']; $row['download_url'] = $keyFound[$other]['item']['download_url']; }
+                }
+            }
+            if ($row['status'] === 'missing') $missing[] = ['label' => $q[0], 'reason' => $q[2]];
+            $required[] = $row;
+        }
     }
     $out = []; foreach ($groups as $g) { usort($g['items'], function ($a, $b) { return strcmp($b['signed_on'], $a['signed_on']); }); if ($g['items']) $out[] = $g; }
-    return ['ok' => true, 'tx' => $tx, 'name' => (string)$own['name'], 'groups' => $out, 'waiting' => $waiting, 'pending' => $pending, 'needs_upload' => $needUp, 'required_missing' => $missing, 'folder_url' => $folderUrl, 'count' => $n];
+    return ['ok' => true, 'tx' => $tx, 'name' => (string)$own['name'], 'groups' => $out, 'waiting' => $waiting, 'pending' => $pending, 'needs_upload' => $needUp, 'required' => $required, 'required_missing' => $missing, 'folder_url' => $folderUrl, 'count' => $n];
+}
+
+// Link a document that is already signed and on file to a required document (e.g. the Flood Disclosure that is inside the Seller Disclosures).
+// $ref = the signed document's ref (from dc_list items), $page = the page it starts on. Returns '' on success or a readable error.
+function dc_link($me, $tx, $key, $ref, $page) {
+    $me = strtolower(trim((string)$me));
+    if (!isset(SG_KEYS[$key])) return 'Choose which required document this is.';
+    $p = dcf_ref($ref); if (!$p) return 'Choose the signed document that contains it.';
+    $own = false; foreach (flr_tx_list($me, false) as $t) { if ($t['folder'] === (string)$tx) $own = true; }
+    if (!$own) return 'That record was not found in your business.';
+    $rec = sg_load($p[0]);
+    if (!$rec || strtolower((string)($rec['agent'] ?? '')) !== $me || empty($rec['completed'])) return 'That signed document was not found.';
+    if (!empty($rec['hint']) && (string)$rec['hint'] !== (string)$tx && !in_array((string)$tx, [(string)($rec['hint'] ?? '')], true)) return 'That document belongs to a different client record.';
+    $x = $p[1] === 'm' ? null : ($rec['extra'][(int)$p[1]] ?? null);
+    $title = $x ? (string)($x['form'] ?? '') : (string)($rec['form'] ?? '');
+    $doc = stripos($title, 'seller') !== false ? 'Seller Disclosures' : (stripos($title, 'buyer disclosure') !== false ? 'Buyer Disclosures' : 'Contract Packet');
+    $list = array_values(array_filter((array)($rec['contents'] ?? []), function ($c) use ($key, $ref) { return !($c['key'] === $key && ($c['ref'] ?? '') === $ref); }));
+    $list[] = ['doc' => $doc, 'key' => $key, 'file' => '', 'page' => max(1, (int)$page), 'end' => 0, 'ref' => $ref];
+    $rec['contents'] = sg_clean_contents($list); sg_save($rec['id'], $rec);
+    flr_audit(flr_akey($me), 'doc_linked', $rec['id'], SG_KEYS[$key] . ' -> ' . $ref . ' p' . (int)$page);
+    return '';
 }

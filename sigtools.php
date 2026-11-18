@@ -414,6 +414,21 @@ function sg_refresh_many(&$recs, $max = 8) {
 
 // The buyer folder record for $tx (stage-1 'Buyers' group): from the office script, or, for buyer records the site holds itself (sample and not-yet-filed
 // buyers), from the local transaction list. Returns the folder array {id,name,group} or null.
+// What is inside each document sent for signature (detected in the agent's browser from the PDF text, or ticked by the agent), so
+// required documents can be matched to the signed forms that contain them. doc = which document of the request holds it.
+const SG_KEYS = ['contract_res' => 'Residential Purchase Contract (As-Is)', 'contract_land' => 'Vacant Land Purchase Contract', 'ff_credit' => "Credit Related to Buyer's Broker Compensation",
+    'flood' => 'Flood Disclosure', 'hoa' => 'HOA / Community Disclosure', 'lead' => 'Lead-Based Paint Disclosure', 'cdd' => 'CDD Disclosure', 'condo' => 'Condominium Rider'];
+const SG_DOCS = ['Contract Packet', 'Buyer Disclosures', 'Seller Disclosures'];
+function sg_clean_contents($raw) {
+    $j = is_string($raw) ? json_decode($raw, true) : $raw; if (!is_array($j)) return [];
+    $out = [];
+    foreach (array_slice($j, 0, 40) as $c) {
+        if (!is_array($c)) continue; $k = (string)($c['key'] ?? ''); $d = (string)($c['doc'] ?? '');
+        if (!isset(SG_KEYS[$k]) || !in_array($d, SG_DOCS, true)) continue;
+        $out[] = ['doc' => $d, 'key' => $k, 'name' => SG_KEYS[$k], 'file' => mb_substr(trim((string)($c['file'] ?? '')), 0, 120), 'page' => max(1, min(999, (int)($c['page'] ?? 1))), 'end' => max(0, min(999, (int)($c['end'] ?? 0))), 'ref' => preg_match('/^[A-Za-z0-9_-]{6,80}\.(m|\d{1,2})$/', (string)($c['ref'] ?? '')) ? (string)$c['ref'] : ''];
+    }
+    return $out;
+}
 // A property address that is safe to use as a folder name, or ''.
 function sg_addr_ok($a) { $a = trim(preg_replace('/\s+/', ' ', (string)$a)); return ($a !== '' && strlen($a) <= 120 && !preg_match('/[\\\\\/:*?"<>|]/', $a)) ? $a : ''; }
 // The property address entered in Make A Contract Offer for this buyer record, or ''.
