@@ -417,6 +417,7 @@ function sg_refresh_many(&$recs, $max = 8) {
 // What is inside each document sent for signature (detected in the agent's browser from the PDF text, or ticked by the agent), so
 // required documents can be matched to the signed forms that contain them. doc = which document of the request holds it.
 const SG_KEYS = ['contract_res' => 'Residential Purchase Contract (As-Is)', 'contract_land' => 'Vacant Land Purchase Contract', 'ff_credit' => "Credit Related to Buyer's Broker Compensation",
+    "spd_res" => "Seller's Property Disclosure", 'spd_condo' => 'Condominium Disclosure', 'spd_land' => 'Vacant Land Disclosure',
     'flood' => 'Flood Disclosure', 'hoa' => 'HOA / Community Disclosure', 'lead' => 'Lead-Based Paint Disclosure', 'cdd' => 'CDD Disclosure', 'condo' => 'Condominium Rider'];
 const SG_DOCS = ['Contract Packet', 'Buyer Disclosures', 'Seller Disclosures', 'Other'];
 function sg_clean_label($t) { return trim(mb_substr(preg_replace('/\s+/', ' ', preg_replace('/[^A-Za-z0-9 ._()&,\'\/-]/', ' ', (string)$t)), 0, 80)); }

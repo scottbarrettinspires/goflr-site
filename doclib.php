@@ -22,6 +22,11 @@ function dc_required_rules(array $of) {
     if ($pt === 'Vacant Land') $r = [['Purchase Contract (Vacant Land)', '/(?!)/', 'Required on every purchase: vacant land', ['contract_land']]];
     elseif ($pt !== '') $r = [['Purchase Contract (As-Is Residential)', '/(?!)/', 'Required on every purchase: property with a dwelling or structure', ['contract_res']]];
     else $r = [['Purchase Contract (As-Is Residential or Vacant Land)', '/(?!)/', 'Required on every purchase', ['contract_res', 'contract_land']]];
+    // Seller's disclosure of the property's condition, provided by the seller: the form depends on the property type (MLS, or what the agent entered in Make A Contract Offer).
+    if ($pt === 'Vacant Land') $r[] = ['Vacant Land Disclosure', '/vacant land disclosure/i', 'Required on every purchase: vacant land (provided by the seller)', ['spd_land']];
+    elseif ($pt === 'Condominium' || $pt === 'Condo / Townhome') $r[] = ['Condominium Disclosure', '/condominium disclosure/i', 'Required on every purchase: condominium (provided by the seller)', ['spd_condo']];
+    elseif ($pt !== '') $r[] = ["Seller's Property Disclosure", '/property disclosure/i', 'Required on every purchase: property with a dwelling (provided by the seller)', ['spd_res']];
+    else $r[] = ["Seller's Property Disclosure (Residential, Condominium or Vacant Land)", '/property disclosure|condominium disclosure|vacant land disclosure/i', 'Required on every purchase (provided by the seller)', ['spd_res', 'spd_condo', 'spd_land']];
     $r[] = ['Flood Disclosure', '/flood/i', 'Required on every transaction (provided by the seller)', ['flood']];
     if (($of['hoa'] ?? '') === 'yes') $r[] = ['HOA / Community Disclosure (HOA Rider)', '/hoa|community disclosure/i', 'Required: the property has an HOA', ['hoa']];
     $yb = (int)($of['year_built'] ?? 0); if ($yb > 0 && $yb < 1978) $r[] = ['Lead-Based Paint Disclosure', '/lead.?based|lead paint/i', 'Required: built in ' . $yb . ' (before 1978)', ['lead']];
