@@ -159,6 +159,7 @@ if ($buyer && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="panel sigbox"><h2>Sent</h2>
     <p>DigiSigner is emailing each signer a link for: <strong><?= htmlspecialchars(implode(' and ', $result['sent'] ?? ['contract packet'])) ?></strong> in one email. When everyone has signed, the signed documents are filed in <strong>1 BUYERS / 2 Contract Offers / <?= htmlspecialchars($addr) ?></strong>. Track it on the <a href="signed.php">Signed Documents</a> page.</p>
     <?php if ($draft || $dr !== ''): ?><script src="flrdraft.js?v=1"></script><script>FLRDraft.del(<?= json_encode($buyer['id']) ?>).catch(function(){});FLRDraft.del(<?= json_encode($buyer['id'] . '|seller') ?>).catch(function(){});</script><?php endif; ?>
+    <p><a class="btn" href="buyer.php?tx=<?= urlencode($buyer['id']) ?>">Return To Client Record</a></p>
     <p class="note">Request ID: <?= htmlspecialchars($result['id']) ?></p></div>
 <?php else: ?>
 <?php if (!$buyer): ?>

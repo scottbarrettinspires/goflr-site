@@ -212,7 +212,7 @@ document.getElementById("send").addEventListener("click",async function(){
     var j=await r.json();
     if(!j.ok){msg.textContent=j.msg||"Could not send.";msg.className="note sigerr";msg.hidden=false;btn.disabled=false;btn.textContent="Send for signature";return;}
     work.hidden=true;document.getElementById("setup").hidden=true;var dn=document.getElementById("done");
-    dn.innerHTML="<h2>Sent</h2><p>DigiSigner is emailing the buyers "+j.count+" document"+(j.count===1?"":"s")+" in one email. When they sign, each signed copy is filed in <strong>1 BUYERS / 2 Contract Offers / "+esc(j.addr)+"</strong>. Track it on the <a href=\"signed.php\">Signed Documents</a> page.</p>";dn.hidden=false;window.scrollTo(0,0);
+    dn.innerHTML="<h2>Sent</h2><p>DigiSigner is emailing the buyers "+j.count+" document"+(j.count===1?"":"s")+" in one email. When they sign, each signed copy is filed in <strong>1 BUYERS / 2 Contract Offers / "+esc(j.addr)+"</strong>. Track it on the <a href=\"signed.php\">Signed Documents</a> page.</p><p><a class=\"btn\" href=\"buyer.php?tx="+encodeURIComponent(TX)+"\">Return To Client Record</a></p>";dn.hidden=false;window.scrollTo(0,0);
   }catch(err){msg.textContent="Something went wrong: "+err.message;msg.className="note sigerr";msg.hidden=false;btn.disabled=false;btn.textContent="Send for signature";}
 });
 })();
