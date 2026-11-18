@@ -207,8 +207,13 @@ qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
 var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
-function cdAdd(n){var d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
-function cdMark(){var v=ofEl('closing_date').value;[].forEach.call(document.querySelectorAll('#cdq .btn'),function(b){b.classList.toggle('on',cdAdd(+b.dataset.n)===v);});} // highlight the quick button that matches the closing date (30 days is the default)
+var CDH=<?= json_encode((function(){require_once __DIR__.'/dlib.php';$o=[];$y=(int)date('Y');for($i=0;$i<=3;$i++)$o+=dl_holidays($y+$i);return $o;})(), JSON_UNESCAPED_SLASHES) ?>;
+function cdIso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function cdOff(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]),w=d.getDay();if(w===6)return 'a Saturday';if(w===0)return 'a Sunday';return CDH[s]?CDH[s]:'';}
+function cdNext(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);for(var i=0;i<10&&cdOff(cdIso(d));i++)d.setDate(d.getDate()+1);return cdIso(d);}
+function cdAdd(n){var d=new Date();d.setDate(d.getDate()+n);return cdNext(cdIso(d));} // at least n days: never fewer, rolls forward off weekends and holidays
+function cdWarn(){var v=ofEl('closing_date').value,n=document.getElementById('cdwarn');if(!n){n=document.createElement('div');n.id='cdwarn';n.style.cssText='font-size:.8rem;color:#9a2b2b;margin-top:4px';document.getElementById('cdq').after(n);}var w=v?cdOff(v):'';if(!w){n.innerHTML='';return;}var nx=cdNext(v);n.innerHTML='A closing cannot fall on '+w+'. <a href="#" id="cdfix" style="color:#036f72;font-weight:600">Use next business day ('+nx+')</a>';document.getElementById('cdfix').onclick=function(e){e.preventDefault();ofEl('closing_date').value=nx;cdMark();cdWarn();};}
+function cdMark(){cdWarn();var v=ofEl('closing_date').value;[].forEach.call(document.querySelectorAll('#cdq .btn'),function(b){b.classList.toggle('on',cdAdd(+b.dataset.n)===v);});} // highlight the quick button that matches the closing date (30 days is the default)
 function ofEl(k){return document.getElementById('of_'+k);}
 function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
 function ofSync(){document.getElementById('paddr').value=ofAddr();}

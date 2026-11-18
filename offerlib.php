@@ -67,6 +67,7 @@ function of_save($me, $tx, array $in) {
     if ($d['inspection_days'] !== '' && (!preg_match('/^\d{1,3}$/', $d['inspection_days']))) return 'Number of days for inspections must be a whole number of days, like 15.';
     if ($d['year_built'] !== '' && (!preg_match('/^\d{4}$/', $d['year_built']) || (int)$d['year_built'] < 1700 || (int)$d['year_built'] > (int)date('Y') + 2)) return 'Year built must be a four-digit year.';
     if ($d['closing_date'] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['closing_date'])) return 'Closing date must be a date (YYYY-MM-DD).';
+    if ($d['closing_date'] !== '') { require_once __DIR__ . '/dlib.php'; if (!dl_valid_date($d['closing_date'])) return 'Closing date is not a real calendar date.'; $why = dl_offday($d['closing_date']); if ($why !== '') return 'The closing date ' . $d['closing_date'] . ' falls on ' . ($why === 'Saturday' || $why === 'Sunday' ? 'a ' . $why : $why) . '. A closing cannot be on a weekend or holiday; use the next business day, ' . dl_next_business($d['closing_date']) . '.'; }
     if ($d['oa_email'] !== '' && !filter_var($d['oa_email'], FILTER_VALIDATE_EMAIL)) return 'The other agent\'s email address does not look right.';
     if ($d['property_type'] !== '' && !in_array($d['property_type'], array_merge(OF_PROP_TYPES, OF_PROP_TYPES_OLD), true)) return 'Choose a property type from the list.';
     if (preg_match('/[\\\\\/:*?"<>|]/', of_address($d))) return 'Please check the property address (no slashes or special characters).';
