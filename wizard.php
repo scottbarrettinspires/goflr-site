@@ -56,6 +56,10 @@ $all = sg_folders($_SESSION['email'], (string)($_GET['tx'] ?? ''));
 $folders = [];
 foreach (($all ?: []) as $f) { if ($f['group'] === '1 BUYERS / 1 Buyers') $folders[] = $f; }
 $pre = (string)($_GET['tx'] ?? '');
+if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sample buyer, or one not yet in the Drive folder list) still opens here
+    $have = false; foreach ($folders as $f) { if ($f['id'] === $pre) $have = true; }
+    if (!$have) { try { require_once __DIR__ . '/flrdb.php'; foreach (flr_tx_list($_SESSION['email'] ?? '', false) as $t) { if ($t['folder'] === $pre && $t['side'] === 'buyer') { $folders[] = ['id' => $pre, 'name' => (string)$t['name'], 'group' => '1 BUYERS / 1 Buyers']; break; } } } catch (Throwable $e) {} }
+}
 ?>
 <script>var l=document.getElementById('flrload');if(l)l.parentNode.removeChild(l);</script>
 <?php if (!$rules): ?>
