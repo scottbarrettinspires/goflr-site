@@ -110,8 +110,8 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
         <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
-        <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"></label>
-        <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"></label>
+        <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"><span class="cdq" id="esq"><button type="button" class="btn ghost sm" data-a="1000">$1,000</button><button type="button" class="btn ghost sm" data-a="2000">$2,000</button><button type="button" class="btn ghost sm" data-p="1">1%</button><button type="button" class="btn ghost sm" data-p="2">2%</button></span></label>
+        <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"><span class="cdq" id="fnq"><button type="button" class="btn ghost sm" data-d="3.5">3.5% down</button><button type="button" class="btn ghost sm" data-d="5">5% down</button><button type="button" class="btn ghost sm" data-d="10">10% down</button><button type="button" class="btn ghost sm" data-d="20">20% down</button></span></label>
         <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
         <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"></label>
       </div>
@@ -208,6 +208,12 @@ loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
 var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
 var CDH=<?= json_encode((function(){require_once __DIR__.'/dlib.php';$o=[];$y=(int)date('Y');for($i=0;$i<=3;$i++)$o+=dl_holidays($y+$i);return $o;})(), JSON_UNESCAPED_SLASHES) ?>;
+function ofPrice(){return parseFloat(String(document.getElementById('pprice').value).replace(/[^0-9.]/g,''))||0;}
+function ofMoney(n){return '$ '+Math.round(n).toLocaleString('en-US');}
+function ofQuick(){var pr=ofPrice();
+[].forEach.call(document.querySelectorAll('#esq .btn'),function(b){b.onclick=function(){var v=b.dataset.a?+b.dataset.a:(pr=ofPrice())?pr*(+b.dataset.p)/100:0;if(!v){alert('Enter the offer price first.');return;}ofEl('escrow_deposit').value=ofMoney(v);};});
+[].forEach.call(document.querySelectorAll('#fnq .btn'),function(b){b.onclick=function(){var p=ofPrice();if(!p){alert('Enter the offer price first.');return;}ofEl('financed_amount').value=ofMoney(p*(1-(+b.dataset.d)/100));};});}
+ofQuick();
 function cdIso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
 function cdOff(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]),w=d.getDay();if(w===6)return 'a Saturday';if(w===0)return 'a Sunday';return CDH[s]?CDH[s]:'';}
 function cdNext(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);for(var i=0;i<10&&cdOff(cdIso(d));i++)d.setDate(d.getDate()+1);return cdIso(d);}
