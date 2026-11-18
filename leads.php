@@ -705,13 +705,13 @@ function openLead(L,preset,inl){
     var li=function(k,v,ok){return '<li style="margin:3px 0"><b>'+k+':</b> '+(v?esc(v):'<span style="color:#8a6d1f">'+ok+'</span>')+'</li>';};
     var bx=document.createElement("div");bx.id="consultbox";bx.className="touch";bx.style.margin="12px 0";
     bx.innerHTML='<div class="hd"><span>Transition To Client: '+esc(nm(L))+'</span><button type="button" class="btn sm ghost" id="cn_close">Close</button></div>'
-      +'<h3 style="margin:6px 0 4px;font-size:.98rem">Prep for the appointment</h3><ul style="margin:0 0 8px;padding-left:18px;font-size:.92rem">'
+      +'<div id="cn_prep"><h3 style="margin:6px 0 4px;font-size:.98rem">Prep for the appointment</h3><ul style="margin:0 0 8px;padding-left:18px;font-size:.92rem">'
       +li("Contact",[L.phone,L.email].filter(Boolean).join(" · "),"Add a phone and email on the Client Details tab")
       +li("What they want",hwSummary(w),"Nothing recorded yet. Fill in Property Details")
       +li("Payment method",fin,"Not set. Add it on the Client Details tab")
       +li("Loan status",pre,"Not set")
       +(/pre-approved/i.test(pre)?li("Lender",lend,"Add the lender on the Client Details tab"):"")
-      +'</ul><p class="goal" style="margin:0 0 10px">Have the buyer agreement ready to complete and sign. An Exclusive Buyer Brokerage Agreement covers every home shown from here on; a Showing Agreement only covers the home(s) named on that signed form.</p>'
+      +'</ul><p class="goal" style="margin:0 0 10px">Have the buyer agreement ready to complete and sign. An Exclusive Buyer Brokerage Agreement covers every home shown from here on; a Showing Agreement only covers the home(s) named on that signed form.</p></div>'
       +'<div id="agrbox" style="margin:0 0 10px"></div>'
       +'<div id="cn_body"><p class="goal"><span class="bspin"></span> Getting the buyer agreement ready...</p></div>';
     var tb=modal.querySelector(".mtabs");if(tb&&tb.parentNode)tb.parentNode.insertBefore(bx,tb.nextSibling);else modal.insertBefore(bx,modal.firstChild);
@@ -725,7 +725,7 @@ function openLead(L,preset,inl){
       var f=document.getElementById("cn_frame"),ro=null;
       function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
       var TX=j.tx;
-      function agrLoad(){api({action:"agreements",tx:TX}).then(function(r){var b=document.getElementById("agrbox");if(!b)return;agrDraw(b,r.agreement,TX);if(r.converted){renderTabs();}}).catch(function(){});}
+      function agrLoad(){api({action:"agreements",tx:TX}).then(function(r){var b=document.getElementById("agrbox");if(!b)return;agrDraw(b,r.agreement,TX);var out=!!(r.agreement&&r.agreement.sent&&r.agreement.sent.length&&!r.converted),pp=document.getElementById("cn_prep");if(pp)pp.style.display=out?"none":"";b.style.display=out?"none":""; /* once it is out for signing, only the waiting-for-signers card shows */if(r.converted){renderTabs();}}).catch(function(){});}
       AGR_LOAD=agrLoad;AGR_RELOAD=function(){agrLoad();try{f.src=f.src;}catch(e){}};
       agrLoad();
       f.addEventListener("load",function(){agrLoad();fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});
