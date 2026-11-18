@@ -37,7 +37,7 @@
         var sf = src.getForm();
         // money fields read right-justified on the contract (set before filling so the appearance is drawn right-aligned)
         sf.getFields().forEach(function (f) { try { if (f instanceof PL.PDFTextField && MONEY_RE.test(f.getName())) f.setAlignment(PL.TextAlignment.Right); } catch (e) {} });
-        Object.keys(fill).forEach(function (k) { if (!fill[k]) return; try { sf.getTextField(k).setText(String(fill[k])); } catch (e) { try { sf.getRadioGroup(k).select(String(fill[k])); } catch (e2) {} } });
+        Object.keys(fill).forEach(function (k) { if (!fill[k]) return; try { sf.getTextField(k).setText(String(fill[k])); } catch (e) { try { sf.getRadioGroup(k).select(String(fill[k])); } catch (e2) { try { sf.getCheckBox(k).check(); } catch (e3) {} } } });
       }
       if (sources[i].isContract && clauses && clauses.length) {
         var r = await fillAdditionalTerms(PL, src, clauses);

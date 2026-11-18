@@ -154,7 +154,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=19"></script>
+<script src="wizlib.js?v=20"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -206,6 +206,9 @@ function fillMap(){
     else if(pc&&parseFloat(pc)>0){m.Rad_FF_Credit='Percent';m.FF_Credit_Percent=pc;}
     else if(money(am)){m.Rad_FF_Credit='Amount';m.FF_Credit_Amount=money(am);}})();
   (function(){var p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),o={};p.forEach(function(x){o[x.type]=x.value;});var d=new Date(Date.UTC(+o.year,+o.month-1,+o.day+1));m.Date_OfferExpires=('0'+(d.getUTCMonth()+1)).slice(-2)+'/'+('0'+d.getUTCDate()).slice(-2)+'/'+d.getUTCFullYear()+' at 5:00 PM';})(); // contract 3(a): offer expires tomorrow (Eastern time) at 5:00 PM
+  // contract paragraph 8: cash buyers get 8(a); financing buyers get 8(b) with the loan type from the client record, a fixed or adjustable rate, 30-year term, 5 days to apply
+  if(INFO&&INFO.payment==='cash'){m.Chk_Fin_Cash='Yes';}
+  else if(INFO&&(INFO.payment==='conventional'||INFO.payment==='fhava')){m.Chk_Fin_Contingent='Yes';m.Rad_LoanRate='FixedOrAdjustable';m.Loan_TermYears='30';m.Term_LoanApplicationDays='5';if(INFO.loan_type)m.Rad_LoanType=INFO.loan_type;}
   m.Rad_Assignability='MayNotAssign'; // contract paragraph 7: default to "may not assign"
   m.Rad_DepositTiming='WithinDays'; m.Term_DepositDays='3'; // contract 2(a): always default to option (ii), deposit due within 3 days after the Effective Date
   var sv=function(k){return String((ofEl(k)||{}).value||'').trim();};

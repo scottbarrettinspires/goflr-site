@@ -19,4 +19,10 @@ if (is_array($info) && trim((string)($info['payment'] ?? '')) === '') { // not s
             $pm = ['Cash' => 'cash', 'Conventional' => 'conventional', 'FHA' => 'fhava', 'VA' => 'fhava', 'FHA/VA' => 'fhava'];
             if (!empty($fin[0]) && isset($pm[$fin[0]])) $info['payment'] = $pm[$fin[0]]; } } catch (Throwable $e) {}
 }
+if (is_array($info)) { // the exact loan type (the buyer info only keeps cash / conventional / FHA-VA): from the client's record in Leads & Contacts
+    $info['loan_type'] = (($info['payment'] ?? '') === 'conventional') ? 'Conventional' : '';
+    try { require_once __DIR__ . '/leadlib.php'; $lead2 = ld_find_by_folder($_SESSION['email'], $tx);
+        if ($lead2) { $cd2 = (array)($lead2['client'] ?? []); $wn2 = (array)($lead2['wants'] ?? []); $fin2 = !empty($cd2['fin']) ? (array)$cd2['fin'] : (array)($wn2['fin'] ?? []);
+            foreach (['Conventional' => 'Conventional', 'FHA' => 'FHA', 'VA' => 'VA'] as $k => $v) { if (in_array($k, $fin2, true)) { $info['loan_type'] = $v; break; } } } } catch (Throwable $e) {}
+}
 echo json_encode(['ok' => !empty($r['ok']), 'info' => $info]);
