@@ -20,7 +20,7 @@ function sp_head($title, $backTx = '') {
 <meta name="robots" content="noindex,nofollow">
 <title><?= htmlspecialchars($title) ?> - FLR Agent Back Office</title>
 <link rel="stylesheet" href="style.css?v=19">
-<style>body{margin:0;background:#fff}.embedwrap{padding:14px}</style>
+<style>body{margin:0;background:#fff}.embedwrap{padding:18px}.embedwrap .panel,.embedwrap .sigbox{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important;border-radius:0!important;margin-left:0!important;margin-right:0!important}</style>
 </head>
 <body>
 <div class="embedwrap">

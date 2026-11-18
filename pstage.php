@@ -230,6 +230,7 @@ els.forEach(function(el,i){var a=el.querySelector("a"),b=el.querySelector("butto
  a.addEventListener("click",function(){paint(i);var fd=new FormData(form);fd.set("pstage",b.value);fetch(location.href,{method:"POST",body:fd,credentials:"same-origin"}).catch(function(){});});});})();</script>';
     // On a narrow screen the row scrolls sideways: start it at the current stage.
     $o .= '<script>(function(){var r=document.querySelectorAll(".psrow"),i;for(i=0;i<r.length;i++){var c=r[i].querySelector("[data-cur]");if(c&&r[i].scrollWidth>r[i].clientWidth)r[i].scrollLeft=Math.max(0,c.offsetLeft-r[i].offsetLeft-24);}})();</script>';
+    $o .= '</div></div>'; // the Progress card ends here (title and stage buttons); the selected screen below is its own primary card
     // Below: the content panel. Every buyer stage (but Make An Offer) opens here; sellers' stages have no screens yet,
     // but the panel still exists so the "Edit contact info" pencil above has somewhere to open into.
     $src = '';
@@ -239,14 +240,13 @@ els.forEach(function(el,i){var a=el.querySelector("a"),b=el.querySelector("butto
         $defEmbeddable = $curMerged ? $curMerged['embeddable'] : ps_embeddable($cur);
         $src = ($defDest !== null && $defEmbeddable) ? ($defDest . '&embed=1') : '';
     }
-    $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="width:100%;min-height:560px;border:1px solid #d7e2e2;border-radius:12px;background:#fff"';
+    $o .= '<iframe name="pscontent" id="pscontent"' . ($src !== '' ? ' src="' . $h($src) . '"' : '') . ' style="display:block;width:100%;min-height:560px;border:1px solid #d7e2e2;border-radius:14px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);margin:0 0 14px"';
     if ($src === '') { $o .= ' srcdoc="<body style=\'font-family:sans-serif;color:#6a777a;padding:20px;margin:0\'>Click a stage, or Edit contact info, to view it here.</body>"'; }
     $o .= ' scrolling="no"></iframe>';
     // Grow the panel to fit its screen, so the page scrolls instead of the panel (only a document viewer inside keeps its own scroll).
     $o .= '<script>(function(){var f=document.getElementById("pscontent");if(!f)return;var ro=null;
 function fit(){try{var d=f.contentDocument;if(!d||!d.body)return;var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);f.style.height=Math.max(560,h+2)+"px";}catch(e){f.removeAttribute("scrolling");}}
 f.addEventListener("load",function(){fit();try{if(ro)ro.disconnect();ro=new ResizeObserver(fit);ro.observe(f.contentDocument.body);}catch(e){}setTimeout(fit,300);setTimeout(fit,1500);});})();</script>';
-    $o .= '</div></div>';
     return $o;
 }
 // A colored-pill summary (counts per stage) plus the records grouped under each stage, for the "choose a record" list view.
