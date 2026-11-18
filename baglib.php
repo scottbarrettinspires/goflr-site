@@ -131,7 +131,7 @@ function bag_prefill($me, $tx, $kind) {
         $hl = array_values(array_filter(array_map('trim', preg_split('/[\r\n;]+/', $T['homes']))));
         foreach (array_slice($hl, 0, 7) as $i => $a) $fs('Property_List_' . ($i + 1), $a, 'Homes it covers');
     }
-    $fs('Comp_Purchase_Percent', $T['comm'], 'Commission rate');
+    $fs('Comp_PurchasePlus_Percent', $T['comm'], 'Commission rate'); // the % before "plus" (the 3% + admin fee line), not the stand-alone % option
     $fs('Comp_PurchasePlus_FlatFee', $T['admin'] !== '' ? $T['admin'] . '. Admin FLR Fee' : '', 'FLR admin fee');
     $lines = bag_wrap($T['special'], 85); foreach (array_slice($lines, 0, $kind === 'exclusive' ? 6 : 4) as $i => $ln) $fs('Additional_Terms_' . ($i + 1), $ln, 'Special terms');
     return ['fields' => $f, 'filled' => array_keys($used), 'labels' => $lab, 'force' => $force];

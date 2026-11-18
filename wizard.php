@@ -201,7 +201,7 @@ function ofEl(k){return document.getElementById('of_'+k);}
 function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
 function ofCompText(c){if(!c||!c.agreement)return '';var p=[];function f(k){return c[k]||'';}
-  if(f('Comp_Purchase_Percent'))p.push(f('Comp_Purchase_Percent')+'% of the purchase price');if(f('Comp_Purchase_Amount'))p.push('$'+f('Comp_Purchase_Amount'));if(f('Comp_PurchasePlus_FlatFee'))p.push(f('Comp_PurchasePlus_FlatFee'));
+  if(f('Comp_Purchase_Percent'))p.push(f('Comp_Purchase_Percent')+'% of the purchase price');if(f('Comp_PurchasePlus_Percent'))p.push(f('Comp_PurchasePlus_Percent')+'% of the purchase price');if(f('Comp_Purchase_Amount'))p.push('$'+f('Comp_Purchase_Amount'));if(f('Comp_PurchasePlus_FlatFee'))p.push(f('Comp_PurchasePlus_FlatFee'));
   return '<b>Your commission (from the '+(c.agreement==='showing'?'Showing':'Exclusive Buyer')+' Agreement):</b> '+(p.length?esc(p.join(' + ')):'on file')+'<div class="m">Used for the transaction record. Change it on the Buyer Agreement if it differs.</div>';}
 function ofLoad(){var id=txSel.value;if(!id)return;
   fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
