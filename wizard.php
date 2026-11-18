@@ -245,6 +245,16 @@ function cdWarn(){var v=ofEl('closing_date').value,n=document.getElementById('cd
 function cdMark(){cdWarn();var v=ofEl('closing_date').value;[].forEach.call(document.querySelectorAll('#cdq .btn'),function(b){b.classList.toggle('on',cdAdd(+b.dataset.n)===v);});} // highlight the quick button that matches the closing date (30 days is the default)
 function ofEl(k){return document.getElementById('of_'+k);}
 function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
+var ESCV={
+ phone:function(v){var d=v.replace(/\D/g,'');if(d.length===11&&d[0]==='1')d=d.slice(1);return d.length===10&&!/^[01]/.test(d)&&!/^.{3}[01]/.test(d)?d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6):null;},
+ email:function(v){return /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/.test(v)?v.toLowerCase():null;},
+ address:function(v){var m=/^(\d+[A-Za-z]?)\s+\S.*?,?\s+([A-Za-z]{2})\s+(\d{5})(-\d{4})?$/.exec(v.trim());return m&&/[A-Za-z]/.test(v.replace(/\s[A-Za-z]{2}\s+\d{5}.*$/,''))?v.trim().replace(/\s+/g,' '):null;}
+};
+var ESCM={esc_phone:['phone','Phone must be 10 digits, like 727-372-4637.'],esc_email:['email','Email must look like name@company.com.'],esc_address:['address','Address must be a street address with city, state and zip, like 2150 Seven Springs Blvd, Trinity, FL 34655.']};
+function escCheck(k,fix){var el=ofEl(k),v=el.value.trim(),n=el.parentNode.querySelector('.escerr');if(!n){n=document.createElement('div');n.className='escerr';n.style.cssText='font-size:.78rem;color:#9a2b2b;margin-top:3px;font-weight:400';el.after(n);}
+ if(v===''){n.textContent='';el.style.borderColor='';return true;}var r=ESCV[ESCM[k][0]](v);if(r===null){n.textContent=ESCM[k][1];el.style.borderColor='#c0392b';return false;}n.textContent='';el.style.borderColor='';if(fix)el.value=r;return true;}
+function escAll(){var ok=true;['esc_phone','esc_email','esc_address'].forEach(function(k){if(!escCheck(k,true))ok=false;});return ok;}
+['esc_phone','esc_email','esc_address'].forEach(function(k){ofEl(k).addEventListener('blur',function(){escCheck(k,true);});ofEl(k).addEventListener('input',function(){if(ofEl(k).parentNode.querySelector('.escerr')&&ofEl(k).parentNode.querySelector('.escerr').textContent)escCheck(k,false);});});
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
 function ofCompText(c){if(!c||!c.agreement)return '';var p=[];function f(k){return c[k]||'';}
   if(f('Comp_Purchase_Percent'))p.push(f('Comp_Purchase_Percent')+'% of the purchase price');if(f('Comp_PurchasePlus_Percent'))p.push(f('Comp_PurchasePlus_Percent')+'% of the purchase price');if(f('Comp_Purchase_Amount'))p.push('$'+f('Comp_Purchase_Amount'));if(f('Comp_PurchasePlus_FlatFee'))p.push(f('Comp_PurchasePlus_FlatFee'));
@@ -317,6 +327,7 @@ btn.addEventListener('click',async function(){
   if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim()){mlsShowFields(true);return fail('Please enter the property address (street number, street name, city and zip).');}
   if(!(parseFloat(String(document.getElementById('pprice').value||'').replace(/[^0-9.]/g,''))>0))return fail('Please enter the purchase price.');
   if(ofEl('property_type').value!=='Vacant Land'&&(!ofEl('hoa').value||!ofEl('cdd').value))return fail('Please tell me whether the property has an HOA and whether it has a CDD.');
+  if(!escAll())return fail('Please correct the title company information (phone, address or email) before building the packet.');
   var oe=await ofSave();if(oe)return fail(oe);
   var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
   if(!pa0)return fail('Please enter the property address first.');
