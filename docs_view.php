@@ -6,7 +6,7 @@ require_once __DIR__ . "/doclib.php";
 require_once __DIR__ . "/subpage.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $me = strtolower($_SESSION['email'] ?? ''); $tx = (string)($_GET['tx'] ?? '');
-sp_head('Documents', $tx);
+sp_head('Compliance Document Records', $tx);
 $j = dc_list($me, $tx);
 $h = function ($x) { return htmlspecialchars((string)$x); };
 $fd = function ($d) { $t = strtotime((string)$d); return $t ? date('M j, Y', $t) : ''; };
