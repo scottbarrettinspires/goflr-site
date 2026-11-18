@@ -218,6 +218,12 @@ function ofQuick(){var pr=ofPrice();
 [].forEach.call(document.querySelectorAll('#fnq .btn'),function(b){b.onclick=function(){var p=ofPrice();if(!p){alert('Enter the offer price first.');return;}ofEl('financed_amount').value=ofMoney(p*(1-(+b.dataset.d)/100));};});}
 function idMark(){var v=ofEl('inspection_days').value.trim();[].forEach.call(document.querySelectorAll('#idq .btn'),function(b){b.classList.toggle('on',b.dataset.n===v);});}
 [].forEach.call(document.querySelectorAll('#idq .btn'),function(b){b.onclick=function(){ofEl('inspection_days').value=b.dataset.n;idMark();};});ofEl('inspection_days').addEventListener('input',idMark);
+function ofNum(id){return parseFloat(String(ofEl(id).value).replace(/[^0-9.]/g,''))||0;}
+function ofMarkQ(){var pr=ofPrice(),e=ofNum('escrow_deposit'),f=ofNum('financed_amount');
+[].forEach.call(document.querySelectorAll('#esq .btn'),function(b){var v=b.dataset.a?+b.dataset.a:pr*(+b.dataset.p)/100;b.classList.toggle('on',v>0&&Math.round(v)===Math.round(e));});
+[].forEach.call(document.querySelectorAll('#fnq .btn'),function(b){var v=pr*(1-(+b.dataset.d)/100);b.classList.toggle('on',pr>0&&Math.round(v)===Math.round(f));});}
+['escrow_deposit','financed_amount'].forEach(function(k){ofEl(k).addEventListener('input',ofMarkQ);});document.getElementById('pprice').addEventListener('input',ofMarkQ);
+[].forEach.call(document.querySelectorAll('#esq .btn,#fnq .btn'),function(b){b.addEventListener('click',function(){setTimeout(ofMarkQ,0);});});
 ofQuick();
 function cdIso(d){return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
 function cdOff(s){var p=s.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]),w=d.getDay();if(w===6)return 'a Saturday';if(w===0)return 'a Sunday';return CDH[s]?CDH[s]:'';}
@@ -235,7 +241,7 @@ function ofLoad(){var id=txSel.value;if(!id)return;
   fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
     if(!j||!j.ok||txSel.value!==id)return;
     OFK.forEach(function(k){if(!mlsLast||!ofEl(k).value)ofEl(k).value=j.offer[k]||'';}); // a lookup that started first keeps what it filled
-    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();if(!ofEl('inspection_days').value)ofEl('inspection_days').value='10';idMark();if(!ofEl('escrow_deposit').value)ofEl('escrow_deposit').value='2,000';
+    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();if(!ofEl('inspection_days').value)ofEl('inspection_days').value='10';idMark();if(!ofEl('escrow_deposit').value)ofEl('escrow_deposit').value='2,000';if(!ofEl('financed_amount').value)ofEl('financed_amount').value='0';ofMarkQ();
     var ppEl=document.getElementById('pprice');if(!mlsLast||!ppEl.value||ppEl.value==='0')ppEl.value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'0';
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
     var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
