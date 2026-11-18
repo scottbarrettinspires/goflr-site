@@ -155,7 +155,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=26"></script>
+<script src="wizlib.js?v=27"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -203,9 +203,11 @@ function fillMap(){
   // FF addendum (credit related to buyer's broker compensation): same commission as the Buyer Agreement / Showing Agreement
   (function(){var c=OFCOMP||{},g=function(k){return String(c[k]||'').trim();},pl=g('Comp_PurchasePlus_Percent'),fl=g('Comp_PurchasePlus_FlatFee')||g('Comp_PurchasePlus_Amount'),pc=g('Comp_Purchase_Percent'),am=g('Comp_Purchase_Amount');
     var money=function(s){var x=/\$?\s*([\d,]+(?:\.\d+)?)/.exec(s);if(!x)return '';var n=parseFloat(x[1].replace(/,/g,''));return isNaN(n)?'':mo(n);};
-    if(pl&&parseFloat(pl)>0){m.Rad_FF_Credit='PercentPlusAmount';m.FF_Credit_PercentPlus=pl;if(money(fl))m.FF_Credit_PlusAmount=money(fl);}
-    else if(pc&&parseFloat(pc)>0){m.Rad_FF_Credit='Percent';m.FF_Credit_Percent=pc;}
-    else if(money(am)){m.Rad_FF_Credit='Amount';m.FF_Credit_Amount=money(am);}})();
+    var pct=(pl&&parseFloat(pl)>0)?pl:((pc&&parseFloat(pc)>0)?pc:'');
+    if(pct){m.Rad_FF_Credit='Percent';m.FF_Credit_Percent=pct;} // the buyer-broker commission percent, first option
+    else if(money(am)){m.Rad_FF_Credit='Amount';m.FF_Credit_Amount=money(am);}
+    m.Rad_FF_Excess='PaidToBuyerBroker'; // if the credit exceeds what the lender allows: the balance is paid by Seller directly to Buyer Broker (always)
+  })();
   (function(){var p=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),o={};p.forEach(function(x){o[x.type]=x.value;});var d=new Date(Date.UTC(+o.year,+o.month-1,+o.day+1));m.Date_OfferExpires=('0'+(d.getUTCMonth()+1)).slice(-2)+'/'+('0'+d.getUTCDate()).slice(-2)+'/'+d.getUTCFullYear()+' at 5:00 PM';})(); // contract 3(a): offer expires tomorrow (Eastern time) at 5:00 PM
   // contract paragraph 8: cash buyers get 8(a); financing buyers get 8(b) with the loan type from the client record, a fixed or adjustable rate, 30-year term, 5 days to apply
   if(INFO&&INFO.payment==='cash'){m.Chk_Fin_Cash='Yes';}
