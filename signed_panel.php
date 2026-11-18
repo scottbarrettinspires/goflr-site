@@ -32,7 +32,7 @@ function sg_panel($email, $folder, $name) {
         if (!empty($r['completed']) && $p && sg_can_file($r)) $pending = true;
     }
     ob_start(); ?>
-  <div class="panel sigbox" id="signed">
+  <div class="panel sigbox" id="signed" hidden><!-- hidden: the Documents button on Progress To A Closed Sale lists these; this block still clears "newly signed" notices and files finished documents -->
     <h2 style="margin-top:0">Signed Documents</h2>
 <?php if (!$recs): ?>
     <p class="note">Nothing sent for signature for this record yet. Forms you send from the Contract Forms Wizard show up here, and you get a notice (bell) when they're fully signed.</p>
