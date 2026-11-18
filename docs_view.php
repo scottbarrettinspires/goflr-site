@@ -31,4 +31,5 @@ $fd = function ($d) { $t = strtotime((string)$d); return $t ? date('M j, Y', $t)
   <p class="note"><?= (int)$j['waiting'] ?> more out for signature. They appear here once everyone has signed.</p>
 <?php endif; endif; ?>
 </div>
+<?php if (!empty($j['ok'])) echo sg_panel($me, $tx, (string)$j['name'], false, 'Signing details and copies'); // the signature status, signers and download for each document ?>
 <?php sp_foot(); ?>
