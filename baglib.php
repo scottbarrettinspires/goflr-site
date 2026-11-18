@@ -149,7 +149,7 @@ function bag_terms($me, $tx) {
     $pick = function ($a, $b, $d) { foreach ([$a, $b] as $v) { if (is_scalar($v) && trim((string)$v) !== '') return trim((string)$v); } return $d; };
     return ['types' => array_values(array_filter((array)($w['types'] ?? $kv['types'] ?? []), 'strlen')), 'areas' => $pick($w['areas'] ?? '', $kv['areas'] ?? '', ''),
         'comm' => $pick($cd['comm_rate'] ?? '', $kv['comm'] ?? '', '3'), 'admin' => $pick($cd['admin_fee'] ?? '', $kv['admin'] ?? '', '325'),
-        'special' => $pick($cd['special_terms'] ?? '', $kv['special'] ?? '', ''), 'expires' => (string)($kv['expires'] ?? ''), 'homes' => (string)($kv['homes'] ?? ''), 'admin_ok' => !empty($kv['admin_ok'])];
+        'special' => $pick($cd['special_terms'] ?? '', $kv['special'] ?? '', ''), 'expires' => (string)($kv['expires'] ?? '') !== '' ? (string)$kv['expires'] : date('Y-m-d', strtotime('+6 months')), 'homes' => (string)($kv['homes'] ?? ''), 'admin_ok' => !empty($kv['admin_ok'])];
 }
 // Save the answers. '' or a readable error. Keeps them on the record and on the lead so later forms can use them.
 function bag_terms_save($me, $tx, array $a) {

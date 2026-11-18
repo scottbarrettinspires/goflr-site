@@ -135,7 +135,7 @@ sp_head('Buyer Agreement', $tx);
       <input type="hidden" name="csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="op" value="upload"><input type="hidden" name="tx" value="<?= $h($tx) ?>">
       <label>Which agreement<select name="kind"><?php foreach (BAG_FORMS as $kk => $ff): ?><option value="<?= $kk ?>"<?= $kk === ($sig ? $kind : $k) ? ' selected' : '' ?>><?= $h($ff['title']) ?></option><?php endforeach; ?><option value="extension">Extension of the Buyer Agreement</option></select></label>
       <label>Date signed<input type="date" name="on" value="<?= date('Y-m-d') ?>" max="<?= date('Y-m-d') ?>"></label>
-      <label id="bagexpl">Expiration date <small>(from the agreement)</small><input type="date" name="expires"></label>
+      <label id="bagexpl">Expiration date <small>(from the agreement)</small><input type="date" name="expires" value="<?= date('Y-m-d', strtotime('+6 months')) ?>"></label>
       <label id="baghomel" hidden>Home(s) it covers <small>(optional)</small><input type="text" name="homes" maxlength="200" placeholder="e.g. 123 Main St"></label>
       <label>Signed PDF<input type="file" name="pdf" accept="application/pdf,.pdf" required></label>
       <button type="submit" class="btn" style="border:0;cursor:pointer;font:inherit;font-weight:700;padding:9px 16px;border-radius:10px">Save signed copy</button>
