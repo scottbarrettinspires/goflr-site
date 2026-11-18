@@ -59,7 +59,6 @@ $ICON = [
   <h4 style="margin:12px 0 6px;font-size:.92rem;color:#036f72"><?= $h($g['label']) ?></h4>
 <?php foreach ($g['items'] as $i): ?>
   <div class="pdr pdgreen"><?= $ICON['done'] ?><b><?= $h($i['title']) ?></b><small><?= $i['source'] === 'upload' ? 'Uploaded signed copy' : 'Signed by e-signature' ?><?= $i['signed_on'] !== '' ? ' &middot; ' . $h($fd($i['signed_on'])) : '' ?></small>
-<?php if ($i['drive_url'] !== ''): ?><a href="<?= $h($i['drive_url']) ?>" target="_blank" rel="noopener">Open in Google Drive</a><?php endif; ?>
 <?php if ($i['view_url'] !== ''): ?><a href="<?= $h($i['view_url']) ?>" target="_blank" rel="noopener">View</a><?php endif; ?>
 <?php if ($i['download_url'] !== ''): ?><a href="<?= $h($i['download_url']) ?>" target="_top">Download</a><?php endif; ?>
 <?php if ($i['folder'] !== ''): ?><small>Filed in <?= $h($i['folder']) ?></small><?php endif; ?>
