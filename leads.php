@@ -715,7 +715,9 @@ function openLead(L,preset,inl){
       +'<div id="agrbox" style="margin:0 0 10px"></div>'
       +'<div id="cn_body"><p class="goal"><span class="bspin"></span> Getting the buyer agreement ready...</p></div>';
     var tb=modal.querySelector(".mtabs");if(tb&&tb.parentNode)tb.parentNode.insertBefore(bx,tb.nextSibling);else modal.insertBefore(bx,modal.firstChild);
-    document.getElementById("cn_close").onclick=function(){bx.remove();};
+    var cnHid=[].slice.call(modal.querySelectorAll(".touch,#histbox")).filter(function(x){return x!==bx;});var nl0=document.getElementById("noteList");if(nl0&&nl0.parentNode)cnHid.push(nl0.parentNode); // collapse Next step, Notes and History while the agreement is open
+    cnHid.forEach(function(x){x.dataset.cnd=x.style.display||"";x.style.display="none";});
+    document.getElementById("cn_close").onclick=function(){bx.remove();cnHid.forEach(function(x){x.style.display=x.dataset.cnd||"";});};
     bx.scrollIntoView({behavior:"smooth",block:"nearest"});
     api({action:"consult",id:L.id}).then(function(j){
       var body=document.getElementById("cn_body");if(!body)return;
