@@ -87,6 +87,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
     .od{margin:0 0 16px}.od h3{margin:14px 0 8px;font-size:1rem;color:#036f72;display:flex;align-items:center;gap:10px}.od h3:after{content:"";flex:1;height:1px;background:#dfe6e7}
     .odg{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}.odg label{display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0}.odg .s2{grid-column:span 2}.odg .s3{grid-column:span 3}.odg .s4{grid-column:span 4}.odg .s6{grid-column:span 6}.odg .s12{grid-column:span 12}
     .odg input,.odg select{display:block;width:100%;max-width:none!important;box-sizing:border-box;margin-top:3px;padding:9px 11px;border:1px solid #d7e2e2;border-radius:9px;font:inherit;font-weight:400;font-size:.95rem;background:#fff;color:#1f2a2c}
+    .cdq{display:flex;gap:6px;margin-top:5px}.cdq .btn.sm{padding:1px 10px!important;font-size:.76rem!important;width:auto}.cdq .btn.on{background:#036f72!important;color:#fff!important;border-color:#036f72!important}
     .odb{background:#f0f8f8;border:1px solid #cfe5e5;border-radius:10px;padding:10px 14px;font-size:.92rem}.odb b{font-weight:700}.odb .m{color:#5a6a6c;font-size:.84rem;margin-top:2px}
     @media(max-width:640px){.odg .s2,.odg .s3,.odg .s4{grid-column:span 6}.odg .s6{grid-column:span 12}}
     </style>
@@ -109,9 +110,9 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
         <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
-        <label class="s4">Closing date<input type="date" id="of_closing_date"></label>
         <label class="s4"><strong>Escrow Deposit Amount</strong><input type="text" id="of_escrow_deposit" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 5,000"></label>
         <label class="s4" id="of_fin_wrap" style="display:none"><strong>Amount Being Financed</strong><input type="text" id="of_financed_amount" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 360,000"></label>
+        <div class="s4" style="grid-column:1/span 4"><label style="display:block;font-size:.82rem;font-weight:600;color:#455355;margin:0">Closing date<input type="date" id="of_closing_date"></label><span class="cdq" id="cdq"><button type="button" class="btn ghost sm" data-n="30">30 days</button><button type="button" class="btn ghost sm" data-n="45">45 days</button><button type="button" class="btn ghost sm" data-n="60">60 days</button></span></div>
         <label class="s4"><strong>Number Of Days For Inspections</strong><input type="text" id="of_inspection_days" inputmode="numeric" maxlength="3" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="e.g. 15"></label>
       </div>
       <input type="hidden" id="paddr">
@@ -206,6 +207,8 @@ qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
 var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+function cdAdd(n){var d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function cdMark(){var v=ofEl('closing_date').value;[].forEach.call(document.querySelectorAll('#cdq .btn'),function(b){b.classList.toggle('on',cdAdd(+b.dataset.n)===v);});} // highlight the quick button that matches the closing date (30 days is the default)
 function ofEl(k){return document.getElementById('of_'+k);}
 function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
@@ -216,6 +219,7 @@ function ofLoad(){var id=txSel.value;if(!id)return;
   fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
     if(!j||!j.ok||txSel.value!==id)return;
     OFK.forEach(function(k){if(!mlsLast||!ofEl(k).value)ofEl(k).value=j.offer[k]||'';}); // a lookup that started first keeps what it filled
+    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();
     var ppEl=document.getElementById('pprice');if(!mlsLast||!ppEl.value)ppEl.value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'';
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
     var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
@@ -264,6 +268,7 @@ document.getElementById('mls_edit').addEventListener('click',function(){mlsShowF
 mlsGo.addEventListener('click',function(){mlsLookup(true);});
 ofEl('mls_id').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();mlsLookup(true);}});
 ofEl('mls_id').addEventListener('change',function(){mlsLookup(false);});
+[].forEach.call(document.querySelectorAll('#cdq .btn'),function(b){b.onclick=function(){ofEl('closing_date').value=cdAdd(+b.dataset.n);cdMark();};});ofEl('closing_date').addEventListener('input',cdMark);ofEl('closing_date').addEventListener('change',cdMark);
 txSel.addEventListener('change',ofLoad);ofLoad();
 async function ofSave(){ofSync();var o={};OFK.forEach(function(k){o[k]=ofEl(k).value;});o.price=document.getElementById('pprice').value;
   var r=await fetch('offer_api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:CSRF,action:'save',tx:txSel.value,offer:o})}).then(function(x){return x.json();}).catch(function(){return {ok:false,msg:'Could not save the offer details. Please try again.'};});
