@@ -98,6 +98,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s4"><strong>MLS number</strong><input type="text" id="of_mls_id" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other" placeholder="e.g. T3512345" style="text-transform:uppercase"></label>
         <div class="s2" style="align-self:end"><button type="button" class="btn" id="mls_go" style="width:100%;padding:9px 6px;margin-bottom:0">Look up</button></div>
         <div class="s6 odb" id="mls_note" style="align-self:end" hidden></div>
+        <div class="s12" id="mls_miss" hidden style="color:#9a2b2b;font-size:.85rem;font-weight:600"></div>
         <div class="s12 odb" id="mls_card" hidden style="display:none;justify-content:space-between;align-items:center;gap:12px"><div id="mls_card_txt"></div><button type="button" class="btn" id="mls_edit" style="width:auto;padding:8px 18px;margin:0">Edit</button></div>
         <label class="s3">Street number<input type="text" id="of_street_number" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
         <label class="s6">Street name<input type="text" id="of_street_name" autocomplete="nope" aria-autocomplete="none" data-lpignore="true" data-form-type="other"></label>
@@ -330,7 +331,12 @@ function spCard(){var g=function(k){return (ofEl(k).value||'').trim();},nf='<spa
   var t=function(l,v,opt){return '<div class="m"><b>'+l+':</b> '+(v?esc(v):nf)+'</div>';};
   var cp=[g('county')?g('county')+' County':'',g('parcel_id')?'Tax ID '+g('parcel_id'):''].filter(Boolean).join(' · ');
   return '<div style="margin-top:6px">'+t('Seller(s)',g('seller_names'))+'<div class="m"><b>County / parcel:</b> '+(cp?esc(cp):nf)+'</div>'+t('Legal description',g('legal_desc'))+'</div>';}
-function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;
+var MLSREQ=[['street_number','Street number'],['street_name','Street name'],['city','City'],['state','State'],['zip','Zip code'],['property_type','Property type'],['seller_names','Seller name(s)'],['county','County'],['parcel_id','Property tax ID (parcel)'],['legal_desc','Legal description'],['year_built','Year built'],['annual_taxes','Annual taxes'],['hoa','HOA'],['cdd','CDD']];
+function mlsMissing(){var vl=ofEl('property_type').value==='Vacant Land',out=[];MLSREQ.forEach(function(r){var k=r[0];if(vl&&(k==='year_built'||k==='hoa'||k==='cdd'))return;if(k==='street_number'&&vl)return;var el=ofEl(k),v=String(el.value||'').trim(),bad=(v==='');if(k==='annual_taxes'&&v!==''&&parseFloat(v.replace(/,/g,''))===0)bad=false;el.style.borderColor=bad?'#c0392b':'';if(bad)out.push(r[1]);});return out;}
+function mlsGate(){var box=document.getElementById('mls_miss'),miss=mlsMissing();if(miss.length){box.hidden=false;box.textContent='The MLS did not have: '+miss.join(', ')+'. Please fill these in; the listing summary appears when they are complete.';mlsShowFields(true);return false;}box.hidden=true;box.textContent='';return true;}
+MLSREQ.forEach(function(r){var e=ofEl(r[0]);if(e)e.addEventListener('change',function(){if(MLSDONE&&mlsGate())mlsCondense();});});
+var MLSDONE=false;
+function mlsCondense(){var g=function(k){return (ofEl(k).value||'').trim();};if(!g('mls_id')||!g('street_name')||!g('city'))return;MLSDONE=true;if(!mlsGate())return;
   var addr=[[g('street_number'),g('street_name')].filter(Boolean).join(' ')+(g('unit')?' #'+g('unit'):''),g('city'),[g('state'),g('zip')].filter(Boolean).join(' ')].filter(Boolean).join(', ');
   var tx=g('annual_taxes'),sub=[g('year_built')?'Year built '+g('year_built'):'',tx?'Annual taxes $'+tx:'',g('property_type'),'HOA: '+yn(MLSX.hoa),'CDD: '+yn(MLSX.cdd)].filter(Boolean).join(' · ');
   var ag=[[g('oa_first'),g('oa_last')].filter(Boolean).join(' '),g('oa_brokerage'),g('oa_phone'),g('oa_email')].filter(Boolean).join(' · ');
