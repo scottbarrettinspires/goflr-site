@@ -28,7 +28,7 @@
   }
 
   // sources: [{bytes, isContract}], clauses: [text]. Returns merged PDFDocument.
-  var MONEY_RE = /^(Price_|Deposit|Comp_.*(Amount|FlatFee)|.*_Amount$|Escrow.*(Amount|Deposit)|.*Financ.*Amount|.*Purchase_Price)/i; // Price_* covers every dollar field on the As Is and Vacant Land contracts
+  var MONEY_RE = /^(Price_|Deposit|Comp_.*(Amount|FlatFee)|.*Amount$|Escrow.*(Amount|Deposit)|.*Financ.*Amount|.*Purchase_Price)/i; // Price_* covers every dollar field on the As Is and Vacant Land contracts
   async function buildPacket(PL, sources, clauses, fill) {
     var out = await PL.PDFDocument.create(), ctx = out.context, roots = new Set(), fontNames = {}, notes = [];
     for (var i = 0; i < sources.length; i++) {
@@ -37,7 +37,7 @@
         var sf = src.getForm();
         // money fields read right-justified on the contract (set before filling so the appearance is drawn right-aligned)
         sf.getFields().forEach(function (f) { try { if (f instanceof PL.PDFTextField && MONEY_RE.test(f.getName())) f.setAlignment(PL.TextAlignment.Right); } catch (e) {} });
-        Object.keys(fill).forEach(function (k) { if (!fill[k]) return; try { sf.getTextField(k).setText(String(fill[k])); } catch (e) {} });
+        Object.keys(fill).forEach(function (k) { if (!fill[k]) return; try { sf.getTextField(k).setText(String(fill[k])); } catch (e) { try { sf.getRadioGroup(k).select(String(fill[k])); } catch (e2) {} } });
       }
       if (sources[i].isContract && clauses && clauses.length) {
         var r = await fillAdditionalTerms(PL, src, clauses);

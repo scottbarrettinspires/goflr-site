@@ -148,7 +148,7 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
   </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="flrdraft.js?v=1"></script>
-<script src="wizlib.js?v=14"></script>
+<script src="wizlib.js?v=15"></script>
 <script>
 (function(){
 var R=<?= json_encode($rules, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, CSRF=<?= json_encode($_SESSION['csrf']) ?>, AGENT=<?= json_encode(trim((string)($_SESSION['name'] ?? '')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>, BROKERAGE='Florida Luxury Realty, Inc.', LICENSE=<?= json_encode(sg_license($_SESSION['email'])) ?>;
@@ -193,6 +193,12 @@ function fillMap(){
   if(ev('esc_name'))m.Escrow_Agent=ev('esc_name'); if(ev('esc_address'))m.Escrow_Address=ev('esc_address'); if(ev('esc_phone'))m.Escrow_Phone=ev('esc_phone'); if(ev('esc_email'))m.Escrow_Email=ev('esc_email');
   var cd=/^(\d{4})-(\d{2})-(\d{2})$/.exec(ev('closing_date')); if(cd)m.Date_Closing=cd[2]+'/'+cd[3]+'/'+cd[1];
   if(/^\d+$/.test(ev('inspection_days')))m.Term_InspectionDays=ev('inspection_days');
+  // FF addendum (credit related to buyer's broker compensation): same commission as the Buyer Agreement / Showing Agreement
+  (function(){var c=OFCOMP||{},g=function(k){return String(c[k]||'').trim();},pl=g('Comp_PurchasePlus_Percent'),fl=g('Comp_PurchasePlus_FlatFee')||g('Comp_PurchasePlus_Amount'),pc=g('Comp_Purchase_Percent'),am=g('Comp_Purchase_Amount');
+    var money=function(s){var x=/\$?\s*([\d,]+(?:\.\d+)?)/.exec(s);if(!x)return '';var n=parseFloat(x[1].replace(/,/g,''));return isNaN(n)?'':mo(n);};
+    if(pl&&parseFloat(pl)>0){m.Rad_FF_Credit='PercentPlusAmount';m.FF_Credit_PercentPlus=pl;if(money(fl))m.FF_Credit_PlusAmount=money(fl);}
+    else if(pc&&parseFloat(pc)>0){m.Rad_FF_Credit='Percent';m.FF_Credit_Percent=pc;}
+    else if(money(am)){m.Rad_FF_Credit='Amount';m.FF_Credit_Amount=money(am);}})();
   if(INFO){var names=[INFO.b1_name,INFO.b2_name].filter(Boolean).join(' and '); if(names)m.Buyer_Names=names; if(INFO.b1_name)m.Buyer1_Name=INFO.b1_name; if(INFO.b2_name)m.Buyer2_Name=INFO.b2_name;} // buyer contact details are never written onto the forms
   return m;
 }
@@ -264,6 +270,7 @@ function escCheck(k,fix){var el=ofEl(k),v=el.value.trim(),n=el.parentNode.queryS
 function escAll(){var ok=true;['esc_phone','esc_email','esc_address'].forEach(function(k){if(!escCheck(k,true))ok=false;});return ok;}
 ['esc_phone','esc_email','esc_address'].forEach(function(k){ofEl(k).addEventListener('blur',function(){escCheck(k,true);});ofEl(k).addEventListener('input',function(){if(ofEl(k).parentNode.querySelector('.escerr')&&ofEl(k).parentNode.querySelector('.escerr').textContent)escCheck(k,false);});});
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
+var OFCOMP={};
 function ofCompText(c){if(!c||!c.agreement)return '';var p=[];function f(k){return c[k]||'';}
   if(f('Comp_Purchase_Percent'))p.push(f('Comp_Purchase_Percent')+'% of the purchase price');if(f('Comp_PurchasePlus_Percent'))p.push(f('Comp_PurchasePlus_Percent')+'% of the purchase price');if(f('Comp_Purchase_Amount'))p.push('$'+f('Comp_Purchase_Amount'));if(f('Comp_PurchasePlus_FlatFee'))p.push(f('Comp_PurchasePlus_FlatFee'));
   return '<b>Your commission (from the '+(c.agreement==='showing'?'Showing':'Exclusive Buyer')+' Agreement):</b> '+(p.length?esc(p.join(' + ')):'on file')+'<div class="m">Used for the transaction record. Change it on the Buyer Agreement if it differs.</div>';}
@@ -276,7 +283,7 @@ function ofLoad(){var id=txSel.value;if(!id)return;
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
     var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
     var _me=document.getElementById('of_me'); if(_me) _me.textContent=[j.agent.name,j.agent.license?'License '+j.agent.license:'',j.agent.email].filter(Boolean).join(' · ');
-    var ct=ofCompText(j.comp),ce=document.getElementById('of_comp');ce.innerHTML=ct;ce.hidden=!ct;ofSync();
+    OFCOMP=j.comp||{};var ct=ofCompText(j.comp),ce=document.getElementById('of_comp');ce.innerHTML=ct;ce.hidden=!ct;ofSync();
   }).catch(function(){});}
 OFK.forEach(function(k){ofEl(k).addEventListener('input',ofSync);});
 // MLS number first: typing it (then Look up / Enter / leaving the field) fills the rest of the property and the listing agent from the MLS.
