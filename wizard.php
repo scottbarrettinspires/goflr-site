@@ -235,7 +235,7 @@ function ofLoad(){var id=txSel.value;if(!id)return;
   fetch('offer_api.php?tx='+encodeURIComponent(id),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
     if(!j||!j.ok||txSel.value!==id)return;
     OFK.forEach(function(k){if(!mlsLast||!ofEl(k).value)ofEl(k).value=j.offer[k]||'';}); // a lookup that started first keeps what it filled
-    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();if(!ofEl('inspection_days').value)ofEl('inspection_days').value='10';idMark();
+    if(!ofEl('closing_date').value)ofEl('closing_date').value=cdAdd(30);cdMark();if(!ofEl('inspection_days').value)ofEl('inspection_days').value='10';idMark();if(!ofEl('escrow_deposit').value)ofEl('escrow_deposit').value='2,000';
     var ppEl=document.getElementById('pprice');if(!mlsLast||!ppEl.value||ppEl.value==='0')ppEl.value=j.offer.price?Number(j.offer.price).toLocaleString('en-US',{maximumFractionDigits:2}):'0';
     var b=j.buyer,nm=[b.b1_name,b.b2_name].filter(Boolean).join(' and ');
     var _bd=document.getElementById('of_buyer'); if(_bd) _bd.innerHTML=nm?'<b>'+esc(nm)+'</b>'+(b.b1_phone||b.b1_email?'<div class="m">'+esc([b.b1_phone,b.b1_email].filter(Boolean).join(' · '))+'</div>':'')+(b.b2_name&&(b.b2_phone||b.b2_email)?'<div class="m">'+esc(b.b2_name+': '+[b.b2_phone,b.b2_email].filter(Boolean).join(' · '))+'</div>':''):'No buyer name saved yet. Use Edit contact info on the client record above.';
