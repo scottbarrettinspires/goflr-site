@@ -219,6 +219,15 @@ function ps_box($side, $tx, $driveStage = 0, $recName = '', array $info = [], $c
         }
     }
     $o .= '</div></form></div>';
+    // Clicking a stage's label opens its screen below and now also makes it the current stage: the highlight moves to it at once and the choice is saved.
+    $o .= '<script>(function(){var f=document.querySelector(".psrow");if(!f)return;var form=f.closest("form"),els=[].slice.call(f.children);
+function paint(c){els.forEach(function(el,i){var on=i===c,done=i<c,last=i===els.length-1,cir=el.querySelector("button span,span");
+ el.style.background=on?(last?"#1b5e20":"#036f72"):done?"#d6ebeb":"#eceff0";el.style.color=on?"#fff":done?"#2c6466":"#8b979a";el.style.fontWeight=on?"800":"600";
+ el.style.border="1.5px solid "+(on?"rgba(0,0,0,.25)":"rgba(0,0,0,.06)");el.style.boxShadow=on?"0 0 0 3px rgba(3,111,114,.3)":"";
+ if(on)el.setAttribute("data-cur","1");else el.removeAttribute("data-cur");
+ if(cir){cir.style.background=on?"rgba(255,255,255,.28)":done?"rgba(3,111,114,.16)":"rgba(0,0,0,.07)";cir.innerHTML=done?"&#10003;":String(i+1);cir.title=done?"Completed":"Set as current stage";}});}
+els.forEach(function(el,i){var a=el.querySelector("a"),b=el.querySelector("button[name=pstage]");if(!a||!b)return;
+ a.addEventListener("click",function(){paint(i);var fd=new FormData(form);fd.set("pstage",b.value);fetch(location.href,{method:"POST",body:fd,credentials:"same-origin"}).catch(function(){});});});})();</script>';
     // On a narrow screen the row scrolls sideways: start it at the current stage.
     $o .= '<script>(function(){var r=document.querySelectorAll(".psrow"),i;for(i=0;i<r.length;i++){var c=r[i].querySelector("[data-cur]");if(c&&r[i].scrollWidth>r[i].clientWidth)r[i].scrollLeft=Math.max(0,c.offsetLeft-r[i].offsetLeft-24);}})();</script>';
     // Below: the content panel. Every buyer stage (but Make An Offer) opens here; sellers' stages have no screens yet,
