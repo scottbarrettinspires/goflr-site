@@ -28,6 +28,11 @@ $ICON = [
 <?php foreach ($j['needs_upload'] as $u): ?>
   <div class="pdr pdred"><?= $ICON['miss'] ?><b><?= $h($u['title']) ?></b><small>Downloaded for signing on <?= $h($fd($u['downloaded_on'])) ?>. The signed copy has not been uploaded yet.</small><a href="<?= $h($u['upload_url']) ?>">Upload signed copy</a></div>
 <?php endforeach; endif; ?>
+<?php if ($j['required_missing']): ?>
+  <h3 style="color:#b71c1c">Required documents not on file</h3>
+<?php foreach ($j['required_missing'] as $m): ?>
+  <div class="pdr pdred"><?= $ICON['miss'] ?><b><?= $h($m['label']) ?></b><small><?= $h($m['reason']) ?>. No executed copy yet.</small></div>
+<?php endforeach; endif; ?>
 <?php if ($j['pending']): ?>
   <h3 style="color:#8a5a00">Waiting for signatures</h3>
 <?php foreach ($j['pending'] as $p): ?>

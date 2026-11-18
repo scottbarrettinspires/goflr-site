@@ -104,6 +104,8 @@ if ($pre !== '' && $all !== null) { // a buyer record the site holds (e.g. a sam
         <label class="s2">State<input type="text" id="of_state" maxlength="2" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Zip code<input type="text" id="of_zip" inputmode="numeric" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Year built<input type="text" id="of_year_built" inputmode="numeric" maxlength="4" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
+        <label class="s4">HOA / community association?<select id="of_hoa"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select></label>
+        <label class="s4">CDD (Community Development District)?<select id="of_cdd"><option value="">Select</option><option value="yes">Yes</option><option value="no">No</option></select></label>
         <label class="s4">Annual taxes<input type="text" id="of_annual_taxes" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other"></label>
         <label class="s4">Property type<select id="of_property_type"><option value="">Select</option><?php foreach (OF_PROP_TYPES as $pt): ?><option><?= htmlspecialchars($pt) ?></option><?php endforeach; ?></select></label>
         <label class="s4"><strong>Offer Price</strong><input type="text" id="pprice" inputmode="decimal" autocomplete="off" data-lpignore="true" data-form-type="other" placeholder="$ 450,000"></label>
@@ -148,6 +150,7 @@ function title(f){return f.replace(/\.pdf$/i,'').replace(/^(Realtor|Broker)_Res_
 var Q=[],byQ={};
 R.rules.forEach(function(r){ if(!byQ[r.q]){byQ[r.q]={q:r.q,question:r.question,rows:[]};Q.push(byQ[r.q]);} byQ[r.q].rows.push(r); });
 Q=Q.filter(function(x){return !x.rows.every(function(r){return r.skip;});});
+Q=Q.filter(function(x){return !/association riders/i.test(x.question);}); // not asked: the HOA, CDD and condominium riders come from the property information below
 function followFor(q,answer){for(var i=0;i<R.follow.length;i++){if(R.follow[i].q===q&&R.follow[i].answer.toLowerCase()===answer.toLowerCase())return R.follow[i];}return null;}
 var h='';
 Q.forEach(function(x){
@@ -202,7 +205,7 @@ txSel.addEventListener('change',loadInfo);
 qs.addEventListener('change',function(e){var t=e.target;if(!t||t.type!=='radio')return;var lb=t.closest('label'),tx=lb?lb.textContent:'';if(!/purchase|payment|cash|financ/i.test(tx))return;var xF=document.getElementById('xf_F');if(!xF)return;if(/^\s*cash/i.test(tx))xF.style.display='';else if(/financ/i.test(tx)){xF.style.display='none';var c=xF.querySelector('input');if(c)c.checked=false;}});
 loadInfo();
 // Offer Details: the property and other-side agent, prefilled from the record and saved back to it so nothing is typed twice.
-var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
+var OFK=['escrow_deposit','financed_amount','inspection_days','street_number','street_name','unit','city','state','zip','mls_id','year_built','annual_taxes','closing_date','property_type','hoa','cdd','oa_first','oa_last','oa_brokerage','oa_email','oa_phone'];
 function ofEl(k){return document.getElementById('of_'+k);}
 function ofAddr(){var g=function(k){return (ofEl(k).value||'').replace(/\s+/g,' ').trim();};var st=(g('street_number')+' '+g('street_name')).trim()+(g('unit')?' Unit '+g('unit'):'');var tail=g('city')+((g('state')+' '+g('zip')).trim()?', '+(g('state')+' '+g('zip')).trim():'');return (st+(st&&tail?', ':'')+tail).trim();}
 function ofSync(){document.getElementById('paddr').value=ofAddr();}
@@ -238,6 +241,7 @@ var MLSX={};
 function mlsAnswers(x){if(x)MLSX=x;if(!(ofEl('mls_id').value||'').trim())return;var pt=ofEl('property_type').value,yb=parseInt(ofEl('year_built').value,10);
   var pm={'Residential':/residential|single|house|home/i,'Condominium':/condo/i,'Vacant Land':/vacant|land/i}[pt];
   if(pm)mlsPick(/property type/i,pm);
+  if(MLSX.hoa&&!ofEl('hoa').value)ofEl('hoa').value=MLSX.hoa;if(MLSX.cdd&&!ofEl('cdd').value)ofEl('cdd').value=MLSX.cdd;
   if(yb>0)mlsPick(/1978|lead/i,yb<1978?/^yes/i:/^no/i);
   // HOA / CDD from the MLS record; stays blank when the MLS does not say.
   var h=MLSX.hoa,c=MLSX.cdd,yes=/^yes/i,no=/^no/i;
@@ -270,6 +274,7 @@ btn.addEventListener('click',async function(){
   ofSync();
   if(!ofEl('street_number').value.trim()||!ofEl('street_name').value.trim()||!ofEl('city').value.trim()||!ofEl('zip').value.trim()){mlsShowFields(true);return fail('Please enter the property address (street number, street name, city and zip).');}
   if(!String(document.getElementById('pprice').value||'').trim())return fail('Please enter the offer price.');
+  if(ofEl('property_type').value!=='Vacant Land'&&(!ofEl('hoa').value||!ofEl('cdd').value))return fail('Please tell me whether the property has an HOA and whether it has a CDD.');
   var oe=await ofSave();if(oe)return fail(oe);
   var pa0=((document.getElementById('paddr')||{}).value||'').replace(/\s+/g,' ').trim();
   if(!pa0)return fail('Please enter the property address first.');
@@ -319,6 +324,12 @@ btn.addEventListener('click',async function(){
     if(row.todo)warn.push('A form for "'+row.answer+'" has not been added to the rules yet.');
   }
   var want=[];picked.forEach(function(r){r.forms.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});});
+  var REQ=[]; // required by the property information: HOA rider, CDD addendum, condominium rider, lead-based paint (built before 1978)
+  if(ofEl('hoa').value==='yes')REQ.push('Realtor_Res_HOA_Community_Disclosure.pdf');
+  if(ofEl('cdd').value==='yes')REQ.push('Realtor_Res_Community_Development_District_Addendum.pdf');
+  if(ofEl('property_type').value==='Condominium')REQ.push('Realtor_Res_Condominium_Rider.pdf');
+  var ybq=parseInt(ofEl('year_built').value,10);if(ybq>0&&ybq<1978)REQ.push('Realtor_Res_Lead_Based_Paint_Disclosure.pdf');
+  REQ.forEach(function(f){if(want.indexOf(f)<0)want.push(f);});
   [].forEach.call(document.querySelectorAll('#xf .xfc:checked'),function(c){if(c.closest('label').style.display!=='none'&&want.indexOf(c.value)<0)want.push(c.value);}); // extra contingency forms the agent ticked
   (R.order||[]).forEach(function(o){if(o.always&&want.indexOf(o.file)<0)want.push(o.file);}); // forms marked Always in the rules sheet go in every packet
   var pos=function(f){for(var i=0;i<R.order.length;i++){if(R.order[i].file===f)return R.order[i].n;}return 9999;};

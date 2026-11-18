@@ -6,7 +6,7 @@
 require_once __DIR__ . '/flrdb.php';
 require_once __DIR__ . '/sigtools.php';
 
-const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type', 'escrow_deposit', 'financed_amount', 'inspection_days'];
+const OF_PROP = ['street_number', 'street_name', 'unit', 'city', 'state', 'zip', 'price', 'mls_id', 'year_built', 'annual_taxes', 'closing_date', 'property_type', 'hoa', 'cdd', 'escrow_deposit', 'financed_amount', 'inspection_days'];
 const OF_AGENT = ['oa_first', 'oa_last', 'oa_brokerage', 'oa_email', 'oa_phone'];
 const OF_PROP_TYPES = ['Residential', 'Condominium', 'Vacant Land']; // Residential covers single family, mobile/manufactured, duplex, triplex and townhome
 const OF_PROP_TYPES_OLD = ['Condo / Townhome', 'Mobile / Manufactured', 'Multi-Family', 'Commercial']; // still accepted on offers saved earlier
@@ -63,6 +63,7 @@ function of_save($me, $tx, array $in) {
     foreach (['escrow_deposit' => 'Escrow deposit amount', 'financed_amount' => 'Amount being financed'] as $k => $lbl) {
         if ($d[$k] !== '') { $n = preg_replace('/[^0-9.]/', '', $d[$k]); if ($n === '' || !is_numeric($n)) return $lbl . ' must be a number.'; $d[$k] = rtrim(rtrim(number_format((float)$n, 2, '.', ''), '0'), '.'); }
     }
+    foreach (['hoa', 'cdd'] as $k) { $d[$k] = strtolower($d[$k]); if (!in_array($d[$k], ['', 'yes', 'no'], true)) return 'Choose Yes or No for ' . ($k === 'hoa' ? 'the HOA' : 'the CDD') . '.'; }
     if ($d['inspection_days'] !== '' && (!preg_match('/^\d{1,3}$/', $d['inspection_days']))) return 'Number of days for inspections must be a whole number of days, like 15.';
     if ($d['year_built'] !== '' && (!preg_match('/^\d{4}$/', $d['year_built']) || (int)$d['year_built'] < 1700 || (int)$d['year_built'] > (int)date('Y') + 2)) return 'Year built must be a four-digit year.';
     if ($d['closing_date'] !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d['closing_date'])) return 'Closing date must be a date (YYYY-MM-DD).';

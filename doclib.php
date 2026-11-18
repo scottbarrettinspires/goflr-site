@@ -10,7 +10,18 @@ require_once __DIR__ . '/flrdb.php';
 require_once __DIR__ . '/sigtools.php';
 require_once __DIR__ . '/signed_panel.php';
 require_once __DIR__ . '/baglib.php';
+require_once __DIR__ . '/offerlib.php';
 
+// Documents the property information makes required: [label, title regex, reason]. Needs the property saved on the offer (Make A Contract Offer).
+// Flood Disclosure: every transaction. HOA rider: the property has an HOA. Lead-Based Paint: built before 1978. Condominium Rider: a condominium. CDD Disclosure: the property has a CDD.
+function dc_required_rules(array $of) {
+    $r = [['Flood Disclosure', '/flood/i', 'Required on every transaction']];
+    if (($of['hoa'] ?? '') === 'yes') $r[] = ['HOA / Community Disclosure (HOA Rider)', '/hoa|community disclosure/i', 'Required: the property has an HOA'];
+    $yb = (int)($of['year_built'] ?? 0); if ($yb > 0 && $yb < 1978) $r[] = ['Lead-Based Paint Disclosure', '/lead.?based|lead paint/i', 'Required: built in ' . $yb . ' (before 1978)'];
+    if (($of['property_type'] ?? '') === 'Condominium') $r[] = ['Condominium Rider', '/condominium rider|condo rider/i', 'Required: the property is a condominium'];
+    if (($of['cdd'] ?? '') === 'yes') $r[] = ['CDD Disclosure (CDD Addendum)', '/\bcdd\b|community development/i', 'Required: the property has a CDD'];
+    return $r;
+}
 const DC_GROUPS = ['agreement' => 'Buyer agreements', 'contract' => 'Contract', 'addendum' => 'Addenda and amendments', 'disclosure' => 'Disclosures', 'other' => 'Other signed documents'];
 function dc_group($title) {
     $t = strtolower((string)$title);
@@ -51,6 +62,13 @@ function dc_list($me, $tx) {
         if ($dlDay !== '' && !$pending) { $back = false; foreach (ag_list($me, $tx, $recs) as $a) { if ($a['signed_on'] >= $dlDay) $back = true; }
             if (!$back) $needUp[] = ['title' => 'Buyer agreement', 'downloaded_on' => $dlDay, 'upload_url' => 'buyer_agreement.php?tx=' . urlencode($tx) . '&embed=1&bare=1']; }
     }
+    $missing = []; // required documents with no executed or pending copy yet
+    $of = of_raw($tx);
+    if (trim((string)($of['street_name'] ?? '')) !== '' || trim((string)($of['mls_id'] ?? '')) !== '') {
+        $have = []; foreach ($groups as $g) foreach ($g['items'] as $i) $have[] = $i['title'];
+        foreach ($recs as $r) { if (!empty($r['completed'])) continue; $have[] = (string)($r['form'] ?? ''); foreach ((array)($r['extra'] ?? []) as $x) $have[] = (string)($x['name'] ?? ($x['filed']['name'] ?? '')); }
+        foreach (dc_required_rules($of) as $q) { $found = false; foreach ($have as $t) { if (preg_match($q[1], $t)) { $found = true; break; } } if (!$found) $missing[] = ['label' => $q[0], 'reason' => $q[2]]; }
+    }
     $out = []; foreach ($groups as $g) { usort($g['items'], function ($a, $b) { return strcmp($b['signed_on'], $a['signed_on']); }); if ($g['items']) $out[] = $g; }
-    return ['ok' => true, 'tx' => $tx, 'name' => (string)$own['name'], 'groups' => $out, 'waiting' => $waiting, 'pending' => $pending, 'needs_upload' => $needUp, 'folder_url' => $folderUrl, 'count' => $n];
+    return ['ok' => true, 'tx' => $tx, 'name' => (string)$own['name'], 'groups' => $out, 'waiting' => $waiting, 'pending' => $pending, 'needs_upload' => $needUp, 'required_missing' => $missing, 'folder_url' => $folderUrl, 'count' => $n];
 }
