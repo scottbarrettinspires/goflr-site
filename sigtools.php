@@ -200,10 +200,18 @@ function sg_seller_items($docsIn, $emails, $addr, $me, $name) {
     return ['items' => $items, 'meta' => $meta];
 }
 
+// Signing order for every e-sign request: our own people (agent, broker) sign first, together; the customer signs last, so the
+// moment the customer signs the document is complete and DigiSigner emails everyone the fully executed copy. When nobody on the
+// request is staff, everyone signs at once. Returns the same signers with 'order' set (1 = first).
+function sg_order_signers(array $signers) {
+    $staff = false; foreach ($signers as $s) { if (in_array((string)($s['role'] ?? ''), ['agent', 'broker'], true)) $staff = true; }
+    foreach ($signers as $i => $s) $signers[$i]['order'] = ($staff && !in_array((string)($s['role'] ?? ''), ['agent', 'broker'], true)) ? 2 : 1;
+    return $signers;
+}
 function sg_send_multi($items, $signers, $bundle = null) {
     $docs = []; $ids = [];
     foreach ($items as $it) {
-        $sg = []; foreach (($it[4] ?? $signers) as $s) { $o = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; if (!empty($s['fields'])) { $o['fields'] = $s['fields']; } $sg[] = $o; } // each document can have its own signers
+        $sg = []; foreach (sg_order_signers((array)($it[4] ?? $signers)) as $s) { $o = ['email' => $s['email'], 'role' => $s['role'], 'order' => $s['order']]; if (!empty($s['fields'])) { $o['fields'] = $s['fields']; } $sg[] = $o; } // each document can have its own signers
         $tmp = tempnam(sys_get_temp_dir(), 'flrsig'); file_put_contents($tmp, $it[0]);
         $ch = curl_init('https://api.digisigner.com/v1/documents');
         curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_POSTFIELDS => ['file' => new CURLFile($tmp, 'application/pdf', $it[1])], CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 120, CURLOPT_CONNECTTIMEOUT => 8]);
@@ -272,7 +280,7 @@ function sg_send_pdf($pdf, $filename, $subject, $message, $signers) {
     $r = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch); @unlink($tmp);
     $d = json_decode((string)$r, true);
     if ($code < 200 || $code >= 300 || empty($d['document_id'])) return ['ok' => false, 'msg' => 'DigiSigner did not accept the packet (code ' . $code . ').'];
-    $sg = []; foreach ($signers as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => (int)($s['order'] ?? 1)]; }
+    $sg = []; foreach (sg_order_signers($signers) as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => $s['order']]; }
     $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => [['document_id' => $d['document_id'], 'subject' => $subject, 'message' => $message, 'signers' => $sg]]];
     $ch = curl_init('https://api.digisigner.com/v1/signature_requests');
     curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_USERPWD => DIGISIGNER_KEY . ':', CURLOPT_HTTPHEADER => ['Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode($req), CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 60, CURLOPT_CONNECTTIMEOUT => 8]);

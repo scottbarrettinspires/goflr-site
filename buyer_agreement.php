@@ -124,7 +124,7 @@ sp_head('Buyer Agreement', $tx);
     <div class="bagact" style="margin:0"><a class="btn" href="contact_edit.php?tx=<?= urlencode($tx) ?>&amp;side=buyer&amp;embed=1">&#9998; Edit contact info</a><a class="btn ghost" href="sign.php?f=<?= $h($f['id']) ?>&amp;s=b&amp;tx=<?= urlencode($tx) ?>" target="_top">Choose signers myself</a></div>
 <?php else: ?>    <p style="margin:0 0 6px;font-weight:700">Send the <?= $h($f['title']) ?> to:</p>
     <ul class="bagsl"><?php foreach ($sgn['signers'] as $sg): ?><li><span><?= $h($sg['label']) ?></span><b><?= $h($sg['name']) ?></b> <?= $h($sg['email']) ?></li><?php endforeach; ?></ul>
-    <p class="bagmeta" style="margin:6px 0 8px">From the client's contact info. The buyers sign first and you sign last; the "copy returned" date fills in when you sign. Each signer gets an email from DigiSigner with a link to sign.</p>
+    <p class="bagmeta" style="margin:6px 0 8px">From the client's contact info. You sign first and the buyer signs last; the "copy returned" date fills in when the buyer signs, and everyone is emailed the fully signed copy right away. Each signer gets an email from DigiSigner with a link to sign.</p>
     <div class="bagact" style="margin:0"><button type="button" class="btn" id="bagsendgo">Send now</button><button type="button" class="btn ghost" id="bagsendx">Cancel</button><a href="sign.php?f=<?= $h($f['id']) ?>&amp;s=b&amp;tx=<?= urlencode($tx) ?>" target="_top" style="font-size:.85rem">Use different signers</a></div>
     <p class="sigerr" id="bagsenderr" hidden style="margin:8px 0 0"></p>
 <?php endif; ?>
@@ -159,7 +159,7 @@ function fallback(why){v.innerHTML='<p class="bagfb">The page viewer could not l
 function nice(n){return n.replace(/[_.]+/g," ").replace(/([a-z])([A-Z])/g,"$1 $2").trim();}
 function today(){var d=new Date();return ("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+"/"+d.getFullYear();}
 // "Copy returned to Consumer" section at the bottom: a download is handed over in person today; a DigiSigner send goes by email and
-// the date is the last signer's signing date (the agent signs last, so a date tag is placed on that line for DigiSigner to fill).
+// the date is the last signer's signing date (the buyer signs last, so a date tag is placed on that line for DigiSigner to fill).
 async function getBytes(mode){if(!editable)return bytes;var raw=await doc.save();if(!mode)return raw;
   var d2=await PDFLib.PDFDocument.load(raw),f2=d2.getForm();
   try{var comp={};f2.getFields().forEach(function(f){var n=f.getName();if(/^(Comp_|Price_Retainer$|Price_CancellationFee$|Term_ProtectionDays$|Date_Termination$)/.test(n)&&f.getText){var t=(f.getText()||"").trim();if(t)comp[n]=t;}});
@@ -167,7 +167,7 @@ async function getBytes(mode){if(!editable)return bytes;var raw=await doc.save()
     if(mode==="send")await cp;}catch(e){} // the commission agreed here is kept on the record for the offer and the transaction
   try{var g=f2.getRadioGroup("Rad_ReturnedBy");g.select(mode==="send"?"Email":"PersonalDelivery");}catch(e){}
   try{var t=f2.getTextField("Date_CopyReturned");
-    if(mode==="send"){var w=t.acroField.getWidgets()[0],r=w.getRectangle(),pg=d2.getPages().find(function(x){return x.ref===w.P();})||d2.getPages()[d2.getPageCount()-1];f2.removeField(t);pg.drawText("[d:agent]",{x:r.x+2,y:r.y+3,size:8});}
+    if(mode==="send"){var w=t.acroField.getWidgets()[0],r=w.getRectangle(),pg=d2.getPages().find(function(x){return x.ref===w.P();})||d2.getPages()[d2.getPageCount()-1];f2.removeField(t);pg.drawText("[d:buyer1]",{x:r.x+2,y:r.y+3,size:8});}
     else{t.setFontSize(10);t.setText(today());}}catch(e){}
   return await d2.save();}
 window.BAG_GET=getBytes;

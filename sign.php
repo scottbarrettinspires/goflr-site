@@ -36,7 +36,7 @@ function sign_send($fid, $title, $signers, $agentName, $agentEmail, $tx) {
     if ($code < 200 || $code >= 300 || empty($d['document_id'])) return sign_fail('DigiSigner did not accept the form (code ' . $code . '). Please contact the office.');
     // 3. Create the signature request. Hidden text tags in the form place the signature, initial and date fields by role.
     $sg = [];
-    foreach ($signers as $i => $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => 1]; }
+    require_once __DIR__ . '/sigtools.php'; foreach (sg_order_signers($signers) as $s) { $sg[] = ['email' => $s['email'], 'role' => $s['role'], 'order' => $s['order']]; }
     $req = ['embedded' => false, 'use_text_tags' => true, 'hide_text_tags' => true, 'send_emails' => true, 'documents' => [[
         'document_id' => $d['document_id'],
         'subject' => 'Florida Luxury Realty: please sign ' . $title,

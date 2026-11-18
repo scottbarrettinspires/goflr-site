@@ -203,7 +203,8 @@ function bag_signers($me, $tx) {
         if (!filter_var($e2, FILTER_VALIDATE_EMAIL)) $missing = $missing ?: 'Add ' . $n2 . '\'s email address so both buyers can sign.';
         elseif (strtolower($e2) !== strtolower($e1)) $out[] = ['email' => strtolower($e2), 'role' => 'buyer2', 'name' => $n2, 'label' => 'Buyer 2'];
     }
-    $out[] = ['email' => strtolower($me), 'role' => 'agent', 'name' => trim((string)($_SESSION['name'] ?? '')) ?: $me, 'label' => 'You (agent, signs last)', 'order' => 2];
+    $out[] = ['email' => strtolower($me), 'role' => 'agent', 'name' => trim((string)($_SESSION['name'] ?? '')) ?: $me, 'label' => 'You (agent, signs first)'];
+    require_once __DIR__ . '/sigtools.php'; $out = sg_order_signers($out);
     return ['signers' => $out, 'missing' => $missing];
 }
 // Send the (filled) agreement to DigiSigner with the buyer's own contact details as the signers. Returns [request id, ''] or ['', error].
