@@ -22,7 +22,7 @@ function cp_panel_body($a, $recordLink = true, $part = 'all') { // $part: 'all' 
       <th>Luxury (at or above <?= $c['luxury_threshold'] === null ? '&mdash;' : '$' . number_format($c['luxury_threshold']) ?>)</th><td>agent <?= $pc($c['luxury_agent_pct']) ?> / brokerage <?= $c['luxury_brokerage_pct'] === null ? 'per standard terms' : $pc($c['luxury_brokerage_pct']) ?></td></tr>
       <tr><th>Commercial</th><td>agent <?= $pc($c['commercial_agent_pct']) ?> / brokerage <?= $pc($c['commercial_brokerage_pct']) ?></td>
       <th>Yearly cap (to brokerage)</th><td><?= $md($c['cap']) ?><?= $c['cap_this_year_sheet'] !== null && $c['cap_this_year_sheet'] != $c['cap'] ? ' (prorated ' . $md($c['cap_this_year_sheet']) . ')' : '' ?> &middot; paid this year (sheet) <?= $md($c['cap_paid_sheet']) ?><?= $c['cap_status'] ? ' &middot; ' . $h($c['cap_status']) : '' ?></td></tr>
-      <tr><th>Benefits fee</th><td colspan="3"><?= $c['fee_text'] === '' ? '<span class="sinot">not set</span>' : $h($c['fee_text']) ?><?= $a['benefits_fees'] !== null ? ' &middot; ' . $md($a['benefits_fees']) . ' in this period' : '' ?></td></tr></table>
+      <tr><th>Benefits fee</th><td colspan="3"><?= $c['fee_text'] === '' ? '<span class="sinot">not set</span>' : $h($c['fee_text']) . ($c['fee_is_annual'] ? '' : ' monthly') ?><?= $a['benefits_fees'] !== null ? ' &middot; ' . $md($a['benefits_fees']) . ' in this period' : '' ?></td></tr></table>
     <?php endif; ?>
     <?php endif; /* plan part */ ?>
     <?php if ($part !== 'plan'): ?>
