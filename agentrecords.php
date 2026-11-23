@@ -16,6 +16,8 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 $YESNO = ['birthday_post_ok', 'anniversary_post_ok', 'text_recognition_ok', 'email_recognition_ok', 'private_group_post_ok', 'public_social_post_ok',
     'commercial_approved', 'property_management_approved', 'agent_directory_ok', 'w_9_on_file', "driver_s_license_copy_on_file", 'auto_insurance_card_on_file'];
 
+// Groups left off the Agent Record form (their stored values are kept on save and in imports).
+$HIDDEN_GROUPS = ['Compliance & files'];
 function ar_next_id() {
     $max = 0;
     foreach (ar_all() as $r) { if (preg_match('/^A-(\d+)$/', $r['agent_id'], $m)) { $max = max($max, (int)$m[1]); } }
@@ -47,7 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $agentId = trim((string)($_POST['agent_id'] ?? ''));
         if ($agentId === '') $agentId = ar_next_id();
         $fields = [];
-        foreach (AR_FIELDS as $k => $label) { $fields[$k] = trim((string)($_POST['f_' . $k] ?? '')); }
+        $hiddenKeys = []; foreach ($HIDDEN_GROUPS as $hg) foreach ((AR_GROUPS[$hg] ?? []) as $hk) $hiddenKeys[$hk] = true; // not on the form: keep what is stored
+        $existing = ar_get($agentId)['fields'] ?? [];
+        foreach (AR_FIELDS as $k => $label) { $fields[$k] = isset($hiddenKeys[$k]) ? (string)($existing[$k] ?? '') : trim((string)($_POST['f_' . $k] ?? '')); }
         $fields['agent_id'] = $agentId;
         if ($fields['full_name'] === '' && $fields['first_name'] === '' && $fields['last_name'] === '') { $err = 'Enter at least a name.'; }
         else {
@@ -142,7 +146,7 @@ sp_head('Agent Records', '');
       <button type="button" class="ed" onclick="var g=document.getElementById('idfs');g.hidden=!g.hidden;this.textContent=g.hidden?'Edit':'Close editor';if(!g.hidden)g.scrollIntoView({behavior:'smooth',block:'nearest'});">Edit</button></div>
     <?php endif; ?>
     <?php $groupsList = AR_GROUPS; if (!$isNew) { $cmp = ['Compensation' => $groupsList['Compensation']]; unset($groupsList['Compensation']); $groupsList = array_slice($groupsList, 0, 1, true) + $cmp + array_slice($groupsList, 1, null, true); } // Compensation fields sit with the plan and income, right after Identity
-    foreach ($groupsList as $group => $keys): ?>
+    foreach ($groupsList as $group => $keys): if (in_array($group, $HIDDEN_GROUPS, true)) continue; ?>
     <?php $isId = (!$isNew && $group === 'Identity'); $dd = (!$isNew && !$isId); ?>
     <?php if ($dd && $group === 'Compensation'): ?><details class="siag" id="income"<?= (isset($_GET['period'])) ? ' open' : '' ?>>
       <summary><b>Income &amp; closed sales</b>
