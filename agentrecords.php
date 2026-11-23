@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-sp_head('Agent Records', '');
+sp_head($id !== '' ? 'Agent Internal Record' : 'Agent Records', '');
 ?>
 <style>.arlist{width:100%;border-collapse:collapse;font-size:.92rem}.arlist th{text-align:left;border-bottom:2px solid var(--line);padding:6px 10px 6px 0}.arlist td{padding:7px 10px 7px 0;border-bottom:1px solid var(--line)}
 .arlist tr.inactive{opacity:.6}.arform label{display:block;margin:0 0 10px;font-size:.88rem;color:#455355}.arform input[type=text],.arform select,.arform textarea{width:100%;margin-top:3px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit}
