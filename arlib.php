@@ -82,11 +82,11 @@ const AR_FIELDS = [
 
 // Fields grouped for the dashboard form; every AR_FIELDS key appears in exactly one group.
 const AR_GROUPS = [
-    'Identity' => ['agent_id', 'first_name', 'last_name', 'full_name', 'preferred_name', 'status', 'email', 'phone', 'street_address', 'city', 'state', 'zip', 'google_account', 'team_and_team_leader', 'office', 'pay_commission_to', 'payee_type', 'dbpr_legal_name', 'commercial_approved', 'property_management_approved'],
+    'Identity' => ['agent_id', 'first_name', 'last_name', 'full_name', 'preferred_name', 'status', 'email', 'phone', 'street_address', 'city', 'state', 'zip', 'google_account', 'team_and_team_leader', 'office', 'pay_commission_to', 'payee_type', 'dbpr_legal_name', 'commercial_approved', 'property_management_approved', 'revenue_share_option_in_agreement'],
     'Dates' => ['date_hired', 'date_terminated', 'birthdate', 'agreement_signed', 'records_beta_start', 'last_updated'],
     'License & boards' => ['license_number', 'license_expiration', 'license_last_renewed', 'nrds_number', 'mls_office_id', 'realtor_board', 'realtor_board_name', 'secondary_realtor_board', 'mls_name', 'home_office_from_mls_office_id', 'realtor_board_dues_paid', 'mls_dues_paid'],
     'Compliance & files' => ['w_9_on_file', 'w_9_date', 'where_the_w_9_is_kept', "driver_s_license_copy_on_file", "driver_s_license_copy_date", 'auto_insurance_card_on_file', 'auto_insurance_expiration', 'where_the_id_and_insurance_copies_are_kept', 'records_folder_link'],
-    'Compensation' => ['referral_fee_split_to_agent', 'commercial_split_to_agent', 'property_management_split_to_agent', 'revenue_share_option_in_agreement'],
+    'Compensation' => ['referral_fee_split_to_agent', 'commercial_split_to_agent', 'property_management_split_to_agent'],
     'Marketing & consent' => ['headshot', 'social_media_handles', 'branded_logo', 'business_card_qr_code', 'business_card_ordered', 'name_badge_ordered', 'birthday_post_ok', 'anniversary_post_ok', 'text_recognition_ok', 'email_recognition_ok', 'private_group_post_ok', 'public_social_post_ok', 'agent_directory_ok'],
     'Notes' => ['notes'],
 ];
