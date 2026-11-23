@@ -150,7 +150,9 @@ sp_head('Agent Records', '');
       <button type="button" class="ed" onclick="var g=document.getElementById('idfs');g.hidden=!g.hidden;this.textContent=g.hidden?'Edit':'Close editor';if(!g.hidden)g.scrollIntoView({behavior:'smooth',block:'nearest'});">Edit</button></div>
     <?php endif; ?>
     <?php foreach (AR_GROUPS as $group => $keys): ?>
-    <fieldset class="wq"<?= (!$isNew && $group === 'Identity') ? ($err ? ' id="idfs"' : ' id="idfs" hidden') : '' ?>><legend><?= htmlspecialchars($group) ?></legend>
+    <?php $isId = (!$isNew && $group === 'Identity'); $dd = (!$isNew && !$isId); ?>
+    <?php if ($dd): ?><details class="siag"<?= $err ? ' open' : '' ?>><summary><b><?= htmlspecialchars($group) ?></b></summary><div class="in">
+    <?php else: ?><fieldset class="wq"<?= $isId ? ($err ? ' id="idfs"' : ' id="idfs" hidden') : '' ?>><legend><?= htmlspecialchars($group) ?></legend><?php endif; ?>
       <div class="grid2">
       <?php foreach ($keys as $k):
           $label = AR_FIELDS[$k]; ?>
@@ -170,7 +172,7 @@ sp_head('Agent Records', '');
         </label>
       <?php endforeach; ?>
       </div>
-    </fieldset>
+    <?php if ($dd): ?></div></details><?php else: ?></fieldset><?php endif; ?>
     <?php endforeach; ?>
     <p><button class="btn" type="submit">Save</button></p>
   </form>
