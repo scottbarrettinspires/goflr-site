@@ -120,7 +120,6 @@ sp_head('Agent Records', '');
   $f = $editing ?? ($rec['fields'] ?? []);
   $v = function ($k) use ($f) { return htmlspecialchars((string)($f[$k] ?? '')); };
   ?>
-  <p><a href="agentrecords.php">&larr; All agents</a></p>
   <?php if (!$isNew):
       $cpPeriod = (string)($_GET['period'] ?? 'ytd'); if (!in_array($cpPeriod, ['month', 'quarter', 'ytd', 'all'], true) && !preg_match('/^\d{4}$/', $cpPeriod)) $cpPeriod = 'ytd';
       $cpAgent = null; $cpOv = cp_overview($cpPeriod, ''); foreach ($cpOv['agents'] as $x) { if ($x['agent_id'] === $id) { $cpAgent = $x; break; } } ?>
