@@ -7,6 +7,8 @@
 require __DIR__ . "/guard.php";
 require_once __DIR__ . "/dlib.php"; // flr_is_broker()
 require_once __DIR__ . "/arlib.php";
+require_once __DIR__ . "/complib.php";
+require_once __DIR__ . "/comp_panel.php";
 if (!flr_is_broker()) { http_response_code(403); exit('Staff only.'); }
 require __DIR__ . "/subpage.php";
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -21,6 +23,11 @@ function ar_next_id() {
 }
 
 $id = trim((string)($_GET['id'] ?? ''));
+if ($id === '' && ($em0 = strtolower(trim((string)($_GET['email'] ?? '')))) !== '') { // from the Directory: open this agent's record by email
+    $q0 = ar_db()->prepare('SELECT agent_id FROM agent_records WHERE email = ?'); $q0->execute([$em0]); $f0 = (string)$q0->fetchColumn();
+    if ($f0 !== '') { header('Location: agentrecords.php?id=' . urlencode($f0) . '#comp'); exit; }
+    $err = 'No Agent Record on the server has the email ' . $em0 . '. Import Agent Records first.';
+}
 $msg = ''; $err = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -110,6 +117,19 @@ sp_head('Agent Records', '');
   $v = function ($k) use ($f) { return htmlspecialchars((string)($f[$k] ?? '')); };
   ?>
   <p><a href="agentrecords.php">&larr; All agents</a></p>
+  <?php if (!$isNew):
+      $cpPeriod = (string)($_GET['period'] ?? 'ytd'); if (!in_array($cpPeriod, ['month', 'quarter', 'ytd', 'all'], true) && !preg_match('/^\d{4}$/', $cpPeriod)) $cpPeriod = 'ytd';
+      $cpAgent = null; $cpOv = cp_overview($cpPeriod, ''); foreach ($cpOv['agents'] as $x) { if ($x['agent_id'] === $id) { $cpAgent = $x; break; } } ?>
+  <?= cp_panel_css() ?>
+  <details class="siag" id="comp"<?= isset($_GET['period']) ? ' open' : '' ?>>
+    <summary><b>Compensation, income &amp; plan</b>
+    <?php if ($cpAgent): $cc = $cpAgent['plan']; ?><span><?= htmlspecialchars($cc['plan'] !== '' ? $cc['plan'] : 'No plan on the sheet') ?></span><span><?= (int)$cpAgent['buyer_sides'] ?> buyer / <?= (int)$cpAgent['seller_sides'] ?> seller</span><span>Brokerage <?= $cpAgent['company_income'] === null ? '<span class="sinot">not set</span>' : '$' . number_format($cpAgent['company_income'], 2) ?></span><?php else: ?><span class="sinot">Not on the Agent Compensation sheet import yet</span><?php endif; ?></summary>
+    <div class="in">
+      <form method="get" style="margin:8px 0"><input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>"><label style="font-size:.88rem">Period <select name="period" onchange="this.form.submit()"><?php foreach (['month' => 'This month', 'quarter' => 'This quarter', 'ytd' => date('Y') . ' year to date', (string)(date('Y') - 1) => (string)(date('Y') - 1), 'all' => 'All time'] as $k => $l): ?><option value="<?= htmlspecialchars($k) ?>"<?= (string)$k === $cpPeriod ? ' selected' : '' ?>><?= htmlspecialchars($l) ?></option><?php endforeach; ?></select></label> <a href="staff_income.php?agent=<?= urlencode($id) ?>" style="font-size:.85rem;margin-left:10px">Open on its own page</a></form>
+      <?= $cpAgent ? cp_panel_body($cpAgent, false) : '<p class="sinot">This agent is not in the imported Agent Compensation sheet. Import the finance data on the Agent Income page (Settings).</p>' ?>
+    </div>
+  </details>
+  <?php endif; ?>
   <form method="post" class="arform">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="agent_id" value="<?= $isNew ? '' : htmlspecialchars($id) ?>">

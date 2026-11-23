@@ -41,7 +41,7 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
     if ($em !== '') $h .= '<div><a href="mailto:' . htmlspecialchars($em) . '">' . htmlspecialchars($em) . '</a></div>';
     if ($msgKey !== '') $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="messages.php?to=' . urlencode($msgKey) . '#compose">&#9993; Message</a></div>';
     if ($loginAsCsrf !== null && $em !== '') { // staff only (the csrf token is only passed for staff): the agent's income and plan page
-        $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="staff_income.php?email=' . urlencode($em) . '">&#36; Income &amp; Plan</a></div>';
+        $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="agentrecords.php?email=' . urlencode($em) . '">Agent Record &amp; Plan</a></div>';
     }
     if ($loginAsCsrf !== null && $em !== '') {
         $h .= '<form method="post" action="login_as.php" style="margin-top:2px"><input type="hidden" name="csrf" value="' . htmlspecialchars($loginAsCsrf) . '"><input type="hidden" name="email" value="' . htmlspecialchars($em) . '">'
