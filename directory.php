@@ -40,6 +40,9 @@ function dir_card($p, $sub, $loginAsCsrf = null, $msgKey = '', $fav = null, $i =
     if ($ph !== '') $h .= '<div><a href="tel:' . htmlspecialchars(dir_phone_digits($ph)) . '">' . htmlspecialchars(dir_phone_fmt($ph)) . '</a></div>';
     if ($em !== '') $h .= '<div><a href="mailto:' . htmlspecialchars($em) . '">' . htmlspecialchars($em) . '</a></div>';
     if ($msgKey !== '') $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="messages.php?to=' . urlencode($msgKey) . '#compose">&#9993; Message</a></div>';
+    if ($loginAsCsrf !== null && $em !== '') { // staff only (the csrf token is only passed for staff): the agent's income and plan page
+        $h .= '<div style="margin:4px 0 2px"><a class="dmsg" href="staff_income.php?email=' . urlencode($em) . '">&#36; Income &amp; Plan</a></div>';
+    }
     if ($loginAsCsrf !== null && $em !== '') {
         $h .= '<form method="post" action="login_as.php" style="margin-top:2px"><input type="hidden" name="csrf" value="' . htmlspecialchars($loginAsCsrf) . '"><input type="hidden" name="email" value="' . htmlspecialchars($em) . '">'
             . '<button type="submit" style="background:none;border:none;padding:0;font:inherit;font-size:.82rem;color:var(--teal);text-decoration:underline;cursor:pointer" onclick="return confirm(\'View the back office as \' + ' . json_encode($p['name']) . ' + \'? Use Return to my account to come back.\');">Login As</button></form>';
