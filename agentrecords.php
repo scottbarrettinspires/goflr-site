@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $agentId = trim((string)($_POST['agent_id'] ?? ''));
         if ($agentId === '') $agentId = ar_next_id();
         $fields = [];
-        $hiddenKeys = []; foreach ($HIDDEN_GROUPS as $hg) foreach ((AR_GROUPS[$hg] ?? []) as $hk) $hiddenKeys[$hk] = true; // not on the form: keep what is stored
+        $hiddenKeys = []; foreach (array_merge($HIDDEN_GROUPS, ['Compensation']) as $hg) foreach ((AR_GROUPS[$hg] ?? []) as $hk) $hiddenKeys[$hk] = true; // not on the form: keep what is stored
         $existing = ar_get($agentId)['fields'] ?? [];
         foreach (AR_FIELDS as $k => $label) { $fields[$k] = isset($hiddenKeys[$k]) ? (string)($existing[$k] ?? '') : trim((string)($_POST['f_' . $k] ?? '')); }
         $fields['agent_id'] = $agentId;
@@ -151,7 +151,7 @@ sp_head($id !== '' ? 'Agent Internal Record' : 'Agent Records', '');
       <button type="button" class="ed" onclick="var g=document.getElementById('idfs');g.hidden=!g.hidden;this.textContent=g.hidden?'Edit':'Close editor';if(!g.hidden)g.scrollIntoView({behavior:'smooth',block:'nearest'});">Edit</button></div>
     <?php endif; ?>
     <?php $groupsList = AR_GROUPS; if (!$isNew) { $cmp = ['Compensation' => $groupsList['Compensation']]; unset($groupsList['Compensation']); $groupsList = array_slice($groupsList, 0, 1, true) + $cmp + array_slice($groupsList, 1, null, true); } // Compensation fields sit with the plan and income, right after Identity
-    foreach ($groupsList as $group => $keys): if (in_array($group, $HIDDEN_GROUPS, true)) continue; ?>
+    foreach ($groupsList as $group => $keys): if (in_array($group, $HIDDEN_GROUPS, true)) continue; if ($group === 'Compensation' && !$isNew) $keys = []; /* split fields are redundant with the plan sheet; stored values are kept */ ?>
     <?php $isId = (!$isNew && $group === 'Identity'); $dd = (!$isNew && !$isId); ?>
     <?php if ($dd && $group === 'Compensation'): ?><details class="siag" id="income"<?= (isset($_GET['period'])) ? ' open' : '' ?>>
       <summary><b>Income &amp; closed sales</b>
@@ -163,7 +163,6 @@ sp_head($id !== '' ? 'Agent Internal Record' : 'Agent Records', '');
       <summary><b>Compensation &amp; plan</b>
       <?php if ($cpAgent): $cc = $cpAgent['plan']; ?><span><?= htmlspecialchars($cc['plan'] !== '' ? $cc['plan'] : 'No plan on the sheet') ?></span><?php else: ?><span class="sinot">Not on the Agent Compensation sheet import yet</span><?php endif; ?></summary><div class="in">
       <?= $cpAgent ? cp_panel_body($cpAgent, false, 'plan') : '<p class="sinot">This agent is not in the imported Agent Compensation sheet. Import the finance data on the Agent Income page (Settings).</p>' ?>
-      <h3 style="margin:16px 0 4px;font-size:1rem">Payee and split settings <span style="font-weight:400;font-size:.82rem;color:#455355">(from Agent Records; saved with the Save button)</span></h3>
     <?php elseif ($dd): ?><details class="siag"<?= $err ? ' open' : '' ?>><summary><b><?= htmlspecialchars($group) ?></b></summary><div class="in">
     <?php else: ?><fieldset class="wq"<?= $isId ? ($err ? ' id="idfs"' : ' id="idfs" hidden') : '' ?>><legend><?= htmlspecialchars($group) ?></legend><?php endif; ?>
       <div class="grid2">
