@@ -121,14 +121,6 @@ sp_head('Agent Records', '');
       $cpPeriod = (string)($_GET['period'] ?? 'ytd'); if (!in_array($cpPeriod, ['month', 'quarter', 'ytd', 'all'], true) && !preg_match('/^\d{4}$/', $cpPeriod)) $cpPeriod = 'ytd';
       $cpAgent = null; $cpOv = cp_overview($cpPeriod, ''); foreach ($cpOv['agents'] as $x) { if ($x['agent_id'] === $id) { $cpAgent = $x; break; } } ?>
   <?= cp_panel_css() ?>
-  <details class="siag" id="comp"<?= isset($_GET['period']) ? ' open' : '' ?>>
-    <summary><b>Compensation, income &amp; plan</b>
-    <?php if ($cpAgent): $cc = $cpAgent['plan']; ?><span><?= htmlspecialchars($cc['plan'] !== '' ? $cc['plan'] : 'No plan on the sheet') ?></span><span><?= (int)$cpAgent['buyer_sides'] ?> buyer / <?= (int)$cpAgent['seller_sides'] ?> seller</span><span>Brokerage <?= $cpAgent['company_income'] === null ? '<span class="sinot">not set</span>' : '$' . number_format($cpAgent['company_income'], 2) ?></span><?php else: ?><span class="sinot">Not on the Agent Compensation sheet import yet</span><?php endif; ?></summary>
-    <div class="in">
-      <form method="get" style="margin:8px 0"><input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>"><label style="font-size:.88rem">Period <select name="period" onchange="this.form.submit()"><?php foreach (['month' => 'This month', 'quarter' => 'This quarter', 'ytd' => date('Y') . ' year to date', (string)(date('Y') - 1) => (string)(date('Y') - 1), 'all' => 'All time'] as $k => $l): ?><option value="<?= htmlspecialchars($k) ?>"<?= (string)$k === $cpPeriod ? ' selected' : '' ?>><?= htmlspecialchars($l) ?></option><?php endforeach; ?></select></label> <a href="staff_income.php?agent=<?= urlencode($id) ?>" style="font-size:.85rem;margin-left:10px">Open on its own page</a></form>
-      <?= $cpAgent ? cp_panel_body($cpAgent, false) : '<p class="sinot">This agent is not in the imported Agent Compensation sheet. Import the finance data on the Agent Income page (Settings).</p>' ?>
-    </div>
-  </details>
   <?php endif; ?>
   <form method="post" class="arform">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
@@ -149,9 +141,16 @@ sp_head('Agent Records', '');
         <?php if ($caddr !== ''): ?><div class="ln"><?= htmlspecialchars($caddr) ?></div><?php endif; ?></div>
       <button type="button" class="ed" onclick="var g=document.getElementById('idfs');g.hidden=!g.hidden;this.textContent=g.hidden?'Edit':'Close editor';if(!g.hidden)g.scrollIntoView({behavior:'smooth',block:'nearest'});">Edit</button></div>
     <?php endif; ?>
-    <?php foreach (AR_GROUPS as $group => $keys): ?>
+    <?php $groupsList = AR_GROUPS; if (!$isNew) { $cmp = ['Compensation' => $groupsList['Compensation']]; unset($groupsList['Compensation']); $groupsList = array_slice($groupsList, 0, 1, true) + $cmp + array_slice($groupsList, 1, null, true); } // Compensation fields sit with the plan and income, right after Identity
+    foreach ($groupsList as $group => $keys): ?>
     <?php $isId = (!$isNew && $group === 'Identity'); $dd = (!$isNew && !$isId); ?>
-    <?php if ($dd): ?><details class="siag"<?= $err ? ' open' : '' ?>><summary><b><?= htmlspecialchars($group) ?></b></summary><div class="in">
+    <?php if ($dd && $group === 'Compensation'): ?><details class="siag" id="comp"<?= ($err || isset($_GET['period'])) ? ' open' : '' ?>>
+      <summary><b>Compensation, income &amp; plan</b>
+      <?php if ($cpAgent): $cc = $cpAgent['plan']; ?><span><?= htmlspecialchars($cc['plan'] !== '' ? $cc['plan'] : 'No plan on the sheet') ?></span><span><?= (int)$cpAgent['buyer_sides'] ?> buyer / <?= (int)$cpAgent['seller_sides'] ?> seller</span><span>Brokerage <?= $cpAgent['company_income'] === null ? '<span class="sinot">not set</span>' : '$' . number_format($cpAgent['company_income'], 2) ?></span><?php else: ?><span class="sinot">Not on the Agent Compensation sheet import yet</span><?php endif; ?></summary><div class="in">
+      <div style="margin:8px 0"><label style="font-size:.88rem">Period <select onchange="location.href='agentrecords.php?id=<?= urlencode($id) ?>&amp;period='+encodeURIComponent(this.value)"><?php foreach (['month' => 'This month', 'quarter' => 'This quarter', 'ytd' => date('Y') . ' year to date', (string)(date('Y') - 1) => (string)(date('Y') - 1), 'all' => 'All time'] as $pk => $pl): ?><option value="<?= htmlspecialchars($pk) ?>"<?= (string)$pk === $cpPeriod ? ' selected' : '' ?>><?= htmlspecialchars($pl) ?></option><?php endforeach; ?></select></label> <a href="staff_income.php?agent=<?= urlencode($id) ?>" style="font-size:.85rem;margin-left:10px">Open on its own page</a></div>
+      <?= $cpAgent ? cp_panel_body($cpAgent, false) : '<p class="sinot">This agent is not in the imported Agent Compensation sheet. Import the finance data on the Agent Income page (Settings).</p>' ?>
+      <h3 style="margin:16px 0 4px;font-size:1rem">Payee and split settings <span style="font-weight:400;font-size:.82rem;color:#455355">(from Agent Records; saved with the Save button)</span></h3>
+    <?php elseif ($dd): ?><details class="siag"<?= $err ? ' open' : '' ?>><summary><b><?= htmlspecialchars($group) ?></b></summary><div class="in">
     <?php else: ?><fieldset class="wq"<?= $isId ? ($err ? ' id="idfs"' : ' id="idfs" hidden') : '' ?>><legend><?= htmlspecialchars($group) ?></legend><?php endif; ?>
       <div class="grid2">
       <?php foreach ($keys as $k):
