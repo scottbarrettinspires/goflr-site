@@ -13,9 +13,11 @@ function cp_panel_body($a, $recordLink = true, $part = 'all') { // $part: 'all' 
       <?= $a['has_agent_record'] ? ($recordLink ? ' &middot; <a href="agentrecords.php?id=' . urlencode($a['agent_id']) . '">Agent record</a>' : '') : ' &middot; <span class="sinot">no Agent Record imported, so closed files can\'t be matched</span>' ?>
       <?= $a['sponsor'] ? ' &middot; sponsored by ' . $h($a['sponsor']['name']) : '' ?></p>
     <?php elseif ($a['sponsor']): ?><p style="font-size:.88rem;color:#455355;margin:8px 0">Sponsored by <?= $h($a['sponsor']['name']) ?></p><?php endif; ?>
+    <?php if ($recordLink): ?>
     <h3 style="margin:10px 0 4px;font-size:1rem">Commission plan <span style="font-weight:400;font-size:.82rem;color:#455355">(from the Agent Compensation sheet)</span></h3>
+    <?php endif; /* embedded: the dropdown title already says this */ ?>
     <?php if ($c['type'] === ''): ?><p class="sinot">No plan terms are entered for this agent on the sheet.</p><?php else: ?>
-    <table class="sit"><tr><th>Plan</th><td colspan="3"><?= $h($c['plan']) ?></td></tr>
+    <table class="sit"><?php if ($recordLink): ?><tr><th>Plan</th><td colspan="3"><?= $h($c['plan']) ?></td></tr><?php endif; ?>
       <tr><th>Standard residential</th><td><?= $h($c['type']) ?><?= $c['type'] === 'Flat fee' ? ': ' . $md($c['transaction_fee']) . ' per transaction, agent keeps the rest' : ': agent ' . $pc($c['res_agent_pct']) . ' / brokerage ' . $pc($c['res_brokerage_pct']) ?></td>
       <th>Luxury (at or above <?= $c['luxury_threshold'] === null ? '&mdash;' : '$' . number_format($c['luxury_threshold']) ?>)</th><td>agent <?= $pc($c['luxury_agent_pct']) ?> / brokerage <?= $c['luxury_brokerage_pct'] === null ? 'per standard terms' : $pc($c['luxury_brokerage_pct']) ?></td></tr>
       <tr><th>Commercial</th><td>agent <?= $pc($c['commercial_agent_pct']) ?> / brokerage <?= $pc($c['commercial_brokerage_pct']) ?></td>
