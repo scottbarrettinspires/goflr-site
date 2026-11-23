@@ -154,9 +154,38 @@ sp_head($id !== '' ? 'Agent Internal Record' : 'Agent Records', '');
     <?php endif; ?>
     <?php $groupsList = AR_GROUPS; if (!$isNew) { $cmp = ['Compensation' => $groupsList['Compensation']]; unset($groupsList['Compensation']); $groupsList = array_slice($groupsList, 0, 1, true) + $cmp + array_slice($groupsList, 1, null, true); } // Compensation fields sit with the plan and income, right after Identity
     foreach ($groupsList as $group => $keys): if (in_array($group, $HIDDEN_GROUPS, true)) continue; if ($group === 'Compensation' && !$isNew) $keys = []; /* split fields are redundant with the plan sheet; stored values are kept */ ?>
+    <?php if (!$isNew && $group === 'Dates'): ?>
+    <details class="siag" id="docs"><summary><b>Documents</b><span id="docsum" class="sinot" style="color:#455355">Agreements and other documents with the brokerage</span></summary><div class="in">
+      <div id="doclist" data-agent="<?= htmlspecialchars($id) ?>" data-csrf="<?= htmlspecialchars($_SESSION['csrf']) ?>"><p style="font-size:.9rem;color:#455355">Open to load this agent's documents from the shared drive.</p></div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line)"><strong style="font-size:.92rem">Upload a document</strong>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:6px">
+          <label style="font-size:.85rem;margin:0">File<br><input type="file" id="docfile" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt"></label>
+          <label style="font-size:.85rem;margin:0">Document name (optional)<br><input type="text" id="docname" placeholder="e.g. <?= htmlspecialchars($id) ?> Name - Commission Addendum - 2026-11-23" style="min-width:280px"></label>
+          <button type="button" class="btn" id="docup">Upload to Agreements folder</button></div>
+        <p id="docmsg" style="font-size:.88rem;margin:8px 0 0"></p></div>
+    </div></details>
+    <script>(function(){var d=document.getElementById("docs"),box=document.getElementById("doclist");if(!d||!box)return;var loaded=false,id=box.dataset.agent;
+      function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+      function load(){box.innerHTML='<p style="font-size:.9rem;color:#455355">Loading&hellip;</p>';
+        fetch("agdocs_api.php?action=list&agent_id="+encodeURIComponent(id),{credentials:"same-origin"}).then(function(r){return r.json();}).then(function(j){
+          if(!j.ok){box.innerHTML='<p class="sigerr">'+esc(j.msg||"Could not load documents.")+'</p>';return;}
+          var h="";if(j.folder_url)h+='<p style="margin:0 0 8px"><a href="'+esc(j.folder_url)+'" target="_blank" rel="noopener">Open the Agreements folder in Google Drive</a></p>';
+          if(!j.files.length)h+='<p style="font-size:.9rem;color:#455355">No documents in the Agreements folder yet.</p>';
+          else{h+='<ul style="margin:0;padding-left:18px">';j.files.forEach(function(f){h+='<li style="margin:3px 0"><a href="'+esc(f.url)+'" target="_blank" rel="noopener">'+esc(f.name)+'</a>'+(f.modified?' <span style="font-size:.8rem;color:#455355">'+esc(f.modified)+'</span>':'')+'</li>';});h+='</ul>';}
+          box.innerHTML=h;document.getElementById("docsum").textContent=j.files.length+" document"+(j.files.length===1?"":"s");loaded=true;
+        }).catch(function(){box.innerHTML='<p class="sigerr">Could not reach the site. Try again.</p>';});}
+      d.addEventListener("toggle",function(){if(d.open&&!loaded)load();});if(location.hash==="#docs")d.open=true;
+      document.getElementById("docup").addEventListener("click",function(){var f=document.getElementById("docfile").files[0],m=document.getElementById("docmsg");
+        if(!f){m.textContent="Choose a file first.";return;}var fd=new FormData();fd.append("action","upload");fd.append("csrf",box.dataset.csrf);fd.append("agent_id",id);fd.append("file",f);fd.append("name",document.getElementById("docname").value);
+        m.textContent="Uploading\u2026";this.disabled=true;var b=this;
+        fetch("agdocs_api.php",{method:"POST",body:fd,credentials:"same-origin"}).then(function(r){return r.json();}).then(function(j){b.disabled=false;
+          if(j.ok){m.textContent="Uploaded: "+j.name;document.getElementById("docfile").value="";document.getElementById("docname").value="";load();}else m.textContent=j.msg||"Upload failed.";
+        }).catch(function(){b.disabled=false;m.textContent="Could not reach the site. Try again.";});});
+    })();</script>
+    <?php endif; ?>
     <?php $isId = (!$isNew && $group === 'Identity'); $dd = (!$isNew && !$isId); ?>
     <?php if ($dd && $group === 'Compensation'): ?><details class="siag" id="income"<?= (isset($_GET['period'])) ? ' open' : '' ?>>
-      <summary><b>Income &amp; closed sales</b>
+      <summary><b>Production and Income</b>
       <?php if ($cpAgent): ?><span><?= (int)$cpAgent['buyer_sides'] + (int)$cpAgent['seller_sides'] ?> transactions (<?= (int)$cpAgent['buyer_sides'] ?> buyer / <?= (int)$cpAgent['seller_sides'] ?> seller)</span><span>Brokerage <?= $cpAgent['company_income'] === null ? '<span class="sinot">not set</span>' : '$' . number_format($cpAgent['company_income'], 2) ?></span><?php else: ?><span class="sinot">Not on the Agent Compensation sheet import yet</span><?php endif; ?></summary><div class="in">
       <div style="margin:8px 0"><label style="font-size:.88rem">Period <select onchange="location.href='agentrecords.php?id=<?= urlencode($id) ?>&amp;period='+encodeURIComponent(this.value)+'#income'"><?php foreach (['month' => 'This month', 'quarter' => 'This quarter', 'ytd' => date('Y') . ' year to date', (string)(date('Y') - 1) => (string)(date('Y') - 1), 'all' => 'All time'] as $pk => $pl): ?><option value="<?= htmlspecialchars($pk) ?>"<?= (string)$pk === $cpPeriod ? ' selected' : '' ?>><?= htmlspecialchars($pl) ?></option><?php endforeach; ?></select></label></div>
       <?= $cpAgent ? cp_panel_body($cpAgent, false, 'income') : '<p class="sinot">This agent is not in the imported Agent Compensation sheet. Import the finance data on the Agent Income page (Settings).</p>' ?>
