@@ -7,9 +7,11 @@ function cp_panel_body($a, $recordLink = true) {
     $m = function ($n) { return $n === null ? '<span class="sinot">not set</span>' : '$' . number_format((float)$n, 2); };
     $c = $a['plan']; $pc = function ($v) { return $v === null ? '&mdash;' : rtrim(rtrim(number_format($v, 2), '0'), '.') . '%'; }; $md = function ($v) { return $v === null ? '&mdash;' : '$' . number_format($v, 2); };
     ob_start(); ?>
+    <?php if ($recordLink): ?>
     <p style="font-size:.88rem;color:#455355;margin:8px 0"><?= $h($a['agent_id']) ?> &middot; <?= $h($a['status']) ?><?= $a['email'] ? ' &middot; ' . $h($a['email']) : '' ?>
       <?= $a['has_agent_record'] ? ($recordLink ? ' &middot; <a href="agentrecords.php?id=' . urlencode($a['agent_id']) . '">Agent record</a>' : '') : ' &middot; <span class="sinot">no Agent Record imported, so closed files can\'t be matched</span>' ?>
       <?= $a['sponsor'] ? ' &middot; sponsored by ' . $h($a['sponsor']['name']) : '' ?></p>
+    <?php elseif ($a['sponsor']): ?><p style="font-size:.88rem;color:#455355;margin:8px 0">Sponsored by <?= $h($a['sponsor']['name']) ?></p><?php endif; ?>
     <h3 style="margin:10px 0 4px;font-size:1rem">Commission plan <span style="font-weight:400;font-size:.82rem;color:#455355">(from the Agent Compensation sheet)</span></h3>
     <?php if ($c['type'] === ''): ?><p class="sinot">No plan terms are entered for this agent on the sheet.</p><?php else: ?>
     <table class="sit"><tr><th>Plan</th><td colspan="3"><?= $h($c['plan']) ?></td></tr>
