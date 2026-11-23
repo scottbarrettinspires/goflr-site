@@ -67,6 +67,14 @@ sp_head('Settings');
     </div>
   </div>
   <div class="setc">
+    <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+    <div class="tx">
+      <h2>Agent Income &amp; Plans</h2>
+      <p>Staff only: commission plans, closed buyer and seller sides, brokerage income, monthly benefits fees, sponsors and revenue share.</p>
+      <div class="acts"><a class="btn" href="staff_income.php">Open Agent Income</a></div>
+    </div>
+  </div>
+  <div class="setc">
     <span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg></span>
     <div class="tx">
       <h2>MLS Data</h2>
