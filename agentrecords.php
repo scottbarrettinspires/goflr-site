@@ -133,8 +133,24 @@ sp_head('Agent Records', '');
   <form method="post" class="arform">
     <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['csrf']) ?>">
     <input type="hidden" name="agent_id" value="<?= $isNew ? '' : htmlspecialchars($id) ?>">
+    <?php if (!$isNew):
+        $cn = trim((string)($f['preferred_name'] ?? '')) ?: trim((string)($f['full_name'] ?? '')) ?: trim(($f['first_name'] ?? '') . ' ' . ($f['last_name'] ?? ''));
+        $cini = ''; foreach (preg_split('/\s+/', $cn) as $w) { if ($w !== '' && strlen($cini) < 2) $cini .= mb_strtoupper(mb_substr($w, 0, 1)); }
+        $chs = flr_headshot_url((string)($f['email'] ?? ''), ''); $caddr = trim(trim((string)($f['street_address'] ?? '')) . ', ' . trim((string)($f['city'] ?? '')) . ' ' . trim((string)($f['state'] ?? '')) . ' ' . trim((string)($f['zip'] ?? '')), ' ,'); ?>
+    <style>.arcard{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,var(--teal-dark),var(--teal));color:#fff;border-radius:16px;padding:18px 20px;margin:0 0 16px;box-shadow:0 6px 18px rgba(2,84,87,.28)}
+    .arcard .av{width:92px;height:92px;border-radius:50%;background:#fff;color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:700;overflow:hidden;flex:none;border:3px solid rgba(255,255,255,.85);position:relative}.arcard .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .arcard .tx{flex:1;min-width:230px}.arcard h2{margin:0 0 2px;font-size:1.45rem;color:#fff}.arcard .sub{opacity:.9;font-size:.92rem;margin:0 0 6px}.arcard .ln{font-size:.92rem;margin:2px 0}.arcard a{color:#fff}
+    .arcard .st{display:inline-block;font-size:.75rem;padding:2px 10px;border-radius:99px;background:rgba(255,255,255,.2);margin-left:8px;vertical-align:middle}.arcard .ed{background:#fff;color:var(--teal-dark);border:0;border-radius:10px;padding:9px 18px;font:inherit;font-weight:600;cursor:pointer}</style>
+    <div class="arcard" id="arcard"><div class="av"><span><?= htmlspecialchars($cini) ?></span><?php if ($chs !== ''): ?><img src="<?= htmlspecialchars($chs) ?>" alt="" onerror="this.remove()"><?php endif; ?></div>
+      <div class="tx"><h2><?= htmlspecialchars($cn) ?><span class="st"><?= htmlspecialchars((string)($f['status'] ?? '')) ?></span></h2>
+        <p class="sub"><?= htmlspecialchars((string)($f['agent_id'] ?? $id)) ?><?= !empty($f['office']) ? ' &middot; ' . htmlspecialchars($f['office']) : '' ?><?= !empty($f['team_and_team_leader']) ? ' &middot; ' . htmlspecialchars($f['team_and_team_leader']) : '' ?></p>
+        <?php if (!empty($f['phone'])): ?><div class="ln"><a href="tel:<?= htmlspecialchars(preg_replace('/[^0-9+]/', '', $f['phone'])) ?>"><?= htmlspecialchars($f['phone']) ?></a></div><?php endif; ?>
+        <?php if (!empty($f['email'])): ?><div class="ln"><a href="mailto:<?= htmlspecialchars($f['email']) ?>"><?= htmlspecialchars($f['email']) ?></a></div><?php endif; ?>
+        <?php if ($caddr !== ''): ?><div class="ln"><?= htmlspecialchars($caddr) ?></div><?php endif; ?></div>
+      <button type="button" class="ed" onclick="var g=document.getElementById('idfs');g.hidden=!g.hidden;this.textContent=g.hidden?'Edit':'Close editor';if(!g.hidden)g.scrollIntoView({behavior:'smooth',block:'nearest'});">Edit</button></div>
+    <?php endif; ?>
     <?php foreach (AR_GROUPS as $group => $keys): ?>
-    <fieldset class="wq"><legend><?= htmlspecialchars($group) ?></legend>
+    <fieldset class="wq"<?= (!$isNew && $group === 'Identity') ? ($err ? ' id="idfs"' : ' id="idfs" hidden') : '' ?>><legend><?= htmlspecialchars($group) ?></legend>
       <div class="grid2">
       <?php foreach ($keys as $k):
           $label = AR_FIELDS[$k]; ?>
